@@ -13,7 +13,7 @@ export default async function handler(req: Request) {
     });
   }
 
-  const apiKey = process.env.VITE_KINOPOISK_API_KEY;
+  const apiKey = process.env.KINOPOISK_API_KEY;
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: "Kinopoisk API key not configured on server" }),
