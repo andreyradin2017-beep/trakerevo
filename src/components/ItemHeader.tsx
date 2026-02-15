@@ -74,6 +74,8 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             <img
               src={image}
               alt={title}
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
                 const fallback = e.currentTarget.parentElement?.querySelector(

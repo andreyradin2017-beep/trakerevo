@@ -158,6 +158,8 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           <img
             src={item.image}
             alt={item.title}
+            loading="lazy"
+            decoding="async"
             onError={(e) => {
               e.currentTarget.style.display = "none";
               const fallback = e.currentTarget.parentElement?.querySelector(
