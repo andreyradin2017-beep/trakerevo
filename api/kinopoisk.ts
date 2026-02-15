@@ -1,27 +1,17 @@
-export const config = {
-  runtime: "nodejs",
-};
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: Request) {
-  const url = new URL(req.url);
-  const path = url.searchParams.get("path");
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const { path, ...otherParams } = req.query;
 
-  if (!path) {
-    return new Response(JSON.stringify({ error: "Missing path parameter" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Missing path parameter" });
   }
 
   const apiKey = process.env.KINOPOISK_API_KEY;
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "Kinopoisk API key not configured on server" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return res.status(500).json({
+      error: "Kinopoisk API key not configured on server",
+    });
   }
 
   // Build the Kinopoisk API URL
@@ -29,35 +19,30 @@ export default async function handler(req: Request) {
   const kpUrl = new URL(`https://api.kinopoisk.dev/v1.4${path}`);
 
   // Forward all other query parameters
-  url.searchParams.forEach((value, key) => {
-    if (key !== "path") {
+  Object.entries(otherParams).forEach(([key, value]) => {
+    if (typeof value === "string") {
       kpUrl.searchParams.append(key, value);
+    } else if (Array.isArray(value)) {
+      value.forEach((v) => kpUrl.searchParams.append(key, v));
     }
   });
 
   try {
     const response = await fetch(kpUrl.toString(), {
-      method: req.method,
+      method: req.method || "GET",
       headers: {
         "X-API-KEY": apiKey,
         "Content-Type": "application/json",
       },
-      // Note: For GET requests, we don't send a body
     });
 
     const data = await response.json();
 
-    return new Response(JSON.stringify(data), {
-      status: response.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // Enable CORS for this proxy
-      },
-    });
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
+    return res.status(response.status).json(data);
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(500).json({ error: err.message });
   }
 }
