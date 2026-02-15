@@ -17,15 +17,31 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
   if (!apiKey) return [];
 
   try {
-    const response = await axios.get(`${KINOPOISK_BASE_URL}/movie/search`, {
-      headers: {
-        "X-API-KEY": apiKey,
-      },
-      params: {
-        query: query,
-        limit: 10,
-      },
-    });
+    let response;
+    // If we have a user key, we can call directly (but might still have CORS)
+    // Actually, better to always use proxy in production if possible to avoid CORS
+    const isProd = import.meta.env.PROD;
+
+    if (isProd && !settingsKey?.value) {
+      response = await axios.get("/api/kinopoisk", {
+        params: {
+          path: "/movie/search",
+          query: query,
+          limit: 10,
+        },
+      });
+    } else {
+      response = await axios.get(`${KINOPOISK_BASE_URL}/movie/search`, {
+        headers: {
+          "X-API-KEY": apiKey,
+        },
+        params: {
+          query: query,
+          limit: 10,
+        },
+        timeout: 10000,
+      });
+    }
 
     if (!response.data || !response.data.docs) {
       return [];
@@ -55,13 +71,25 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
 };
 export const getKinopoiskDetails = async (id: string): Promise<any> => {
   const settingsKey = await db.settings.get("kinopoisk_key");
-  let apiKey = settingsKey?.value || import.meta.env.VITE_KINOPOISK_API_KEY;
+  const apiKey = settingsKey?.value || import.meta.env.VITE_KINOPOISK_API_KEY;
   if (!apiKey) return null;
 
   try {
-    const response = await axios.get(`${KINOPOISK_BASE_URL}/movie/${id}`, {
-      headers: { "X-API-KEY": apiKey },
-    });
+    let response;
+    const isProd = import.meta.env.PROD;
+
+    if (isProd && !settingsKey?.value) {
+      response = await axios.get("/api/kinopoisk", {
+        params: {
+          path: `/movie/${id}`,
+        },
+      });
+    } else {
+      response = await axios.get(`${KINOPOISK_BASE_URL}/movie/${id}`, {
+        headers: { "X-API-KEY": apiKey },
+        timeout: 10000,
+      });
+    }
 
     const data = response.data;
 

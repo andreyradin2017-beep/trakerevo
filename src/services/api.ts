@@ -98,7 +98,7 @@ export const getDetails = async (item: Item): Promise<any> => {
   try {
     // Add a timeout race to prevent infinite loading
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 5000),
+      setTimeout(() => reject(new Error("Request timed out")), 12000),
     );
 
     const fetchPromise = (async () => {
