@@ -1,0 +1,432 @@
+import React, { useState } from "react";
+import {
+  Search as SearchIcon,
+  Library,
+  Globe,
+  X,
+  History,
+  Trash2,
+} from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { searchAll, searchByCategory } from "../services/api";
+import { useLiveQuery } from "dexie-react-hooks";
+import type { Item } from "../types";
+import { db } from "../db/db";
+import { GridCard } from "../components/GridCard";
+import { SkeletonCard } from "../components/SkeletonCard";
+import {
+  CategorySelector,
+  type Category,
+} from "../components/CategorySelector";
+import { PageHeader } from "../components/PageHeader";
+import { motion, AnimatePresence } from "framer-motion";
+
+import { useLibrarySearch } from "../hooks/useItems";
+
+export const Search: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get("category");
+
+  const [query, setQuery] = useState("");
+  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchMode, setSearchMode] = useState<"global" | "library">("global");
+
+  const currentCategory = (categoryParam as Category) || "all";
+
+  // Hook handles all library search logic reactively
+  const libraryResults = useLibrarySearch(query, currentCategory);
+
+  // Unified results based on active mode
+  const results =
+    searchMode === "library" ? libraryResults || [] : globalResults;
+
+  // Get search history from DB
+  const searchHistory = useLiveQuery(
+    () => db.search_history.reverse().limit(10).toArray(),
+    [],
+  );
+
+  const handleSearch = async (
+    targetQuery: string = query,
+    e?: React.FormEvent,
+  ) => {
+    if (e) e.preventDefault();
+    const trimmedQuery = targetQuery.trim().toLowerCase();
+
+    // Library search is handled by the hook, so we only need to handle global search here
+    if (searchMode === "library") return;
+
+    if (!trimmedQuery) {
+      setGlobalResults([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Remote Search (TMDB/etc)
+      let data: any[];
+      if (currentCategory === "all") {
+        data = await searchAll(trimmedQuery);
+      } else {
+        data = await searchByCategory(trimmedQuery, currentCategory);
+      }
+
+      // Check which results are already in DB
+      const externalIds = data.map((i) => i.externalId).filter(Boolean);
+      const existingItems = await db.items
+        .where("externalId")
+        .anyOf(externalIds)
+        .toArray();
+
+      const existingMap = new Map();
+      existingItems.forEach((item) => {
+        if (item.externalId)
+          existingMap.set(item.externalId + item.source, item);
+      });
+
+      const processedResults = data.map((item) => {
+        const existing = existingMap.get(
+          (item.externalId || "") + (item.source || ""),
+        );
+        if (existing) {
+          return { ...item, ...existing, isOwned: true };
+        }
+        return item;
+      });
+      setGlobalResults(processedResults);
+
+      // Save to history if query is not empty
+      if (trimmedQuery) {
+        await db.search_history.put({
+          query: trimmedQuery,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-search logic is now simplified or removed since library search is reactive
+  // and global search is manual or triggered by specific events if desired.
+  // For now, we keep manual trigger for global to save API calls.
+
+  const handleAdd = async (item: any) => {
+    if (item.isOwned && item.id) {
+      navigate(`/item/${item.id}`);
+      return;
+    }
+
+    const newItem = {
+      ...item,
+      status: "planned",
+      tags: item.tags || [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Item;
+
+    const id = await db.items.add(newItem);
+
+    // Update global results state to show "Owned" immediately if we are in global mode
+    if (searchMode === "global") {
+      setGlobalResults((prev) =>
+        prev.map((r) => {
+          if (r.externalId === item.externalId && r.source === item.source) {
+            return { ...r, ...newItem, id, isOwned: true };
+          }
+          return r;
+        }),
+      );
+    }
+
+    navigate(`/item/${id}`);
+  };
+
+  const clearHistory = async () => {
+    await db.search_history.clear();
+  };
+
+  const removeHistoryItem = async (q: string) => {
+    await db.search_history.delete(q);
+  };
+
+  return (
+    <div style={{ paddingBottom: "2rem" }}>
+      <PageHeader title="Поиск" showBack />
+
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          alignItems: "center",
+          marginBottom: "1.25rem",
+        }}
+      >
+        <CategorySelector
+          activeCategory={currentCategory}
+          onCategoryChange={(cat) => {
+            if (cat === "all") {
+              searchParams.delete("category");
+            } else {
+              searchParams.set("category", cat);
+            }
+            setSearchParams(searchParams);
+            // handleSearch is now triggered by useEffect
+          }}
+          style={{ flex: 1, marginBottom: 0 }}
+        />
+      </div>
+
+      {/* Mode Toggle */}
+      <div
+        style={{
+          display: "flex",
+          background: "var(--bg-surface)",
+          padding: "4px",
+          borderRadius: "12px",
+          marginBottom: "1.25rem",
+          border: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        <button
+          onClick={() => setSearchMode("global")}
+          style={{
+            flex: 1,
+            padding: "0.6rem",
+            borderRadius: "8px",
+            border: "none",
+            background:
+              searchMode === "global"
+                ? "rgba(139, 92, 246, 0.2)"
+                : "transparent",
+            color:
+              searchMode === "global"
+                ? "var(--primary)"
+                : "var(--text-tertiary)",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.4rem",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          <Globe size={14} /> Глобальный
+        </button>
+        <button
+          onClick={() => setSearchMode("library")}
+          style={{
+            flex: 1,
+            padding: "0.6rem",
+            borderRadius: "8px",
+            border: "none",
+            background:
+              searchMode === "library"
+                ? "rgba(52, 211, 153, 0.2)"
+                : "transparent",
+            color:
+              searchMode === "library"
+                ? "var(--success)"
+                : "var(--text-tertiary)",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.4rem",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          <Library size={14} /> Моя библиотека
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <form
+        onSubmit={(e) => handleSearch(query, e)}
+        style={{ position: "relative", marginBottom: "1rem" }}
+      >
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={
+            searchMode === "global"
+              ? "Что ищем в интернете?"
+              : "Поиск в моей коллекции"
+          }
+          style={{
+            width: "100%",
+            padding: "0.85rem 1rem 0.85rem 3rem",
+            borderRadius: "var(--radius-lg)",
+            fontSize: "1rem",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--text-primary)",
+            outline: "none",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          }}
+        />
+        <SearchIcon
+          size={20}
+          style={{
+            position: "absolute",
+            left: "1rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--text-tertiary)",
+          }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setGlobalResults([]);
+            }}
+            style={{
+              position: "absolute",
+              right: "1rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              color: "var(--text-tertiary)",
+              cursor: "pointer",
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
+      </form>
+
+      {/* History Section */}
+      {!query &&
+        !loading &&
+        searchMode === "global" &&
+        searchHistory &&
+        searchHistory.length > 0 && (
+          <div style={{ marginBottom: "2rem" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  color: "var(--text-tertiary)",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                <History size={12} /> Недавнее
+              </div>
+              <button
+                onClick={clearHistory}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-tertiary)",
+                  fontSize: "0.7rem",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {searchHistory.map((h) => (
+                <motion.div
+                  key={h.query}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    background: "rgba(255,255,255,0.05)",
+                    padding: "0.4rem 0.6rem",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <span
+                    onClick={() => {
+                      setQuery(h.query);
+                      handleSearch(h.query);
+                    }}
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    {h.query}
+                  </span>
+                  <X
+                    size={12}
+                    color="var(--text-tertiary)"
+                    onClick={() => removeHistoryItem(h.query)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Results Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: "0.75rem",
+        }}
+      >
+        <AnimatePresence mode="popLayout">
+          {loading
+            ? [1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)
+            : results.map((item, idx) => (
+                <GridCard
+                  key={item.externalId || item.id || idx}
+                  item={item as Item}
+                  index={idx}
+                  onClick={() => handleAdd(item)}
+                />
+              ))}
+        </AnimatePresence>
+      </div>
+
+      {!loading && results.length === 0 && query && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem 1rem",
+            color: "var(--text-tertiary)",
+          }}
+        >
+          <SearchIcon
+            size={48}
+            style={{ opacity: 0.1, marginBottom: "1rem" }}
+          />
+          <p style={{ fontSize: "0.9rem" }}>Ничего не нашли...</p>
+        </div>
+      )}
+    </div>
+  );
+};

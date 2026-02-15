@@ -1,0 +1,71 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 600px;
+    /* Mobile-first constraint */
+    margin: 0 auto;
+    background-color: var(--bg-app);
+    position: relative;
+}
+
+.main {
+    flex: 1;
+    padding: var(--space-md);
+    padding-bottom: 80px;
+    /* Space for bottom nav */
+    width: 100%;
+    /* Ensure positioning context for popLayout animations */
+}
+
+.bottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    background: rgba(24, 24, 27, 0.8);
+    /* Glassmorphism */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-around;
+    padding: var(--space-sm) var(--space-md);
+    padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+    z-index: 50;
+}
+
+.navItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    gap: 4px;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 64px;
+}
+
+.navItem.active {
+    color: var(--primary);
+}
+
+.navItem.active svg {
+    stroke: var(--primary);
+    filter: drop-shadow(0 0 8px var(--primary-glow));
+}
+
+.navItem svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2px;
+    transition: all 0.2s var(--ease-spring);
+}
