@@ -74,7 +74,14 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
       }}
     >
       {/* Thumbnail */}
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div
+        style={{
+          position: "relative",
+          flexShrink: 0,
+          width: "40px",
+          height: "60px",
+        }}
+      >
         {proxiedImage ? (
           <img
             src={item.image}
@@ -87,6 +94,7 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
               objectFit: "cover",
               borderRadius: "4px",
               boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              display: "block",
             }}
           />
         ) : (
