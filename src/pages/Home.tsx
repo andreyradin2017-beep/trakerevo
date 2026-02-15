@@ -19,8 +19,6 @@ import {
 import { PageHeader } from "../components/PageHeader";
 import type { Item } from "../types";
 import { vibrate } from "../utils/haptics";
-import { useStreaks } from "../hooks/useStreaks";
-import { StreakCounter } from "../components/StreakCounter";
 import { triggerAutoSync } from "../services/dbSync";
 import {
   ConfirmDialog,
@@ -32,13 +30,15 @@ import {
   type StatusFilterType,
 } from "../components/StatusFilter";
 import {
-  Check,
-  Clock,
-  Archive as ArchiveIcon,
-  Trash2,
   PlayCircle,
   XCircle,
+  Dices,
+  Check,
+  Clock,
+  Trash2,
+  Archive as ArchiveIcon,
 } from "lucide-react";
+import { UpcomingCarousel } from "../components/UpcomingCarousel";
 import type { ItemStatus } from "../types";
 
 const UserLists: React.FC<{ onAdd: () => void }> = ({ onAdd }) => {
@@ -264,7 +264,6 @@ export const Home: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const navigate = useNavigate();
   const stats = useCategoryStats();
-  const { currentStreak, showFireAnimation } = useStreaks();
 
   // Dialog States
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
@@ -331,10 +330,28 @@ export const Home: React.FC = () => {
               <div
                 style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
               >
-                <StreakCounter
-                  streak={currentStreak}
-                  showAnimation={showFireAnimation}
-                />
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    vibrate("medium");
+                    navigate("/random");
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "10px",
+                    width: "36px",
+                    height: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "var(--text-secondary)",
+                  }}
+                  title="Мне повезет"
+                >
+                  <Dices size={20} />
+                </motion.button>
                 <ThemeToggle />
                 <motion.button
                   whileTap={{ scale: 0.9 }}
@@ -364,6 +381,8 @@ export const Home: React.FC = () => {
               padding: "0.25rem 0",
             }}
           />
+
+          {activeCategory === "all" && <UpcomingCarousel />}
 
           <CategorySelector
             activeCategory={activeCategory}

@@ -1,23 +1,17 @@
-/**
- * Checks if a URL is a TMDB image and proxies it if we are in production
- */
 export const getProxiedImageUrl = (
   url: string | undefined,
 ): string | undefined => {
   if (!url) return url;
 
-  const isProd = import.meta.env.PROD;
-  const tmdbHost = "image.tmdb.org/t/p";
+  // Avoid double proxying if the URL is already using wsrv.nl
+  if (url.includes("wsrv.nl")) {
+    return url;
+  }
 
-  if (isProd && url.includes(tmdbHost)) {
-    try {
-      const path = url.split(tmdbHost)[1];
-      if (path) {
-        return `/api/tmdb-image?path=${encodeURIComponent(path)}`;
-      }
-    } catch (e) {
-      console.error("Error proxying TMDB image:", e);
-    }
+  // Use wsrv.nl to proxy images (bypasses TMDB blocks in RU and handles CORS)
+  // This works both locally and in production without needing our own API route
+  if (url.includes("image.tmdb.org")) {
+    return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
   }
 
   return url;

@@ -24,6 +24,7 @@ export interface Item {
   // API Metadata
   trailerUrl?: string;
   watchProviders?: { name: string; logo: string; url?: string }[];
+  releaseDate?: Date; // Release date for upcoming content
   relatedExternalIds?: string[];
 
   notes?: string;

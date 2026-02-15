@@ -1,14 +1,14 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Search, Shuffle, User } from "lucide-react";
+import { Home, Search, Compass, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { selectionChanged } from "../utils/haptics";
 
 export const BottomNav: React.FC = () => {
   const navItems = [
     { path: "/", icon: <Home size={22} />, label: "Home" },
+    { path: "/discover", icon: <Compass size={22} />, label: "Открытия" },
     { path: "/search", icon: <Search size={22} />, label: "Поиск" },
-    { path: "/random", icon: <Shuffle size={22} />, label: "Удача" },
     { path: "/settings", icon: <User size={22} />, label: "Профиль" },
   ];
 

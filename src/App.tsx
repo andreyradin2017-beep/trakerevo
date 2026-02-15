@@ -32,6 +32,9 @@ const Archive = lazy(() =>
 const Stats = lazy(() =>
   import("./pages/Stats").then((module) => ({ default: module.Stats })),
 );
+const Discover = lazy(() =>
+  import("./pages/Discover").then((module) => ({ default: module.Discover })),
+);
 
 const PageLoader = () => (
   <div
@@ -66,6 +69,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="archive" element={<Archive />} />
             <Route path="stats" element={<Stats />} />
+            <Route path="discover" element={<Discover />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

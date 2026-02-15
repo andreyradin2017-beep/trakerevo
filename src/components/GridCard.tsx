@@ -4,6 +4,7 @@ import { Film, Gamepad2, BookOpen, Plus, Activity } from "lucide-react";
 import { getProxiedImageUrl } from "../utils/images";
 import type { Item } from "../types";
 import { vibrate } from "../utils/haptics";
+import { CountdownBadge } from "./CountdownBadge";
 
 interface GridCardProps {
   item?: Item & { isOwned?: boolean };
@@ -308,6 +309,14 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           >
             {sourceInfo.label}
           </div>
+        )}
+
+        {/* Countdown Badge for future releases */}
+        {item.releaseDate && new Date(item.releaseDate) > new Date() && (
+          <CountdownBadge
+            releaseDate={new Date(item.releaseDate).toISOString()}
+            compact
+          />
         )}
       </div>
 
