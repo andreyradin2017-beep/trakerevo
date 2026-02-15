@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
 export const config = {
-  runtime: "edge",
+  // Use Node.js runtime to support standard crypto module
+  runtime: "nodejs",
 };
 
 export default async function handler(req: Request) {
@@ -38,7 +39,7 @@ export default async function handler(req: Request) {
     // Verify Telegram Hash
     const checkString = Object.keys(data)
       .sort()
-      .map((key) => `${key}=${data[key]}`)
+      .map((key) => `${key}=${(data as Record<string, any>)[key]}`)
       .join("\n");
 
     const secretKey = crypto.createHash("sha256").update(botToken).digest();
@@ -75,33 +76,32 @@ export default async function handler(req: Request) {
       },
     });
 
-    const telegramId = data.id.toString();
+    const telegramId = (data as any).id.toString();
     const email = `${telegramId}@telegram.org`;
     const password = crypto
       .createHash("sha256")
       .update(telegramId + botToken)
       .digest("hex");
 
-    // Try to create user (it will fail if exists, which is fine)
-    const { data: newUser, error: createError } =
-      await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          telegram_id: telegramId,
-          full_name: `${data.first_name}${
-            data.last_name ? " " + data.last_name : ""
-          }`,
-          avatar_url: data.photo_url,
-          username: data.username,
-        },
-      });
+    // Try to create user
+    const { error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        telegram_id: telegramId,
+        full_name: `${(data as any).first_name}${
+          (data as any).last_name ? " " + (data as any).last_name : ""
+        }`,
+        avatar_url: (data as any).photo_url,
+        username: (data as any).username,
+      },
+    });
 
-    // If user exists, we get an error, but we can still sign in
-    if (createError && createError.message !== "User already registered") {
-      // Check if it's really the "already exists" error
-      // supabase-js error message might vary, let's just try to sign in anyway
+    // If user already exists, we ignore the error and proceed to sign in
+    if (createError && !createError.message.includes("already registered")) {
+      // Log unexpected errors but try to sign in anyway
+      console.error("Create user error:", createError.message);
     }
 
     // Now sign in the user to get a session
@@ -122,8 +122,9 @@ export default async function handler(req: Request) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
