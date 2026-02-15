@@ -7,8 +7,8 @@ import { selectionChanged } from "../utils/haptics";
 export const BottomNav: React.FC = () => {
   const navItems = [
     { path: "/", icon: <Home size={22} />, label: "Home" },
-    { path: "/discover", icon: <Compass size={22} />, label: "Открытия" },
     { path: "/search", icon: <Search size={22} />, label: "Поиск" },
+    { path: "/discover", icon: <Compass size={22} />, label: "Открытия" },
     { path: "/settings", icon: <User size={22} />, label: "Профиль" },
   ];
 

@@ -382,7 +382,7 @@ export const Home: React.FC = () => {
             }}
           />
 
-          {activeCategory === "all" && <UpcomingCarousel />}
+          <UpcomingCarousel />
 
           <CategorySelector
             activeCategory={activeCategory}
@@ -395,7 +395,7 @@ export const Home: React.FC = () => {
             onStatusChange={setStatusFilter}
           />
 
-          {activeCategory === "all" && statusFilter === "all" && (
+          {statusFilter === "all" && (
             <div style={{ marginBottom: "1.25rem" }}>
               <UserLists onAdd={() => setIsListDialogOpen(true)} />
             </div>
@@ -425,38 +425,36 @@ export const Home: React.FC = () => {
             />
           </div>
 
-          {activeCategory === "all" && (
+          <div
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+              paddingTop: "1.5rem",
+            }}
+          >
             <div
               style={{
-                borderTop: "1px solid rgba(255,255,255,0.05)",
-                paddingTop: "1.5rem",
+                display: "grid",
+                gap: "0.5rem",
+                gridTemplateColumns: "repeat(3, 1fr)",
               }}
             >
-              <div
-                style={{
-                  display: "grid",
-                  gap: "0.5rem",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                }}
-              >
-                <StatCard
-                  title="Планы"
-                  count={stats?.planned ?? 0}
-                  color="var(--text-secondary)"
-                />
-                <StatCard
-                  title="Прогресс"
-                  count={stats?.inProgress ?? 0}
-                  color="var(--primary)"
-                />
-                <StatCard
-                  title="Готово"
-                  count={stats?.completed ?? 0}
-                  color="var(--success)"
-                />
-              </div>
+              <StatCard
+                title="Планы"
+                count={stats?.planned ?? 0}
+                color="var(--text-secondary)"
+              />
+              <StatCard
+                title="Прогресс"
+                count={stats?.inProgress ?? 0}
+                color="var(--primary)"
+              />
+              <StatCard
+                title="Готово"
+                count={stats?.completed ?? 0}
+                color="var(--success)"
+              />
             </div>
-          )}
+          </div>
         </div>
         {/* Dialogs */}
         <InputDialog
