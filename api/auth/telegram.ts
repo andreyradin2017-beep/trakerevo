@@ -1,39 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export const config = {
-  // Use Node.js runtime to support standard crypto module
   runtime: "nodejs",
 };
 
-export default async function handler(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const body = await req.json();
-    const { hash, ...data } = body;
+    const { hash, ...data } = req.body;
 
     if (!hash) {
-      return new Response(JSON.stringify({ error: "Missing hash" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return res.status(400).json({ error: "Missing hash" });
     }
 
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return res.status(500).json({ error: "Server configuration error" });
     }
 
     // Verify Telegram Hash
@@ -49,10 +36,7 @@ export default async function handler(req: Request) {
       .digest("hex");
 
     if (hmac !== hash) {
-      return new Response(JSON.stringify({ error: "Invalid hash" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+      return res.status(401).json({ error: "Invalid hash" });
     }
 
     // Hash is valid!
@@ -60,13 +44,7 @@ export default async function handler(req: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      return new Response(
-        JSON.stringify({ error: "Supabase configuration error" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return res.status(500).json({ error: "Supabase configuration error" });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -100,7 +78,6 @@ export default async function handler(req: Request) {
 
     // If user already exists, we ignore the error and proceed to sign in
     if (createError && !createError.message.includes("already registered")) {
-      // Log unexpected errors but try to sign in anyway
       console.error("Create user error:", createError.message);
     }
 
@@ -112,21 +89,12 @@ export default async function handler(req: Request) {
       });
 
     if (signInError) {
-      return new Response(JSON.stringify({ error: signInError.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return res.status(500).json({ error: signInError.message });
     }
 
-    return new Response(JSON.stringify({ session: sessionData.session }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(200).json({ session: sessionData.session });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(500).json({ error: message });
   }
 }

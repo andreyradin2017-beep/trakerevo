@@ -288,7 +288,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     }}
                   >
                     <TelegramLogin
-                      botName="TrakerEvoBot"
+                      botName={
+                        import.meta.env.VITE_TELEGRAM_BOT_NAME || "TrakerEvoBot"
+                      }
                       onAuth={handleTelegramAuth}
                       buttonSize="large"
                       cornerRadius={12}

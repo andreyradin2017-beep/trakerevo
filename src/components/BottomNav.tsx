@@ -67,8 +67,11 @@ export const BottomNav: React.FC = () => {
                 />
               )}
               {item.icon}
-              {/* Optional: Add labels if desired, or keep minimal with just icons for cleaner look */}
-              {/* <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>{item.label}</span> */}
+              <span
+                style={{ fontSize: "0.6rem", fontWeight: 600, opacity: 0.85 }}
+              >
+                {item.label}
+              </span>
             </>
           )}
         </NavLink>

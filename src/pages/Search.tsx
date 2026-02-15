@@ -34,7 +34,10 @@ export const Search: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<"global" | "library">("global");
 
-  const currentCategory = (categoryParam as Category) || "all";
+  const currentCategory =
+    (categoryParam as Category) ||
+    (localStorage.getItem("lastSearchCategory") as Category) ||
+    "all";
 
   // Hook handles all library search logic reactively
   const libraryResults = useLibrarySearch(query, currentCategory);
@@ -183,13 +186,13 @@ export const Search: React.FC = () => {
         <CategorySelector
           activeCategory={currentCategory}
           onCategoryChange={(cat) => {
+            localStorage.setItem("lastSearchCategory", cat);
             if (cat === "all") {
               searchParams.delete("category");
             } else {
               searchParams.set("category", cat);
             }
             setSearchParams(searchParams);
-            // handleSearch is now triggered by useEffect
           }}
           style={{ flex: 1, marginBottom: 0 }}
         />

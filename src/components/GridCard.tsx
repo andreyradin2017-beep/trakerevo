@@ -9,6 +9,7 @@ interface GridCardProps {
   item?: Item & { isOwned?: boolean };
   isAddCard?: boolean;
   onClick: () => void;
+  onLongPress?: () => void;
   index?: number;
 }
 
@@ -30,9 +31,45 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
   item,
   isAddCard,
   onClick,
+  onLongPress,
   index = 0,
   enableMotion = true,
 }) => {
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggered = React.useRef(false);
+
+  // Default long press duration
+  const LONG_PRESS_DURATION = 500;
+
+  const handlePressStart = () => {
+    isLongPressTriggered.current = false;
+    timerRef.current = setTimeout(() => {
+      if (onLongPress) {
+        vibrate("medium");
+        onLongPress();
+        isLongPressTriggered.current = true;
+      }
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePressEnd = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleClick = (e: any) => {
+    if (isLongPressTriggered.current) {
+      // Prevent click if long press happened
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+    vibrate("light");
+    onClick();
+  };
+
   if (isAddCard) {
     return (
       <motion.div
@@ -41,10 +78,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         animate={enableMotion ? "visible" : undefined}
         custom={index}
         whileTap={{ scale: 0.95 }}
-        onClick={() => {
-          vibrate("light");
-          onClick();
-        }}
+        onClick={handleClick}
         role="button"
         aria-label="Добавить новый элемент"
         tabIndex={0}
@@ -124,10 +158,12 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
       animate={enableMotion ? "visible" : undefined}
       custom={index}
       whileTap={{ scale: 0.95 }}
-      onClick={() => {
-        vibrate("light");
-        onClick();
-      }}
+      onClick={handleClick}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
       role="button"
       aria-label={`Открыть детали: ${item?.title}`}
       tabIndex={0}
@@ -293,32 +329,51 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         {getTypeIcon()}
       </div>
 
-      {/* Progress Bar (Bottom Edge) */}
-      {item.status === "in_progress" &&
-        item.progress !== undefined &&
-        item.totalProgress &&
-        item.totalProgress > 0 && (
+      {/* Status Color Bar (Bottom Edge) */}
+      {(() => {
+        const statusBarColors: Record<string, string> = {
+          completed: "var(--success)",
+          in_progress: "var(--primary)",
+          planned: "rgba(255,255,255,0.15)",
+          dropped: "var(--error)",
+        };
+        const barColor =
+          statusBarColors[item.status] || "rgba(255,255,255,0.1)";
+        const hasProgress =
+          item.status === "in_progress" &&
+          item.progress !== undefined &&
+          item.totalProgress &&
+          item.totalProgress > 0;
+        const progressPct = hasProgress
+          ? Math.min((item.progress! / item.totalProgress!) * 100, 100)
+          : 0;
+
+        return (
           <div
             style={{
               position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
-              height: "3px",
-              background: "rgba(0,0,0,0.5)",
+              height: hasProgress ? "4px" : "3px",
+              background: hasProgress ? "rgba(0,0,0,0.5)" : barColor,
               zIndex: 3,
             }}
           >
-            <div
-              style={{
-                width: `${Math.min((item.progress / item.totalProgress) * 100, 100)}%`,
-                height: "100%",
-                background: "var(--primary)",
-                boxShadow: "0 0 10px var(--primary)",
-              }}
-            />
+            {hasProgress && (
+              <div
+                style={{
+                  width: `${progressPct}%`,
+                  height: "100%",
+                  background: "var(--primary)",
+                  boxShadow: "0 0 10px var(--primary)",
+                  transition: "width 0.3s ease",
+                }}
+              />
+            )}
           </div>
-        )}
+        );
+      })()}
 
       {/* Title Overlay */}
       <div
