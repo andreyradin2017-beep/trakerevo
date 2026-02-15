@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Film, Gamepad2, BookOpen, Plus, Activity } from "lucide-react";
+import { getProxiedImageUrl } from "../utils/images";
 import type { Item } from "../types";
 import { vibrate } from "../utils/haptics";
 
@@ -155,7 +156,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
       {item.image ? (
         <>
           <img
-            src={item.image}
+            src={getProxiedImageUrl(item.image)}
             alt={item.title}
             loading="lazy"
             decoding="async"

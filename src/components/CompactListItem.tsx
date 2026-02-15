@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronRight, Film, Gamepad2, BookOpen, Activity } from "lucide-react";
+import { getProxiedImageUrl } from "../utils/images";
 import type { Item } from "../types";
 import { motion } from "framer-motion";
 
@@ -14,6 +15,7 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
   onClick,
   style,
 }) => {
+  const proxiedImage = getProxiedImageUrl(item.image);
   const getTypeColor = () => {
     switch (item.type) {
       case "movie":
@@ -73,9 +75,9 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
     >
       {/* Thumbnail */}
       <div style={{ position: "relative", flexShrink: 0 }}>
-        {item.image ? (
+        {proxiedImage ? (
           <img
-            src={item.image}
+            src={proxiedImage}
             alt={item.title}
             style={{
               width: "40px",

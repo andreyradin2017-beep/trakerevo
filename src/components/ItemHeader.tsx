@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Play } from "lucide-react";
+import { getProxiedImageUrl } from "../utils/images";
 
 interface ItemHeaderProps {
   title: string;
@@ -21,6 +22,8 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
   onBack,
   onShowTrailer,
 }) => {
+  const proxiedImage = getProxiedImageUrl(image);
+
   return (
     <>
       <div
@@ -62,7 +65,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
           marginBottom: "1.25rem",
         }}
       >
-        {image && (
+        {proxiedImage && (
           <div
             style={{
               height: "220px",
@@ -72,7 +75,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             }}
           >
             <img
-              src={image}
+              src={proxiedImage}
               alt={title}
               loading="lazy"
               decoding="async"
