@@ -94,24 +94,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     if (item.isOwned) {
       return { label: "В коллекции", color: "var(--success)", pulse: false };
     }
-    switch (item.status) {
-      case "in_progress":
-        return {
-          label:
-            item.type === "movie"
-              ? "Смотрю"
-              : item.type === "game"
-                ? "Играю"
-                : "Читаю",
-          color: "var(--primary)",
-          pulse: true,
-        };
-      case "completed":
-        return { label: "Готово", color: "var(--success)", pulse: false };
-      case "planned":
-      default:
-        return { label: "Буду", color: "rgba(255,255,255,0.4)", pulse: false };
-    }
+    return null; // Hide status for unowned items
   };
 
   const statusInfo = getStatusInfo();
@@ -147,7 +130,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         boxShadow: "var(--shadow-lg)",
         background: "var(--bg-surface-hover)",
         cursor: "pointer",
-        border: statusInfo.pulse
+        border: statusInfo?.pulse
           ? "1px solid rgba(var(--primary-rgb), 0.3)"
           : "1px solid rgba(255,255,255,0.05)",
       }}
@@ -208,41 +191,44 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
       )}
 
       {/* Status Badge (Top Left) */}
-      <div
-        style={{
-          position: "absolute",
-          top: "0.4rem",
-          left: "0.4rem",
-          padding: "0.2rem 0.5rem",
-          background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          borderRadius: "var(--radius-sm)",
-          fontSize: "0.6rem",
-          fontWeight: 800,
-          color: statusInfo.color,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          zIndex: 2,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.3rem",
-          border: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
-        {statusInfo.pulse && (
-          <motion.div
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: "50%",
-              background: statusInfo.color,
-            }}
-          />
-        )}
-        {statusInfo.label}
-      </div>
+      {/* Status Badge (Top Left) - Only for owned items */}
+      {statusInfo && (
+        <div
+          style={{
+            position: "absolute",
+            top: "0.4rem",
+            left: "0.4rem",
+            padding: "0.2rem 0.5rem",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "0.6rem",
+            fontWeight: 800,
+            color: statusInfo.color,
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            zIndex: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
+          {statusInfo.pulse && (
+            <motion.div
+              animate={{ opacity: [1, 0.4, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: "50%",
+                background: statusInfo.color,
+              }}
+            />
+          )}
+          {statusInfo.label}
+        </div>
+      )}
 
       {/* Type Indicator (Top Right) */}
       <div
