@@ -94,10 +94,26 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     if (item.isOwned) {
       return { label: "В коллекции", color: "var(--success)", pulse: false };
     }
-    return null; // Hide status for unowned items
+    return null;
+  };
+
+  const getSourceInfo = () => {
+    switch (item.source) {
+      case "kinopoisk":
+        return { label: "КП", color: "#ff6600" };
+      case "tmdb":
+        return { label: "TMDB", color: "#01b4e4" };
+      case "rawg":
+        return { label: "RAWG", color: "#ffffff" };
+      case "google_books":
+        return { label: "BOOKS", color: "#34a853" };
+      default:
+        return null;
+    }
   };
 
   const statusInfo = getStatusInfo();
+  const sourceInfo = getSourceInfo();
 
   return (
     <motion.div
@@ -190,45 +206,70 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         </div>
       )}
 
-      {/* Status Badge (Top Left) */}
-      {/* Status Badge (Top Left) - Only for owned items */}
-      {statusInfo && (
-        <div
-          style={{
-            position: "absolute",
-            top: "0.4rem",
-            left: "0.4rem",
-            padding: "0.2rem 0.5rem",
-            background: "rgba(0,0,0,0.7)",
-            backdropFilter: "blur(8px)",
-            borderRadius: "var(--radius-sm)",
-            fontSize: "0.6rem",
-            fontWeight: 800,
-            color: statusInfo.color,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            zIndex: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: "0.3rem",
-            border: "1px solid rgba(255,255,255,0.1)",
-          }}
-        >
-          {statusInfo.pulse && (
-            <motion.div
-              animate={{ opacity: [1, 0.4, 1] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: "50%",
-                background: statusInfo.color,
-              }}
-            />
-          )}
-          {statusInfo.label}
-        </div>
-      )}
+      {/* Status & Source Badges (Top Left) */}
+      <div
+        style={{
+          position: "absolute",
+          top: "0.4rem",
+          left: "0.4rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.3rem",
+          zIndex: 2,
+        }}
+      >
+        {statusInfo && (
+          <div
+            style={{
+              padding: "0.2rem 0.5rem",
+              background: "rgba(0,0,0,0.7)",
+              backdropFilter: "blur(8px)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "0.6rem",
+              fontWeight: 800,
+              color: statusInfo.color,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            {statusInfo.pulse && (
+              <motion.div
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: "50%",
+                  background: statusInfo.color,
+                }}
+              />
+            )}
+            {statusInfo.label}
+          </div>
+        )}
+
+        {sourceInfo && (
+          <div
+            style={{
+              padding: "0.15rem 0.4rem",
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(8px)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "0.55rem",
+              fontWeight: 900,
+              color: sourceInfo.color,
+              width: "fit-content",
+              border: `1px solid ${sourceInfo.color}44`,
+            }}
+          >
+            {sourceInfo.label}
+          </div>
+        )}
+      </div>
 
       {/* Type Indicator (Top Right) */}
       <div
