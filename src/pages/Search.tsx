@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useLibrarySearch } from "../hooks/useItems";
 import { triggerAutoSync } from "../services/dbSync";
+import { useToast } from "../context/ToastContext";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -133,7 +134,9 @@ export const Search: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
 
-  const handleAdd = async (item: any) => {
+  const { showToast } = useToast();
+
+  const handleAdd = async (item: any, skipNavigation = false) => {
     if (item.isOwned && item.id) {
       navigate(`/item/${item.id}`);
       return;
@@ -161,7 +164,12 @@ export const Search: React.FC = () => {
       );
     }
     triggerAutoSync();
-    navigate(`/item/${id}`);
+
+    if (skipNavigation) {
+      showToast("Добавлено в планы", "success");
+    } else {
+      navigate(`/item/${id}`);
+    }
   };
 
   const clearHistory = async () => {
@@ -441,7 +449,7 @@ export const Search: React.FC = () => {
                       handleAdd(item);
                     }
                   }}
-                  onQuickAdd={() => handleAdd(item)}
+                  onQuickAdd={() => handleAdd(item, true)}
                 />
               ))}
         </AnimatePresence>

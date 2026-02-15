@@ -163,22 +163,23 @@ h6 {
   --bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
 
   /* Darker surfaces for better separation from background */
-  --bg-surface: rgba(255, 255, 255, 0.7);
-  --bg-surface-hover: rgba(255, 255, 255, 0.9);
-  --bg-surface-active: #ffffff;
+  --bg-surface: #ffffff; /* Pure white for better contrast */
+  --bg-surface-hover: #f8fafc;
+  --bg-surface-active: #f1f5f9;
 
   /* Darker borders */
-  --border-glass: 1px solid rgba(0, 0, 0, 0.06);
+  --border-glass: 1px solid rgba(0, 0, 0, 0.08);
 
   --text-primary: #0f172a; /* Slate 900 - Very dark */
   --text-secondary: #334155; /* Slate 700 - Much darker than before */
   --text-tertiary: #64748b; /* Slate 500 - Readable grey */
 
-  --glass-header: rgba(255, 255, 255, 0.9);
+  --glass-header: rgba(255, 255, 255, 0.95);
 
   /* Shadow for cards to pop in light mode */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 15px rgba(139, 92, 246, 0.3);
 }
 
 /* OLED Theme Overrides */

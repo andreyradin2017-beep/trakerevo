@@ -104,7 +104,7 @@ export const Random: React.FC = () => {
             setResult(null);
             setDisplayItem(null);
           }}
-          style={{ marginBottom: "2.5rem" }}
+          style={{ marginBottom: "2.5rem", width: "100%" }}
         />
 
         <p

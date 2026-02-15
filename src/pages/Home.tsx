@@ -235,15 +235,23 @@ const RecentItemsList: React.FC<{
         );
       })}
 
-      {/* Show empty state only if we have items but filter hides them */}
-      {filteredItems?.length === 0 && !showOnboarding && items.length > 0 && (
+      {/* Show empty state only if we have items but filter hides them OR if we are in a category with no items */}
+      {filteredItems?.length === 0 && !showOnboarding && (
         <div style={{ gridColumn: "span 2" }}>
           <EmptyState
-            message="В этой категории пока пусто!"
-            action={{
-              label: "Поиск",
-              onClick: () => navigate("/search"),
-            }}
+            message={
+              statusFilter !== "all"
+                ? "В этом статусе пусто"
+                : "В этой категории пока пусто!"
+            }
+            action={
+              statusFilter === "all"
+                ? {
+                    label: "Поиск",
+                    onClick: () => navigate("/search"),
+                  }
+                : undefined
+            }
           />
         </div>
       )}
