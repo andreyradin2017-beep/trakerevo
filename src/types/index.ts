@@ -1,5 +1,5 @@
-export type ItemType = 'movie' | 'show' | 'game' | 'book' | 'other';
-export type ItemStatus = 'planned' | 'in_progress' | 'completed' | 'dropped';
+export type ItemType = "movie" | "show" | "game" | "book" | "other";
+export type ItemStatus = "planned" | "in_progress" | "completed" | "dropped";
 
 export interface Item {
   id?: number;
@@ -29,7 +29,8 @@ export interface Item {
   notes?: string;
   tags: string[];
   externalId?: string;
-  source?: 'tmdb' | 'rawg' | 'google_books' | 'kinopoisk' | 'manual';
+  source?: "tmdb" | "rawg" | "google_books" | "kinopoisk" | "manual";
+  supabaseId?: string; // UUID from Supabase
   createdAt: Date;
   updatedAt: Date;
   listId?: number;
@@ -37,10 +38,12 @@ export interface Item {
 
 export interface List {
   id?: number;
+  supabaseId?: string; // UUID from Supabase
   name: string;
   icon?: string;
   description?: string;
   createdAt: Date;
+  updatedAt?: Date; // Added for sync
 }
 
 export interface Settings {
