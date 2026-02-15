@@ -79,7 +79,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             <img
               src={proxiedImage}
               alt={title}
-              loading="lazy"
+              loading="eager"
               decoding="async"
               onError={(e) => {
                 e.currentTarget.style.display = "none";

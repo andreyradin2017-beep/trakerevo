@@ -11,6 +11,7 @@ import {
   Square,
   Archive as ArchiveIcon,
   CheckCircle2,
+  List as ListIcon,
 } from "lucide-react";
 import { Skeleton } from "../components/Skeleton";
 import { SkeletonList } from "../components/SkeletonList";
@@ -364,6 +365,7 @@ export const ListPage: React.FC = () => {
         ) : (
           <EmptyState
             message="В этом списке пока пусто."
+            icon={<ListIcon size={32} style={{ opacity: 0.5 }} />}
             action={{
               label: "Добавить элемент",
               onClick: () => navigate("/search"),

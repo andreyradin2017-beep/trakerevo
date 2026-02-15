@@ -118,6 +118,7 @@ export const Search: React.FC = () => {
       }
     } catch (error) {
       console.error("Search failed:", error);
+      showToast("Ошибка поиска. Проверьте интернет.", "error");
     } finally {
       setLoading(false);
     }

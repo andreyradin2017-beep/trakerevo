@@ -15,19 +15,36 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+
 import { useAuth } from "../context/AuthContext";
 import { LoginModal } from "../components/LoginModal";
 import { syncAll } from "../services/dbSync";
+import { useToast } from "../context/ToastContext";
+import { ConfirmDialog } from "../components/Dialogs"; // reusing existing component
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [stats, setStats] = useState({ items: 0, lists: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dialog States
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     refreshStats();
@@ -63,9 +80,10 @@ export const Settings: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showToast("Экспорт завершен успешно", "success");
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Ошибка при экспорте данных");
+      showToast("Ошибка при экспорте данных", "error");
     } finally {
       setExporting(false);
     }
@@ -75,67 +93,84 @@ export const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImporting(true);
+    // Reset input so verify same file can be selected again if needed
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    const text = await file.text();
+    let data: any;
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-
+      data = JSON.parse(text);
       if (!data.items || !data.lists) {
-        throw new Error("Неверный формат файла бэкапа");
+        throw new Error("Неверный формат файла");
       }
+    } catch (err) {
+      showToast("Неверный файл бэкапа", "error");
+      return;
+    }
 
-      if (
-        window.confirm(
-          `Вы уверены? Это действие перезапишет текущие данные (${data.items.length} элементов и ${data.lists.length} списков).`,
-        )
-      ) {
+    setConfirmState({
+      isOpen: true,
+      title: "Импорт данных",
+      message: `Это действие перезапишет текущие данные (${data.items.length} элементов и ${data.lists.length} списков). Продолжить?`,
+      onConfirm: async () => {
+        setImporting(true);
+        try {
+          await Promise.all([
+            db.items.clear(),
+            db.lists.clear(),
+            db.settings.clear(),
+          ]);
+
+          if (data.items.length > 0) await db.items.bulkAdd(data.items);
+          if (data.lists.length > 0) await db.lists.bulkAdd(data.lists);
+          if (data.settings && data.settings.length > 0)
+            await db.settings.bulkAdd(data.settings);
+
+          showToast("Данные успешно импортированы!", "success");
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (error) {
+          console.error("Import failed:", error);
+          showToast("Ошибка при импорте базы данных", "error");
+        } finally {
+          setImporting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const clearDatabase = async () => {
+    setConfirmState({
+      isOpen: true,
+      title: "Очистка данных",
+      message:
+        "ВНИМАНИЕ: Это удалит ВСЕ элементы и списки. Это действие необратимо! Вы уверены?",
+      onConfirm: async () => {
         await Promise.all([
           db.items.clear(),
           db.lists.clear(),
           db.settings.clear(),
+          db.cache.clear(),
+          db.search_history.clear(),
         ]);
-
-        if (data.items.length > 0) await db.items.bulkAdd(data.items);
-        if (data.lists.length > 0) await db.lists.bulkAdd(data.lists);
-        if (data.settings && data.settings.length > 0)
-          await db.settings.bulkAdd(data.settings);
-
-        alert("Данные успешно импортированы!");
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Import failed:", error);
-      alert(
-        "Ошибка при импорте: " +
-          (error instanceof Error ? error.message : "Неизвестная ошибка"),
-      );
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const clearDatabase = async () => {
-    if (
-      window.confirm(
-        "ВНИМАНИЕ: Это удалит ВСЕ элементы и списки. Это действие необратимо! Вы уверены?",
-      )
-    ) {
-      await Promise.all([
-        db.items.clear(),
-        db.lists.clear(),
-        db.settings.clear(),
-        db.cache.clear(),
-        db.search_history.clear(),
-      ]);
-      window.location.reload();
-    }
+        showToast("База данных очищена", "info");
+        setTimeout(() => window.location.reload(), 1000);
+      },
+    });
   };
 
   return (
     <div style={{ paddingBottom: "3rem" }}>
       <PageHeader title="Настройки" showBack />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
 
       <div
         style={{
@@ -304,13 +339,11 @@ export const Settings: React.FC = () => {
                 if (btn) btn.innerText = "Синхронизировать сейчас";
 
                 if (result.success) {
-                  alert(
-                    "✅ Синхронизация завершена успешно!\n\nОбновите страницу, чтобы увидеть изменения.",
-                  );
+                  showToast("Синхронизация завершена", "success");
+                  refreshStats();
                 } else {
-                  alert(
-                    `⚠️ Синхронизация завершена с ошибками:\n\n${result.errors.join("\n\n")}\n\nПроверьте консоль браузера (F12) для деталей.`,
-                  );
+                  showToast("Ошибка синхронизации", "error");
+                  console.error(result.errors);
                 }
               }}
               id="sync-btn"
@@ -563,7 +596,7 @@ export const Settings: React.FC = () => {
           >
             <Info size={14} />
             <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-              TrakerEvo v1.2.1 (Auth Enabled)
+              TrakerEvo v1.2.2 (Quality Update)
             </span>
           </div>
           <p style={{ fontSize: "0.65rem", margin: 0 }}>

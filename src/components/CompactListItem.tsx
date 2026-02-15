@@ -77,11 +77,13 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
       <div style={{ position: "relative", flexShrink: 0 }}>
         {proxiedImage ? (
           <img
-            src={proxiedImage}
+            src={item.image}
             alt={item.title}
+            loading="lazy"
+            decoding="async"
             style={{
-              width: "40px",
-              height: "60px",
+              width: "100%",
+              height: "100%",
               objectFit: "cover",
               borderRadius: "4px",
               boxShadow: "0 2px 4px rgba(0,0,0,0.2)",

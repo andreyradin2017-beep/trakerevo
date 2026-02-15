@@ -210,6 +210,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              transition: "transform 0.5s ease",
               position: "relative",
               zIndex: 1,
             }}
