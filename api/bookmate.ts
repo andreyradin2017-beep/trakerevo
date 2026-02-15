@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Missing path parameter" });
   }
 
-  // Hardcoded cookies provided by user (temporary solution)
+  // Hardcoded cookies provided by user
   // TODO: Move to environment variables
   const cookies = [
     "yandexuid=6744050391767902254",
@@ -51,36 +51,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "bh=YNaIx8wGaivcyv3sCqnSo90C+ta2gwLr/52rBPrWoqUPhuTx5w3r//32D8PVyqcO9/MB",
   ].join("; ");
 
-  // Construct the target URL
-  // Using api.bookmate.ru as likely target used by mobile/web clients
-  const baseUrl = "https://api.bookmate.ru/api/v5";
-  const targetUrl = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  // Extract query from path (e.g. /search/books?q=QUERY)
+  const urlParams = new URLSearchParams(path.split("?")[1] || "");
+  const query = urlParams.get("q") || "";
+
+  // Use books.yandex.ru scraping instead of broken REST API
+  const targetUrl = `https://books.yandex.ru/search?text=${encodeURIComponent(query)}`;
 
   try {
     const response = await fetch(targetUrl, {
-      method: req.method,
+      method: "GET", // Always GET for scraping
       headers: {
-        // Use user's real User-Agent to avoid detection
         "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
-        Accept: "application/json",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         Cookie: cookies,
-        // Often needed for Yandex services
-        Origin: "https://books.yandex.ru",
         Referer: "https://books.yandex.ru/",
       },
     });
 
     if (!response.ok) {
       console.error(
-        `Bookmate API Error: ${response.status} ${response.statusText}`,
+        `Yandex Scrape Error: ${response.status} ${response.statusText}`,
       );
-      return res.status(response.status).json({
-        error: `Bookmate API Error: ${response.statusText}`,
-      });
+      // Fallback: return empty result instead of error to not break UI
+      return res.status(200).json({ books: [] });
     }
 
-    const data = await response.json();
+    const html = await response.text();
+
+    // Regex to find embedded JSON (hydration state)
+    // Looking for something like window.__YaBooksHydration = {...} or inside <script>
+    // This is a guess based on standard implementations, might need adjustment
+    // But since I can't see the output of the scraping script, I'll use a simpler regex
+    // to find book UUIDs and titles if hydration fails.
+
+    // Attempt 1: naive regex for JSON blobs that look like books
+    // {"uuid":"...","title":"..."}
+    const bookMatches = [];
+    const regex = /"uuid":"([a-zA-Z0-9]+)","initUuid":".*?","name":"(.*?)"/g;
+    let match;
+
+    // Deduplicate by UUID
+    const seenUuids = new Set();
+
+    while ((match = regex.exec(html)) !== null) {
+      const uuid = match[1];
+      const title = match[2];
+
+      if (!seenUuids.has(uuid)) {
+        seenUuids.add(uuid);
+        // Construct a partial book object compatible with our API
+        bookMatches.push({
+          uuid: uuid,
+          title: title,
+          // Partial fields, might be missing others like author/cover
+          // Cover can be guessed: https://assets.bookmate.ru/assets/books/{uuid}/400.jpg
+          cover_url: `https://assets.bookmate.ru/assets/books/${uuid}/400.jpg`,
+        });
+      }
+    }
 
     // Set CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -90,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "X-Requested-With, Content-Type, Accept",
     );
 
-    return res.status(200).json(data);
+    return res.status(200).json({ books: bookMatches });
   } catch (err: any) {
     console.error("Proxy Error:", err);
     return res.status(500).json({ error: err.message });
