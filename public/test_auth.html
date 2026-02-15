@@ -3,49 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Telegram Auth Test</title>
+    <title>Telegram Auth Debug</title>
   </head>
-  <body style="font-family: sans-serif; text-align: center; padding: 2rem">
-    <h1>Testing Telegram Widget</h1>
-    <p>This is a raw HTML page without React.</p>
-
-    <div id="widget-container">
-      <!-- Replace TrakerEvoBot with your actual bot name if different -->
-      <script
-        async
-        src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login="TrakerEvoBot"
-        data-size="large"
-        data-onauth="onTelegramAuth(user)"
-        data-request-access="write"
-      ></script>
-    </div>
+  <body
+    style="
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    "
+  >
+    <h1>Telegram Auth Debug</h1>
 
     <div
+      style="
+        background: #fff3cd;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+      "
+    >
+      <strong>Instructions:</strong>
+      <ol>
+        <li>Open Developer Tools (F12) -> Console</li>
+        <li>Try Button 1 (Standard)</li>
+        <li>If no message, try Button 2 (Read Only)</li>
+        <li>Check Telegram Chat "Service Notifications" (ID 777000)</li>
+      </ol>
+    </div>
+
+    <div style="display: grid; gap: 2rem">
+      <!-- Option 1: Standard (Write Access) -->
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px">
+        <h3>Test 1: Standard (Write Access)</h3>
+        <p>Default mode. Allows bot to send you messages.</p>
+        <script
+          async
+          src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-login="TrakerEvoBot"
+          data-size="large"
+          data-onauth="onTelegramAuth(user)"
+          data-request-access="write"
+        ></script>
+      </div>
+
+      <!-- Option 2: Read Only -->
+      <div style="border: 1px solid #ccc; padding: 1rem; border-radius: 8px">
+        <h3>Test 2: Read Only</h3>
+        <p>Minimal permissions. Just authentication.</p>
+        <script
+          async
+          src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-login="TrakerEvoBot"
+          data-size="large"
+          data-onauth="onTelegramAuth(user)"
+        ></script>
+      </div>
+    </div>
+
+    <pre
       id="result"
       style="
         margin-top: 2rem;
         padding: 1rem;
-        border: 1px solid #ccc;
+        background: #f0f0f0;
         display: none;
       "
-    >
-      <h3>Success!</h3>
-      <pre id="user-data"></pre>
-    </div>
+    ></pre>
 
     <script>
       function onTelegramAuth(user) {
         console.log("Auth success!", user);
         const resultDiv = document.getElementById("result");
-        const userPre = document.getElementById("user-data");
-
         resultDiv.style.display = "block";
-        resultDiv.style.backgroundColor = "#e6fffa";
-        resultDiv.style.borderColor = "#38b2ac";
-
-        userPre.textContent = JSON.stringify(user, null, 2);
-        alert("Logged in as " + user.first_name);
+        resultDiv.style.backgroundColor = "#d1fae5";
+        resultDiv.textContent = "SUCCESS! " + JSON.stringify(user, null, 2);
+        alert("SUCCESS! Authenticated as " + user.first_name);
       }
     </script>
   </body>
