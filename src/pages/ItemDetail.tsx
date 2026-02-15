@@ -11,6 +11,7 @@ import { ItemMetadataDetails } from "../components/ItemMetadataDetails";
 import { getDetails } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { notificationOccurred } from "../utils/haptics";
+import { triggerAutoSync } from "../services/dbSync";
 
 export const ItemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -111,6 +112,7 @@ export const ItemDetail: React.FC = () => {
     });
     notificationOccurred("success");
     showToast("Изменения сохранены", "success");
+    triggerAutoSync();
     navigate(-1);
   };
 
@@ -122,14 +124,24 @@ export const ItemDetail: React.FC = () => {
       isArchived: nextState,
       updatedAt: new Date(),
     });
+    triggerAutoSync();
   };
 
   const handleDelete = async () => {
     if (!item?.id || !window.confirm("Удалить этот элемент?")) return;
 
+    if (item.supabaseId) {
+      await db.deleted_metadata.put({
+        id: item.supabaseId,
+        table: "items",
+        timestamp: Date.now(),
+      });
+    }
+
     await db.items.delete(item.id);
     notificationOccurred("success");
     showToast("Элемент удален", "info");
+    triggerAutoSync();
     navigate(-1);
   };
 

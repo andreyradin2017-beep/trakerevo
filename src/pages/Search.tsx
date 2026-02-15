@@ -22,6 +22,7 @@ import { PageHeader } from "../components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useLibrarySearch } from "../hooks/useItems";
+import { triggerAutoSync } from "../services/dbSync";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -148,7 +149,7 @@ export const Search: React.FC = () => {
         }),
       );
     }
-
+    triggerAutoSync();
     navigate(`/item/${id}`);
   };
 

@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import type { Item, List } from "../types";
 
 // Helper to map Local List -> Remote List
-const toRemoteList = (list: List, userId: string): any => {
+const toRemoteList = (list: List, userId: string): Record<string, any> => {
   return {
     id: list.supabaseId, // If undefined, Supabase generates one
     user_id: userId,
@@ -19,7 +19,7 @@ const toRemoteList = (list: List, userId: string): any => {
 };
 
 // Helper to map Remote List -> Local List
-const toLocalList = (remote: any): List => {
+const toLocalList = (remote: Record<string, any>): List => {
   return {
     id: remote.local_id || undefined, // We might not have local_id if created elsewhere
     supabaseId: remote.id,
@@ -32,7 +32,10 @@ const toLocalList = (remote: any): List => {
 };
 
 // Helper to map Local Item -> Remote Item
-const toRemoteItem = async (item: Item, userId: string): Promise<any> => {
+const toRemoteItem = async (
+  item: Item,
+  userId: string,
+): Promise<Record<string, any>> => {
   let listUuid = null;
   if (item.listId) {
     // We need to find the UUID of the list
@@ -73,7 +76,7 @@ const toRemoteItem = async (item: Item, userId: string): Promise<any> => {
 };
 
 // Helper to map Remote Item -> Local Item
-const toLocalItem = async (remote: any): Promise<Item> => {
+const toLocalItem = async (remote: Record<string, any>): Promise<Item> => {
   let localListId = undefined;
   if (remote.list_id) {
     // Find local list by supabaseId
@@ -108,14 +111,37 @@ const toLocalItem = async (remote: any): Promise<Item> => {
     notes: remote.notes,
     tags: remote.tags || [],
     externalId: remote.external_id,
-    source: remote.source as any,
+    source: remote.source as Item["source"],
     createdAt: new Date(remote.created_at),
     updatedAt: new Date(remote.updated_at),
     listId: localListId,
   };
 };
 
+export const syncDeletions = async (userId: string) => {
+  const deletions = await db.deleted_metadata.toArray();
+  for (const del of deletions) {
+    const { error } = await supabase
+      .from(del.table)
+      .delete()
+      .eq("id", del.id)
+      .eq("user_id", userId);
+
+    if (!error) {
+      await db.deleted_metadata.delete(del.id);
+    } else {
+      console.error(
+        `Failed to push deletion for ${del.table}:${del.id}`,
+        error,
+      );
+    }
+  }
+};
+
 export const syncLists = async (userId: string) => {
+  // 0. PUSH DELETIONS
+  await syncDeletions(userId);
+
   // 1. PUSH: Send local lists that are new or updated
   const localLists = await db.lists.toArray();
 
@@ -161,13 +187,20 @@ export const syncLists = async (userId: string) => {
       const localTime = local.updatedAt ? local.updatedAt.getTime() : 0;
 
       if (remoteTime > localTime) {
-        // Check if we already have this ID? Dexie might just update.
-        // But toLocalList sets local_id if present.
         const mapped = toLocalList(remote);
-        // Preserve local ID reference for update
         mapped.id = local.id;
         await db.lists.put(mapped);
       }
+    }
+  }
+
+  // 3. PULL DELETIONS: Remove local lists that don't exist in remote
+  for (const local of localLists) {
+    if (
+      local.supabaseId &&
+      !remoteLists.some((r) => r.id === local.supabaseId)
+    ) {
+      await db.lists.delete(local.id!);
     }
   }
 };
@@ -222,6 +255,16 @@ export const syncItems = async (userId: string) => {
       }
     }
   }
+
+  // 3. PULL DELETIONS: Remove local items that don't exist in remote
+  for (const local of localItems) {
+    if (
+      local.supabaseId &&
+      !remoteItems.some((r) => r.id === local.supabaseId)
+    ) {
+      await db.items.delete(local.id!);
+    }
+  }
 };
 
 export const syncAll = async (): Promise<{
@@ -267,4 +310,17 @@ export const syncAll = async (): Promise<{
     errors.push(msg);
     return { success: false, errors };
   }
+};
+
+// --- AUTO-SYNC LOGIC ---
+let syncTimeout: any = null;
+
+export const triggerAutoSync = () => {
+  if (!navigator.onLine) return;
+
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    console.log("Triggering auto-sync...");
+    await syncAll();
+  }, 5000); // 5 second debounce
 };

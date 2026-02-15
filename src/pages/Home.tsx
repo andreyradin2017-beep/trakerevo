@@ -21,6 +21,7 @@ import type { Item } from "../types";
 import { vibrate } from "../utils/haptics";
 import { useStreaks } from "../hooks/useStreaks";
 import { StreakCounter } from "../components/StreakCounter";
+import { triggerAutoSync } from "../services/dbSync";
 
 const UserLists: React.FC = () => {
   const lists = useLiveQuery(() => db.lists.toArray());
@@ -62,6 +63,7 @@ const UserLists: React.FC = () => {
           const name = prompt("Название нового списка:");
           if (name && name.trim()) {
             db.lists.add({ name: name.trim(), createdAt: new Date() });
+            triggerAutoSync();
           }
         }}
         style={{
@@ -146,10 +148,18 @@ const RecentItemsList: React.FC<{ category: Category }> = ({ category }) => {
   const items = useRecentItems(category);
   const navigate = useNavigate();
 
-  const handleDeleteItem = async (id?: number) => {
-    if (!id) return;
+  const handleDeleteItem = async (item: Item) => {
+    if (!item.id) return;
     if (window.confirm("Удалить этот элемент?")) {
-      await db.items.delete(id);
+      if (item.supabaseId) {
+        await db.deleted_metadata.put({
+          id: item.supabaseId,
+          table: "items",
+          timestamp: new Date().getTime(),
+        });
+      }
+      await db.items.delete(item.id);
+      triggerAutoSync();
     }
   };
 
@@ -159,6 +169,7 @@ const RecentItemsList: React.FC<{ category: Category }> = ({ category }) => {
       isArchived: !currentStatus,
       updatedAt: new Date(),
     });
+    triggerAutoSync();
   };
 
   if (!items) {
@@ -201,7 +212,7 @@ const RecentItemsList: React.FC<{ category: Category }> = ({ category }) => {
             custom={effectiveIndex}
           >
             <Swipeable
-              onDelete={() => handleDeleteItem(item.id)}
+              onDelete={() => handleDeleteItem(item)}
               onArchive={() => handleArchiveItem(item.id, item.isArchived)}
             >
               <GridCard

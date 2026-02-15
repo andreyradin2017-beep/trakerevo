@@ -20,6 +20,7 @@ import { CompactListItem } from "../components/CompactListItem";
 import { Swipeable } from "../components/Swipeable";
 import type { Item } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
+import { triggerAutoSync } from "../services/dbSync";
 
 export const ListPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,7 +72,11 @@ export const ListPage: React.FC = () => {
 
   const saveName = async () => {
     if (editName.trim()) {
-      await db.lists.update(listId, { name: editName });
+      await db.lists.update(listId, {
+        name: editName,
+        updatedAt: new Date(),
+      });
+      triggerAutoSync();
     }
     setIsEditing(false);
   };
@@ -85,15 +90,34 @@ export const ListPage: React.FC = () => {
       await db.items
         .where("listId")
         .equals(listId)
-        .modify({ listId: undefined });
+        .modify({ listId: undefined, updatedAt: new Date() });
+
+      if (list.supabaseId) {
+        await db.deleted_metadata.put({
+          id: list.supabaseId,
+          table: "lists",
+          timestamp: Date.now(),
+        });
+      }
+
       await db.lists.delete(listId);
+      triggerAutoSync();
       navigate("/");
     }
   };
 
   const handleDeleteItem = async (itemId?: number) => {
     if (!itemId) return;
+    const item = await db.items.get(itemId);
+    if (item?.supabaseId) {
+      await db.deleted_metadata.put({
+        id: item.supabaseId,
+        table: "items",
+        timestamp: new Date().getTime(),
+      });
+    }
     await db.items.delete(itemId);
+    triggerAutoSync();
   };
 
   const handleArchiveItem = async (itemId?: number, isArchived?: boolean) => {
@@ -102,6 +126,7 @@ export const ListPage: React.FC = () => {
       isArchived: !isArchived,
       updatedAt: new Date(),
     });
+    triggerAutoSync();
   };
 
   const toggleSelection = (itemId?: number) => {
@@ -116,9 +141,23 @@ export const ListPage: React.FC = () => {
   const handleMassDelete = async () => {
     if (selectedIds.length === 0) return;
     if (window.confirm(`Удалить выбранные элементы (${selectedIds.length})?`)) {
+      const selectedItems = await db.items
+        .where("id")
+        .anyOf(selectedIds)
+        .toArray();
+      for (const item of selectedItems) {
+        if (item.supabaseId) {
+          await db.deleted_metadata.put({
+            id: item.supabaseId,
+            table: "items",
+            timestamp: new Date().getTime(),
+          });
+        }
+      }
       await db.items.bulkDelete(selectedIds);
       setSelectedIds([]);
       setSelectionMode(false);
+      triggerAutoSync();
     }
   };
 
@@ -131,6 +170,7 @@ export const ListPage: React.FC = () => {
       .modify({ isArchived: true, updatedAt: new Date() });
     setSelectedIds([]);
     setSelectionMode(false);
+    triggerAutoSync();
   };
 
   return (

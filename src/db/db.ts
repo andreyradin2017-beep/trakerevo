@@ -7,15 +7,20 @@ const db = new Dexie("TrakerEvoDB") as Dexie & {
   settings: EntityTable<Settings, "key">;
   cache: EntityTable<{ key: string; data: any; timestamp: number }, "key">;
   search_history: EntityTable<{ query: string; timestamp: number }, "query">;
+  deleted_metadata: EntityTable<
+    { id: string; table: "items" | "lists"; timestamp: number },
+    "id"
+  >;
 };
 
-db.version(7).stores({
+db.version(8).stores({
   items:
     "++id, type, status, isArchived, *tags, listId, createdAt, [externalId+source], supabaseId",
   lists: "++id, name, supabaseId",
   settings: "key",
   cache: "key",
   search_history: "query, timestamp",
+  deleted_metadata: "id, table, timestamp",
 });
 
 export { db };
