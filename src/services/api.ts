@@ -129,11 +129,7 @@ export const getDetails = async (item: Item): Promise<any> => {
 
 // --- Yandex Books (Bookmate) API ---
 
-export const searchYandexBooks = async (_query: string): Promise<Item[]> => {
-  // Yandex Books API is currently protected/unavailable (404/Captcha).
-  // disabling to prevent errors.
-  return [];
-  /*
+export const searchYandexBooks = async (query: string): Promise<Item[]> => {
   try {
     const encodedQuery = encodeURIComponent(query);
     // Call our serverless proxy
@@ -146,7 +142,7 @@ export const searchYandexBooks = async (_query: string): Promise<Item[]> => {
     }
 
     const data = await response.json();
-    
+
     // Yandex Books (Bookmate) usually returns a list or an object with 'books' key
     const books = data.books || [];
 
@@ -154,10 +150,10 @@ export const searchYandexBooks = async (_query: string): Promise<Item[]> => {
       title: book.title,
       type: "book",
       status: "planned",
-      // Construct cover URL if uuid exists. Bookmate covers usually: 
+      // Construct cover URL if uuid exists. Bookmate covers usually:
       // https://assets.bookmate.ru/assets/books/{uuid}/{width}.jpg
-      image: book.uuid 
-        ? `https://assets.bookmate.ru/assets/books/${book.uuid}/400.jpg` 
+      image: book.uuid
+        ? `https://assets.bookmate.ru/assets/books/${book.uuid}/400.jpg`
         : undefined,
       description: book.annotation || "",
       year: book.publication_date, // sometimes unix timestamp or year string
@@ -173,5 +169,4 @@ export const searchYandexBooks = async (_query: string): Promise<Item[]> => {
     console.error("Error searching Yandex Books:", error);
     return [];
   }
-  */
 };
