@@ -46,10 +46,6 @@ export const searchAll = async (query: string): Promise<Item[]> => {
         console.warn("Google Books Search failed", e);
         return [];
       }),
-      searchYandexBooks(query).catch((e) => {
-        console.warn("Yandex Books Search failed", e);
-        return [];
-      }),
       searchKinopoisk(query).catch((e) => {
         console.warn("Kinopoisk Search failed", e);
         return [];
@@ -86,14 +82,9 @@ export const searchByCategory = async (
       case "game":
         results = await searchGames(query).catch(() => []);
         break;
-      case "book": {
-        const [googleBooks, yandexBooks] = await Promise.all([
-          searchBooks(query).catch(() => []),
-          searchYandexBooks(query).catch(() => []),
-        ]);
-        results = [...yandexBooks, ...googleBooks]; // Yandex first as requested
+      case "book":
+        results = await searchBooks(query).catch(() => []);
         break;
-      }
     }
     await setCachedData(cacheKey, results);
     return results;
@@ -124,49 +115,5 @@ export const getDetails = async (item: Item): Promise<any> => {
   } catch (error) {
     console.error("getDetails failed:", error);
     return null; // Return null so the UI can just show basic info
-  }
-};
-
-// --- Yandex Books (Bookmate) API ---
-
-export const searchYandexBooks = async (query: string): Promise<Item[]> => {
-  try {
-    const encodedQuery = encodeURIComponent(query);
-    // Call our serverless proxy
-    const response = await fetch(
-      `/api/bookmate?path=/search/books%3Fq=${encodedQuery}`,
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch from Yandex Books proxy");
-    }
-
-    const data = await response.json();
-
-    // Yandex Books (Bookmate) usually returns a list or an object with 'books' key
-    const books = data.books || [];
-
-    return books.map((book: any) => ({
-      title: book.title,
-      type: "book",
-      status: "planned",
-      // Construct cover URL if uuid exists. Bookmate covers usually:
-      // https://assets.bookmate.ru/assets/books/{uuid}/{width}.jpg
-      image: book.uuid
-        ? `https://assets.bookmate.ru/assets/books/${book.uuid}/400.jpg`
-        : undefined,
-      description: book.annotation || "",
-      year: book.publication_date, // sometimes unix timestamp or year string
-      // Bookmate ratings are often out of 10 or 5, adapt as needed
-      rating: book.rating ? book.rating * 2 : 0, // assuming 5-star max
-      tags: book.genres ? book.genres.map((g: any) => g.title) : [],
-      source: "yandex",
-      externalId: book.uuid,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
-  } catch (error) {
-    console.error("Error searching Yandex Books:", error);
-    return [];
   }
 };
