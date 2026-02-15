@@ -20,7 +20,8 @@ import { useAuth } from "../context/AuthContext";
 import { LoginModal } from "../components/LoginModal";
 import { syncAll } from "../services/dbSync";
 import { useToast } from "../context/ToastContext";
-import { ConfirmDialog } from "../components/Dialogs"; // reusing existing component
+import { ConfirmDialog } from "../components/Dialogs";
+import { SearchProviderSettings } from "../components/SearchProviderSettings";
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -368,6 +369,12 @@ export const Settings: React.FC = () => {
             </motion.button>
           )}
         </div>
+
+        {/* Search Provider Settings */}
+        <SearchProviderSettings
+          showToast={showToast}
+          setConfirmState={setConfirmState}
+        />
 
         {/* Database Info */}
         <div

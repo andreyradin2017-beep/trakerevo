@@ -33,28 +33,55 @@ export const searchAll = async (query: string): Promise<Item[]> => {
   if (cached) return cached;
 
   try {
-    const [movies, games, books, kinopoiskResults] = await Promise.all([
-      searchMovies(query).catch((e) => {
-        console.warn("TMDB Search failed", e);
-        return [];
-      }),
-      searchGames(query).catch((e) => {
-        console.warn("RAWG Search failed", e);
-        return [];
-      }),
-      searchBooks(query).catch((e) => {
-        console.warn("Google Books Search failed", e);
-        return [];
-      }),
-      searchKinopoisk(query).catch((e) => {
-        console.warn("Kinopoisk Search failed", e);
-        return [];
-      }),
-    ]);
+    // Get enabled providers
+    const providers = await db.search_providers.toArray();
+    const enabledProviders = new Set(
+      providers.filter((p) => p.enabled).map((p) => p.id),
+    );
 
-    const results = [...movies, ...games, ...books, ...kinopoiskResults];
-    await setCachedData(cacheKey, results);
-    return results;
+    // Only search enabled providers
+    const searches: Promise<Item[]>[] = [];
+
+    if (enabledProviders.has("tmdb")) {
+      searches.push(
+        searchMovies(query).catch((e) => {
+          console.warn("TMDB Search failed", e);
+          return [];
+        }),
+      );
+    }
+
+    if (enabledProviders.has("rawg")) {
+      searches.push(
+        searchGames(query).catch((e) => {
+          console.warn("RAWG Search failed", e);
+          return [];
+        }),
+      );
+    }
+
+    if (enabledProviders.has("google_books")) {
+      searches.push(
+        searchBooks(query).catch((e) => {
+          console.warn("Google Books Search failed", e);
+          return [];
+        }),
+      );
+    }
+
+    if (enabledProviders.has("kinopoisk")) {
+      searches.push(
+        searchKinopoisk(query).catch((e) => {
+          console.warn("Kinopoisk Search failed", e);
+          return [];
+        }),
+      );
+    }
+
+    const results = await Promise.all(searches);
+    const allResults = results.flat();
+    await setCachedData(cacheKey, allResults);
+    return allResults;
   } catch (error) {
     console.error("Search All Error:", error);
     return [];

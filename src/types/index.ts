@@ -50,3 +50,11 @@ export interface Settings {
   key: string;
   value: any;
 }
+
+export type SearchProviderId = "tmdb" | "kinopoisk" | "rawg" | "google_books";
+
+export interface SearchProvider {
+  id: SearchProviderId;
+  enabled: boolean;
+  priority: number;
+}

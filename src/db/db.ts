@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { Item, List, Settings } from "../types";
+import type { Item, List, Settings, SearchProvider } from "../types";
 
 const db = new Dexie("TrakerEvoDB") as Dexie & {
   items: EntityTable<Item, "id">;
@@ -11,9 +11,10 @@ const db = new Dexie("TrakerEvoDB") as Dexie & {
     { id: string; table: "items" | "lists"; timestamp: number },
     "id"
   >;
+  search_providers: EntityTable<SearchProvider, "id">;
 };
 
-db.version(8).stores({
+db.version(9).stores({
   items:
     "++id, type, status, isArchived, *tags, listId, createdAt, [externalId+source], supabaseId",
   lists: "++id, name, supabaseId",
@@ -21,6 +22,7 @@ db.version(8).stores({
   cache: "key",
   search_history: "query, timestamp",
   deleted_metadata: "id, table, timestamp",
+  search_providers: "id, enabled, priority",
 });
 
 export { db };

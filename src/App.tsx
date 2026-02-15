@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { Skeleton } from "./components/Skeleton";
+import { useSearchProviders } from "./hooks/useSearchProviders";
 
 // Lazy load pages
 const Home = lazy(() =>
@@ -48,6 +49,9 @@ const PageLoader = () => (
 );
 
 function App() {
+  // Initialize search providers on first load
+  useSearchProviders();
+
   return (
     <>
       <OfflineIndicator />
