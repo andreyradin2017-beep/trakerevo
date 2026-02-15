@@ -9,6 +9,7 @@ interface GridCardProps {
   item?: Item & { isOwned?: boolean };
   isAddCard?: boolean;
   onClick: () => void;
+  onQuickAdd?: () => void; // New prop
   onLongPress?: () => void;
   index?: number;
 }
@@ -31,6 +32,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
   item,
   isAddCard,
   onClick,
+  onQuickAdd,
   onLongPress,
   index = 0,
   enableMotion = true,
@@ -158,6 +160,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
       animate={enableMotion ? "visible" : undefined}
       custom={index}
       whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.02, zIndex: 10 }} // Micro-animation: Lift on hover
       onClick={handleClick}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
@@ -243,7 +246,6 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         </div>
       )}
 
-      {/* Status & Source Badges (Top Left) */}
       <div
         style={{
           position: "absolute",
@@ -307,6 +309,37 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           </div>
         )}
       </div>
+
+      {/* Quick Add Button - Only show if provided and item not owned */}
+      {onQuickAdd && !item.isOwned && (
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            vibrate("medium");
+            onQuickAdd();
+          }}
+          style={{
+            position: "absolute",
+            bottom: "3.5rem", // Above the title gradient
+            right: "0.5rem",
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            background: "var(--primary)",
+            border: "none",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 3,
+            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.4)",
+            cursor: "pointer",
+          }}
+        >
+          <Plus size={18} strokeWidth={3} />
+        </motion.button>
+      )}
 
       {/* Type Indicator (Top Right) */}
       <div

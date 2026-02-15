@@ -6,6 +6,7 @@ import {
   X,
   History,
   Trash2,
+  Ghost,
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAll, searchByCategory } from "../services/api";
@@ -423,7 +424,24 @@ export const Search: React.FC = () => {
                   key={item.externalId || item.id || idx}
                   item={item as Item}
                   index={idx}
-                  onClick={() => handleAdd(item)}
+                  onClick={() => {
+                    // Navigate to details
+                    if (item.isOwned && item.id) {
+                      navigate(`/item/${item.id}`);
+                    } else {
+                      // If not owned, open details (which has add button)
+                      // or we could add immediately.
+                      // User asked "must go to card", implying they want to just click to add?
+                      // But existing logic was: click -> add.
+                      // If we have Quick Add button, click -> details is better UX?
+                      // Let's keep click -> add/details for now, but handle Quick Add strictly as ADD.
+
+                      // Actually, let's make the main click navigate to details preview (if we had one) or add.
+                      // For now, keep existing behavior: click = add/view
+                      handleAdd(item);
+                    }
+                  }}
+                  onQuickAdd={() => handleAdd(item)}
                 />
               ))}
         </AnimatePresence>
@@ -432,16 +450,37 @@ export const Search: React.FC = () => {
       {!loading && results.length === 0 && query && (
         <div
           style={{
-            textAlign: "center",
-            padding: "3rem 1rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "4rem 1rem",
             color: "var(--text-tertiary)",
+            textAlign: "center",
           }}
         >
-          <SearchIcon
-            size={48}
-            style={{ opacity: 0.1, marginBottom: "1rem" }}
-          />
-          <p style={{ fontSize: "0.9rem" }}>Ничего не нашли...</p>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              padding: "1.5rem",
+              borderRadius: "50%",
+              marginBottom: "1rem",
+            }}
+          >
+            <Ghost size={48} strokeWidth={1.5} />
+          </div>
+          <p
+            style={{
+              margin: "0 0 0.5rem 0",
+              fontSize: "1.1rem",
+              fontWeight: 600,
+            }}
+          >
+            Ничего не найдено
+          </p>
+          <p style={{ fontSize: "0.9rem", maxWidth: "250px", opacity: 0.7 }}>
+            Попробуйте изменить запрос или поискать в другой категории
+          </p>
         </div>
       )}
     </div>
