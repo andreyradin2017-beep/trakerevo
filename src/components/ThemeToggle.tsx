@@ -1,52 +1,42 @@
 import React, { useEffect, useState } from "react";
-import { Sun, Moon, Smartphone } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { vibrate } from "../utils/haptics";
 
-type Theme = "light" | "dark" | "oled";
+type Theme = "light" | "dark";
 
 export const ThemeToggle: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem("theme") as Theme) || "dark";
+    const saved = localStorage.getItem("theme");
+    // Migrate old "oled" theme to "dark"
+    if (saved === "oled") return "dark";
+    return (saved as Theme) || "dark";
   });
 
   useEffect(() => {
     // Reset classes
     document.body.classList.remove("light-theme", "oled-theme");
 
-    switch (theme) {
-      case "light":
-        document.body.classList.add("light-theme");
-        break;
-      case "oled":
-        document.body.classList.add("oled-theme");
-        break;
-      default:
-        // Dark is default, no class needed or default variables apply
-        break;
+    if (theme === "light") {
+      document.body.classList.add("light-theme");
     }
+    // Dark is default, no class needed
 
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const cycleTheme = () => {
+  const toggleTheme = () => {
     vibrate("medium");
-    setTheme((prev) => {
-      if (prev === "dark") return "oled";
-      if (prev === "oled") return "light";
-      return "dark";
-    });
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   return (
     <button
       className="theme-toggle-btn"
-      onClick={cycleTheme}
+      onClick={toggleTheme}
       aria-label="Toggle Theme"
-      title={`Тема: ${theme}`}
+      title={`Тема: ${theme === "light" ? "Светлая" : "Тёмная"}`}
     >
-      {theme === "light" && <Sun size={18} />}
-      {theme === "dark" && <Moon size={18} />}
-      {theme === "oled" && <Smartphone size={18} />}
+      {theme === "light" ? <Sun size={18} /> : <Moon size={18} />}
     </button>
   );
 };
