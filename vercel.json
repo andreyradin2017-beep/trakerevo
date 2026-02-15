@@ -5,7 +5,11 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/tmdb-image/(.*)",
+      "destination": "https://image.tmdb.org/t/p/$1"
+    },
+    {
+      "source": "/((?!api/|tmdb-image/).*)",
       "destination": "/index.html"
     }
   ]

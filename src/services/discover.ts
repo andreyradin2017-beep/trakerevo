@@ -13,7 +13,7 @@ interface DiscoverData {
 }
 
 export const getDiscoverData = async (): Promise<DiscoverData> => {
-  const cacheKey = "discover_data_v5";
+  const cacheKey = "discover_data_v6";
   const cached = await db.cache.get(cacheKey);
 
   // Cache for 6 hours
