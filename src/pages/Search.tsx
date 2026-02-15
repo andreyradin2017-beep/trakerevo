@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search as SearchIcon,
   Library,
@@ -118,9 +118,16 @@ export const Search: React.FC = () => {
     }
   };
 
-  // Auto-search logic is now simplified or removed since library search is reactive
-  // and global search is manual or triggered by specific events if desired.
-  // For now, we keep manual trigger for global to save API calls.
+  // Auto-search when URL contains 'q' parameter (e.g., from recommendations)
+  useEffect(() => {
+    const queryParam = searchParams.get("q");
+    if (queryParam && queryParam.trim()) {
+      setQuery(queryParam);
+      setSearchMode("global");
+      handleSearch(queryParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
 
   const handleAdd = async (item: any) => {
     if (item.isOwned && item.id) {
