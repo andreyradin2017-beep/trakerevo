@@ -199,6 +199,7 @@ export const ItemDetail: React.FC = () => {
         type={item.type}
         year={item.year}
         hasTrailer={!!extraMetadata?.trailer}
+        source={item.source}
         onBack={() => navigate(-1)}
         onShowTrailer={() => setShowTrailer(true)}
       />

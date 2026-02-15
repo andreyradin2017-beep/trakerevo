@@ -142,6 +142,8 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         return { label: "RAWG", color: "#ffffff" };
       case "google_books":
         return { label: "BOOKS", color: "#34a853" };
+      case "yandex":
+        return { label: "ЯНДЕКС", color: "#fc3f1d" };
       default:
         return null;
     }

@@ -29,7 +29,7 @@ export interface Item {
   notes?: string;
   tags: string[];
   externalId?: string;
-  source?: "tmdb" | "rawg" | "google_books" | "kinopoisk" | "manual";
+  source?: "tmdb" | "rawg" | "google_books" | "kinopoisk" | "yandex" | "manual";
   supabaseId?: string; // UUID from Supabase
   createdAt: Date;
   updatedAt: Date;

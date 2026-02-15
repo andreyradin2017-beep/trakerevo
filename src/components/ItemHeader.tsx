@@ -9,6 +9,7 @@ interface ItemHeaderProps {
   type: string;
   year?: string | number;
   hasTrailer: boolean;
+  source?: string;
   onBack: () => void;
   onShowTrailer: () => void;
 }
@@ -19,6 +20,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
   type,
   year,
   hasTrailer,
+  source,
   onBack,
   onShowTrailer,
 }) => {
@@ -170,6 +172,33 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
               flexWrap: "wrap",
             }}
           >
+            {source && (
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  background:
+                    source === "yandex"
+                      ? "rgba(252, 63, 29, 0.2)"
+                      : "var(--bg-surface-hover)",
+                  border:
+                    source === "yandex"
+                      ? "1px solid rgba(252, 63, 29, 0.5)"
+                      : "none",
+                  padding: "0.2rem 0.5rem",
+                  borderRadius: "var(--radius-sm)",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                  color:
+                    source === "yandex" ? "#fc3f1d" : "var(--text-secondary)",
+                }}
+              >
+                {source === "google_books"
+                  ? "BOOKS"
+                  : source === "yandex"
+                    ? "ЯНДЕКС"
+                    : source}
+              </span>
+            )}
             <span
               style={{
                 fontSize: "0.7rem",
