@@ -30,7 +30,7 @@ export const TelegramLogin: React.FC<TelegramLoginProps> = ({
   onAuth,
   buttonSize = "large",
   cornerRadius,
-  requestAccess = "write",
+  requestAccess,
   usePic = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,9 @@ export const TelegramLogin: React.FC<TelegramLoginProps> = ({
     if (cornerRadius !== undefined) {
       script.setAttribute("data-radius", cornerRadius.toString());
     }
-    script.setAttribute("data-request-access", requestAccess);
+    if (requestAccess) {
+      script.setAttribute("data-request-access", requestAccess);
+    }
     script.setAttribute("data-userpic", usePic.toString());
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.async = true;
