@@ -38,9 +38,15 @@ export const Search: React.FC = () => {
   // Hook handles all library search logic reactively
   const libraryResults = useLibrarySearch(query, currentCategory);
 
+  // Filter global results by category
+  const filteredGlobalResults =
+    currentCategory === "all"
+      ? globalResults
+      : globalResults.filter((item) => item.type === currentCategory);
+
   // Unified results based on active mode
   const results =
-    searchMode === "library" ? libraryResults || [] : globalResults;
+    searchMode === "library" ? libraryResults || [] : filteredGlobalResults;
 
   // Get search history from DB
   const searchHistory = useLiveQuery(
