@@ -42,14 +42,12 @@ export const CountdownBadge: React.FC<CountdownBadgeProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "3px",
-          background: isImminent
-            ? "rgba(239, 68, 68, 0.25)"
-            : "rgba(139, 92, 246, 0.2)",
+          gap: "var(--space-xs)",
+          background: isImminent ? "var(--error-20)" : "var(--primary-20)",
           color: isImminent ? "var(--error)" : "var(--primary)",
-          padding: "2px 6px",
-          borderRadius: "6px",
-          fontSize: "0.6rem",
+          padding: "2px var(--space-xs)",
+          borderRadius: "var(--radius-sm)",
+          fontSize: "var(--font-xs)",
           fontWeight: 700,
           lineHeight: 1,
           backdropFilter: "blur(4px)",
@@ -66,18 +64,18 @@ export const CountdownBadge: React.FC<CountdownBadgeProps> = ({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: "0.4rem",
+        gap: "var(--space-xs)",
         background: isImminent
-          ? "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))"
-          : "linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08))",
+          ? "linear-gradient(135deg, var(--error-15), var(--error-10))"
+          : "linear-gradient(135deg, var(--primary-15), var(--primary-10))",
         color: isImminent ? "var(--error)" : "var(--primary)",
-        padding: "0.4rem 0.75rem",
-        borderRadius: "10px",
-        fontSize: "0.75rem",
+        padding: "var(--space-xs) var(--space-sm)",
+        borderRadius: "var(--radius-md)",
+        fontSize: "var(--font-sm)",
         fontWeight: 700,
         border: isImminent
-          ? "1px solid rgba(239, 68, 68, 0.2)"
-          : "1px solid rgba(139, 92, 246, 0.2)",
+          ? "1px solid var(--error-20)"
+          : "1px solid var(--primary-20)",
       }}
     >
       <Clock size={12} />

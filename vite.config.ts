@@ -1,9 +1,25 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { fileURLToPath, URL } from "node:url";
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@components": fileURLToPath(
+        new URL("./src/components", import.meta.url),
+      ),
+      "@utils": fileURLToPath(new URL("./src/utils", import.meta.url)),
+      "@hooks": fileURLToPath(new URL("./src/hooks", import.meta.url)),
+      "@pages": fileURLToPath(new URL("./src/pages", import.meta.url)),
+      "@db": fileURLToPath(new URL("./src/db", import.meta.url)),
+      "@services": fileURLToPath(new URL("./src/services", import.meta.url)),
+      "@context": fileURLToPath(new URL("./src/context", import.meta.url)),
+      "@types": fileURLToPath(new URL("./src/types/index.ts", import.meta.url)),
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -58,6 +74,24 @@ export default defineConfig({
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.origin === "https://media.rawg.io" ||
+              url.origin === "https://wsrv.nl" ||
+              url.href.includes("googleusercontent.com") ||
+              url.pathname.startsWith("/tmdb-image"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "external-images-cache",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
               cacheableResponse: {
                 statuses: [0, 200],

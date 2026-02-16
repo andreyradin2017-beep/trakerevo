@@ -1,12 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Film, Gamepad2, BookOpen, Plus, Activity } from "lucide-react";
-import { getProxiedImageUrl } from "../utils/images";
-import type { Item } from "../types";
-import { vibrate } from "../utils/haptics";
-import { CountdownBadge } from "./CountdownBadge";
-import { LazyImage } from "./LazyImage";
-import { cardVariants } from "../utils/animations";
+import { getProxiedImageUrl } from "@utils/images";
+import type { Item } from "@types";
+import { vibrate } from "@utils/haptics";
+import { CountdownBadge } from "@components/CountdownBadge";
+import { LazyImage } from "@components/LazyImage";
+import { cardVariants } from "@utils/animations";
 
 interface GridCardProps {
   item?: Item & { isOwned?: boolean };
@@ -90,13 +90,15 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "0.5rem",
+          gap: "var(--space-sm)",
           cursor: "pointer",
           color: "var(--text-tertiary)",
         }}
       >
         <Plus size={32} />
-        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>Добавить</span>
+        <span style={{ fontSize: "var(--font-sm)", fontWeight: 600 }}>
+          Добавить
+        </span>
       </motion.div>
     );
   }
@@ -243,18 +245,18 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         {statusInfo && (
           <div
             style={{
-              padding: "0.2rem 0.5rem",
+              padding: "var(--space-xs) var(--space-sm)",
               background: "rgba(0,0,0,0.7)",
               backdropFilter: "blur(8px)",
               borderRadius: "var(--radius-sm)",
-              fontSize: "0.6rem",
+              fontSize: "var(--font-xs)",
               fontWeight: 800,
               color: statusInfo.color,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
               display: "flex",
               alignItems: "center",
-              gap: "0.3rem",
+              gap: "var(--space-xs)",
               border: "1px solid rgba(255,255,255,0.1)",
             }}
           >
@@ -277,7 +279,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         {sourceInfo && (
           <div
             style={{
-              padding: "0.15rem 0.4rem",
+              padding: "0.15rem var(--space-xs)",
               background: "rgba(0,0,0,0.8)",
               backdropFilter: "blur(8px)",
               borderRadius: "var(--radius-sm)",
@@ -406,7 +408,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          padding: "3.5rem 0.8rem 0.8rem",
+          padding: `3.5rem var(--space-md) var(--space-md)`,
           background:
             "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 25%, rgba(0,0,0,0.6) 50%, transparent 100%)",
           display: "flex",
@@ -420,7 +422,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-end",
-            gap: "0.5rem",
+            gap: "var(--space-sm)",
           }}
         >
           <h4
@@ -450,10 +452,10 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
                   color: "var(--primary)",
                   fontWeight: 900,
                   whiteSpace: "nowrap",
-                  background: "rgba(139, 92, 246, 0.15)",
-                  padding: "0.1rem 0.3rem",
+                  background: "var(--primary-15)",
+                  padding: "0.1rem var(--space-xs)",
                   borderRadius: "4px",
-                  border: "1px solid rgba(139, 92, 246, 0.3)",
+                  border: "var(--primary-30)",
                 }}
               >
                 S{item.currentSeason} E{item.currentEpisode}

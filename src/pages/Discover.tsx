@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Flame, Calendar, Gamepad2, Ghost } from "lucide-react";
+import { Flame, Calendar, Gamepad2, Ghost, CalendarClock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getDiscoverData } from "../services/discover";
-import { db } from "../db/db";
-import type { Item } from "../types";
-import { PageHeader } from "../components/PageHeader";
-import { CountdownBadge } from "../components/CountdownBadge";
+import { getDiscoverData } from "@services/discover";
+import { db } from "@db/db";
+import type { Item } from "@types";
+import { PageHeader } from "@components/PageHeader";
+import { CountdownBadge } from "@components/CountdownBadge";
 import { motion } from "framer-motion";
-import { getProxiedImageUrl } from "../utils/images";
-import { vibrate } from "../utils/haptics";
-import { useToast } from "../context/ToastContext";
-import { triggerAutoSync } from "../services/dbSync";
+import { getProxiedImageUrl } from "@utils/images";
+import { vibrate } from "@utils/haptics";
+import { useToast } from "@context/ToastContext";
+import { triggerAutoSync } from "@services/dbSync";
+import { Section } from "@components/Section";
 
 interface DiscoverSection {
   title: string;
@@ -159,11 +160,18 @@ export const Discover: React.FC = () => {
               "linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.08))",
           },
           {
-            title: "Лучшие игры",
+            title: "Игровые новинки",
             icon: <Gamepad2 size={16} />,
-            items: data.topGames,
+            items: data.newGames,
             gradient:
               "linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.08))",
+          },
+          {
+            title: "Скоро в играх",
+            icon: <CalendarClock size={16} />,
+            items: data.upcomingGames,
+            gradient:
+              "linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.08))",
           },
         ]);
       } catch (error) {
@@ -248,75 +256,45 @@ export const Discover: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              {/* Section Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  marginBottom: "0.75rem",
-                  padding: "0.5rem 0.75rem",
-                  background: section.gradient,
-                  borderRadius: "10px",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                }}
+              <Section
+                title={section.title}
+                icon={section.icon}
+                badge={section.items.length}
+                plain
               >
-                <span style={{ color: "var(--text-secondary)" }}>
-                  {section.icon}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {section.title}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.65rem",
-                    color: "var(--text-tertiary)",
-                    marginLeft: "auto",
-                    fontWeight: 600,
-                  }}
-                >
-                  {section.items.length} →
-                </span>
-              </div>
-
-              {/* Horizontal Scroll */}
-              {section.items.length > 0 ? (
-                <div
-                  className="no-scrollbar"
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    overflowX: "auto",
-                    padding: "0 0.25rem 0.5rem",
-                    scrollbarWidth: "none",
-                  }}
-                >
-                  {section.items.map((item) => (
-                    <DiscoverCard
-                      key={`${item.source}-${item.externalId}`}
-                      item={item}
-                      onAdd={handleAdd}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: "2rem",
-                    textAlign: "center",
-                    color: "var(--text-tertiary)",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  Нет данных
-                </div>
-              )}
+                {/* Horizontal Scroll */}
+                {section.items.length > 0 ? (
+                  <div
+                    className="no-scrollbar"
+                    style={{
+                      display: "flex",
+                      gap: "0.75rem",
+                      overflowX: "auto",
+                      padding: "0 0.25rem 0.5rem",
+                      scrollbarWidth: "none",
+                    }}
+                  >
+                    {section.items.map((item) => (
+                      <DiscoverCard
+                        key={`${item.source}-${item.externalId}`}
+                        item={item}
+                        onAdd={handleAdd}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "var(--text-tertiary)",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    Нет данных
+                  </div>
+                )}
+              </Section>
             </motion.div>
           ))}
         </div>

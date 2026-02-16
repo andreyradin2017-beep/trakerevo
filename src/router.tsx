@@ -1,38 +1,38 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { PageLoader } from "./components/PageLoader";
+import { Layout } from "@components/Layout";
+import { ErrorBoundary } from "@components/ErrorBoundary";
+import { PageLoader } from "@components/PageLoader";
 import { Suspense, lazy } from "react";
 
 // Lazy load pages
 const Home = lazy(() =>
-  import("./pages/Home").then((module) => ({ default: module.Home })),
+  import("@pages/Home").then((module) => ({ default: module.Home })),
 );
 const Search = lazy(() =>
-  import("./pages/Search").then((module) => ({ default: module.Search })),
+  import("@pages/Search").then((module) => ({ default: module.Search })),
 );
 const ItemDetail = lazy(() =>
-  import("./pages/ItemDetail").then((module) => ({
+  import("@pages/ItemDetail").then((module) => ({
     default: module.ItemDetail,
   })),
 );
 const ListPage = lazy(() =>
-  import("./pages/ListPage").then((module) => ({ default: module.ListPage })),
+  import("@pages/ListPage").then((module) => ({ default: module.ListPage })),
 );
 const Random = lazy(() =>
-  import("./pages/Random").then((module) => ({ default: module.Random })),
+  import("@pages/Random").then((module) => ({ default: module.Random })),
 );
 const Settings = lazy(() =>
-  import("./pages/Settings").then((module) => ({ default: module.Settings })),
+  import("@pages/Settings").then((module) => ({ default: module.Settings })),
 );
 const Archive = lazy(() =>
-  import("./pages/Archive").then((module) => ({ default: module.Archive })),
+  import("@pages/Archive").then((module) => ({ default: module.Archive })),
 );
 const Stats = lazy(() =>
-  import("./pages/Stats").then((module) => ({ default: module.Stats })),
+  import("@pages/Stats").then((module) => ({ default: module.Stats })),
 );
 const Discover = lazy(() =>
-  import("./pages/Discover").then((module) => ({ default: module.Discover })),
+  import("@pages/Discover").then((module) => ({ default: module.Discover })),
 );
 
 // Wrapper for Suspense to avoid repetition
@@ -40,7 +40,7 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
 );
 
-import App from "./App";
+import App from "@/App";
 
 export const router = createBrowserRouter([
   {

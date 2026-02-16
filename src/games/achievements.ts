@@ -16,6 +16,8 @@ export interface Achievement {
   icon: LucideIcon;
   color: string;
   condition: (stats: UserStats) => boolean;
+  target?: (stats: UserStats) => number; // Target value for progress
+  current?: (stats: UserStats) => number; // Current value for progress
 }
 
 export interface UserStats {
@@ -34,6 +36,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Star,
     color: "#fbbf24", // amber-400
     condition: (stats) => stats.totalCompleted >= 1,
+    target: () => 1,
+    current: (stats) => stats.totalCompleted,
   },
   {
     id: "cinephile_novice",
@@ -42,6 +46,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Film,
     color: "#a78bfa", // violet-400
     condition: (stats) => stats.moviesWatched >= 5,
+    target: () => 5,
+    current: (stats) => stats.moviesWatched,
   },
   {
     id: "bookworm_novice",
@@ -50,6 +56,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: BookOpen,
     color: "#f472b6", // pink-400
     condition: (stats) => stats.booksRead >= 5,
+    target: () => 5,
+    current: (stats) => stats.booksRead,
   },
   {
     id: "gamer_novice",
@@ -58,6 +66,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Gamepad2,
     color: "#34d399", // emerald-400
     condition: (stats) => stats.gamesPlayed >= 5,
+    target: () => 5,
+    current: (stats) => stats.gamesPlayed,
   },
   {
     id: "streak_master",
@@ -66,6 +76,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Zap,
     color: "#f59e0b", // orange-500
     condition: (stats) => stats.streak >= 3,
+    target: () => 3,
+    current: (stats) => stats.streak,
   },
   {
     id: "completionist",
@@ -74,6 +86,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Trophy,
     color: "#ffd700", // gold
     condition: (stats) => stats.totalCompleted >= 50,
+    target: () => 50,
+    current: (stats) => stats.totalCompleted,
   },
   {
     id: "streak_guru",
@@ -82,6 +96,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: Target,
     color: "#ef4444", // red-500
     condition: (stats) => stats.streak >= 7,
+    target: () => 7,
+    current: (stats) => stats.streak,
   },
 ];
 
@@ -92,9 +108,15 @@ export const getUnlockedAchievements = (stats: UserStats): string[] => {
 export const getAchievementProgress = (
   achievementId: string,
   stats: UserStats,
-): number => {
-  // Optional: Return percentage 0-100 for progress bars
-  // Simplified implementation for now
-  // Suppress unused variable warning by referencing them
-  return achievementId && stats ? 0 : 0;
+): { current: number; target: number; percentage: number } => {
+  const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
+  if (!achievement || !achievement.current || !achievement.target) {
+    return { current: 0, target: 1, percentage: 0 };
+  }
+
+  const current = achievement.current(stats);
+  const target = achievement.target(stats);
+  const percentage = Math.min(100, Math.round((current / target) * 100));
+
+  return { current, target, percentage };
 };

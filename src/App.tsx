@@ -1,5 +1,5 @@
-import { OfflineIndicator } from "./components/OfflineIndicator";
-import { useSearchProviders } from "./hooks/useSearchProviders";
+import { OfflineIndicator } from "@components/OfflineIndicator";
+import { useSearchProviders } from "@hooks/useSearchProviders";
 import { Outlet, ScrollRestoration } from "react-router-dom";
 
 function App() {

@@ -32,8 +32,8 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          marginBottom: "1.25rem",
-          gap: "1rem",
+          marginBottom: "var(--space-md-lg)",
+          gap: "var(--space-md)",
         }}
       >
         <button
@@ -53,18 +53,15 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
         >
           <ArrowLeft size={20} color="var(--text-primary)" />
         </button>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>
+        <h1 style={{ fontSize: "var(--font-xl)", fontWeight: 700, margin: 0 }}>
           Детали
         </h1>
       </div>
 
       <div
         style={{
-          backgroundColor: "var(--bg-surface)",
-          borderRadius: "var(--radius-xl)",
           overflow: "hidden",
-          border: "var(--border-glass)",
-          marginBottom: "1.25rem",
+          marginBottom: "0.5rem",
         }}
       >
         {proxiedImage && (
@@ -114,16 +111,16 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
                   style={{
                     background: "rgba(255,255,255,0.2)",
                     backdropFilter: "blur(8px)",
-                    padding: "0.75rem 1.25rem",
+                    padding: "var(--space-sm) var(--space-md-lg)",
                     borderRadius: "var(--radius-full)",
                     border: "1px solid rgba(255,255,255,0.3)",
                     color: "white",
                     fontWeight: 700,
-                    fontSize: "0.85rem",
+                    fontSize: "var(--font-md)",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem",
+                    gap: "var(--space-sm)",
                   }}
                 >
                   <Play size={16} fill="white" /> Трейлер
@@ -133,12 +130,17 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
           </div>
         )}
 
-        <div style={{ padding: "1.25rem 1.25rem 0.5rem 1.25rem" }}>
+        <div
+          style={{
+            padding:
+              "var(--space-md-lg) var(--space-md-lg) var(--space-sm) var(--space-md-lg)",
+          }}
+        >
           <h2
             style={{
-              fontSize: "1.5rem",
+              fontSize: "var(--font-2xl)",
               fontWeight: 800,
-              marginBottom: "0.75rem",
+              marginBottom: "var(--space-sm)",
               letterSpacing: "-0.5px",
               lineHeight: 1.2,
             }}

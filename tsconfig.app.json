@@ -12,6 +12,18 @@
       "@testing-library/jest-dom"
     ],
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@utils/*": ["src/utils/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@pages/*": ["src/pages/*"],
+      "@db/*": ["src/db/*"],
+      "@services/*": ["src/services/*"],
+      "@context/*": ["src/context/*"],
+      "@types": ["src/types/index.ts"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

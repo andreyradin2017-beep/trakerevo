@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db/db";
+import { db } from "@db/db";
 import {
   Trash2,
   Edit2,
@@ -13,35 +13,67 @@ import {
   CheckCircle2,
   List as ListIcon,
 } from "lucide-react";
-import { Skeleton } from "../components/Skeleton";
-import { SkeletonList } from "../components/SkeletonList";
-import { EmptyState } from "../components/EmptyState";
-import { PageHeader } from "../components/PageHeader";
-import { CompactListItem } from "../components/CompactListItem";
-import { Swipeable } from "../components/Swipeable";
-import type { Item } from "../types";
+import { Skeleton } from "@components/Skeleton";
+import { SkeletonList } from "@components/SkeletonList";
+import { EmptyState } from "@components/EmptyState";
+import { PageHeader } from "@components/PageHeader";
+import { DetailedListItem } from "@components/DetailedListItem";
+import { Swipeable } from "@components/Swipeable";
+import type { Item } from "@types";
 import { motion, AnimatePresence } from "framer-motion";
-import { triggerAutoSync } from "../services/dbSync";
+import { triggerAutoSync } from "@services/dbSync";
+import { FilterToolbar } from "@components/FilterToolbar";
+import { type StatusFilterType } from "@components/StatusFilter";
+import { type SortOption } from "@components/SortSelector";
 
 export const ListPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const listId = Number(id);
 
-  const data = useLiveQuery(async () => {
-    if (!listId) return null;
-    const list = await db.lists.get(listId);
-    const items = await db.items.where("listId").equals(listId).toArray();
-    return { list, items };
-  }, [listId]);
-
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
+
+  const data = useLiveQuery(async () => {
+    if (!listId) return null;
+    const list = await db.lists.get(listId);
+    const items = await db.items.where("listId").equals(listId).toArray();
+
+    // Sort items
+    const sortedItems = items.sort((a, b) => {
+      switch (sortBy) {
+        case "dateAdded":
+          return (b.id || 0) - (a.id || 0);
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0);
+        case "releaseDate":
+          const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+          const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+          return dateB - dateA;
+        case "title":
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    return { list, items: sortedItems };
+  }, [listId, sortBy]);
+
+  const items = data?.items;
+
+  // Filter items by status locally
+  const filteredItems = React.useMemo(() => {
+    if (!items) return [];
+    if (statusFilter === "all") return items;
+    return items.filter((item) => item.status === statusFilter);
+  }, [items, statusFilter]);
 
   if (!data?.list) {
-    // ... (skeleton code stays the same, I'll keep it concise in replacement)
     return (
       <div style={{ padding: "1rem" }}>
         <div
@@ -64,7 +96,7 @@ export const ListPage: React.FC = () => {
     );
   }
 
-  const { list, items } = data;
+  const { list } = data;
 
   const startEdit = () => {
     setEditName(list.name);
@@ -213,70 +245,47 @@ export const ListPage: React.FC = () => {
               </div>
             ) : isEditing ? (
               <>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={saveName}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--primary)",
-                    padding: "0.5rem",
-                  }}
+                  className="btn-icon"
+                  style={{ color: "var(--primary)" }}
                 >
                   <Save size={20} />
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setIsEditing(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                    padding: "0.5rem",
-                  }}
+                  className="btn-icon"
                 >
                   <X size={20} />
-                </button>
+                </motion.button>
               </>
             ) : (
               <>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setSelectionMode(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                    padding: "0.5rem",
-                  }}
+                  className="btn-icon"
                   title="Выбрать несколько"
                 >
                   <CheckSquare size={18} />
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={startEdit}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                    padding: "0.5rem",
-                  }}
+                  className="btn-icon"
                 >
                   <Edit2 size={18} />
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={deleteList}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--error)",
-                    padding: "0.5rem",
-                  }}
+                  className="btn-icon"
+                  style={{ color: "var(--error)" }}
                 >
                   <Trash2 size={18} />
-                </button>
+                </motion.button>
               </>
             )}
           </div>
@@ -304,10 +313,47 @@ export const ListPage: React.FC = () => {
         </div>
       )}
 
+      {/* Filter Toolbar - Sticky */}
+      {!selectionMode && items && items.length > 0 && (
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            background: "var(--bg-app)",
+            padding: "0.5rem 0",
+            margin: "0 -1rem 1rem -1rem",
+            paddingLeft: "1rem",
+            paddingRight: "1rem",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backdropFilter: "blur(12px)",
+              background: "rgba(23, 23, 23, 0.85)",
+              zIndex: -1,
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              maskImage:
+                "linear-gradient(to bottom, black 90%, transparent 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black 90%, transparent 100%)",
+            }}
+          />
+          <FilterToolbar
+            activeStatus={statusFilter}
+            onStatusChange={setStatusFilter}
+            activeSort={sortBy}
+            onSortChange={setSortBy}
+          />
+        </div>
+      )}
+
       {/* List Items Container */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        {items && items.length > 0 ? (
-          items.map((item: Item) => (
+        {filteredItems && filteredItems.length > 0 ? (
+          filteredItems.map((item: Item) => (
             <Swipeable
               key={item.id}
               disabled={selectionMode}
@@ -341,7 +387,8 @@ export const ListPage: React.FC = () => {
                     )}
                   </motion.div>
                 )}
-                <CompactListItem
+
+                <DetailedListItem
                   item={item}
                   onClick={() =>
                     selectionMode
@@ -350,7 +397,6 @@ export const ListPage: React.FC = () => {
                   }
                   style={{
                     flex: 1,
-                    borderBottom: "none",
                     backgroundColor: selectedIds.includes(item.id!)
                       ? "rgba(139, 92, 246, 0.1)"
                       : "var(--bg-surface)",

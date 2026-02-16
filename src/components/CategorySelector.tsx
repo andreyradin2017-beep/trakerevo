@@ -1,6 +1,7 @@
 import React from "react";
 import { Layers, Film, Gamepad2, BookOpen } from "lucide-react";
-import { selectionChanged } from "../utils/haptics";
+import { selectionChanged } from "@/utils/haptics";
+import { motion } from "framer-motion";
 
 export type Category = "all" | "movie" | "game" | "book";
 
@@ -38,35 +39,54 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
       }}
       className="no-scrollbar"
     >
-      {categories.map((cat) => (
-        <button
-          key={cat.id}
-          onClick={() => {
-            selectionChanged();
-            onCategoryChange(cat.id);
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.3rem",
-            padding: "0.45rem 0.75rem",
-            border: "none",
-            borderRadius: "var(--radius-lg)",
-            cursor: "pointer",
-            background:
-              activeCategory === cat.id ? "var(--primary)" : "transparent",
-            color:
-              activeCategory === cat.id ? "white" : "var(--text-secondary)",
-            transition: "all 0.2s ease",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <cat.icon size={13} />
-          {cat.label}
-        </button>
-      ))}
+      {categories.map((cat) => {
+        const isActive = activeCategory === cat.id;
+        return (
+          <button
+            key={cat.id}
+            onClick={() => {
+              if (!isActive) {
+                selectionChanged();
+                onCategoryChange(cat.id);
+              }
+            }}
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              padding: "0.45rem 0.75rem",
+              border: "none",
+              borderRadius: "var(--radius-lg)", // Reduced radius to fit inside
+              cursor: "pointer",
+              background: "transparent",
+              color: isActive ? "white" : "var(--text-secondary)",
+              transition: "color 0.2s ease",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              zIndex: 1,
+            }}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="activeCategory"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "var(--primary)",
+                  borderRadius: "var(--radius-lg)",
+                  zIndex: -1,
+                  boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <cat.icon size={13} style={{ position: "relative", zIndex: 2 }} />
+            <span style={{ position: "relative", zIndex: 2 }}>{cat.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };

@@ -9,22 +9,19 @@ import {
   Ghost,
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { searchAll, searchByCategory } from "../services/api";
+import { searchAll, searchByCategory } from "@services/api";
 import { useLiveQuery } from "dexie-react-hooks";
-import type { Item } from "../types";
-import { db } from "../db/db";
-import { GridCard } from "../components/GridCard";
-import { SkeletonCard } from "../components/SkeletonCard";
-import {
-  CategorySelector,
-  type Category,
-} from "../components/CategorySelector";
-import { PageHeader } from "../components/PageHeader";
+import type { Item } from "@types";
+import { db } from "@db/db";
+import { GridCard } from "@components/GridCard";
+import { SkeletonCard } from "@components/SkeletonCard";
+import { CategorySelector, type Category } from "@components/CategorySelector";
+import { PageHeader } from "@components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useLibrarySearch } from "../hooks/useItems";
-import { triggerAutoSync } from "../services/dbSync";
-import { useToast } from "../context/ToastContext";
+import { useLibrarySearch } from "@hooks/useItems";
+import { triggerAutoSync } from "@services/dbSync";
+import { useToast } from "@context/ToastContext";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -187,152 +184,176 @@ export const Search: React.FC = () => {
 
       <div
         style={{
-          display: "flex",
-          gap: "1rem",
-          alignItems: "center",
-          marginBottom: "1.25rem",
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          margin: "0 -1rem",
+          padding: "0.5rem 1rem",
         }}
       >
-        <CategorySelector
-          activeCategory={currentCategory}
-          onCategoryChange={(cat) => {
-            localStorage.setItem("lastSearchCategory", cat);
-            if (cat === "all") {
-              searchParams.delete("category");
-            } else {
-              searchParams.set("category", cat);
-            }
-            setSearchParams(searchParams);
-          }}
-          style={{ flex: 1, marginBottom: 0 }}
-        />
-      </div>
-
-      {/* Mode Toggle */}
-      <div
-        style={{
-          display: "flex",
-          background: "var(--bg-surface)",
-          padding: "4px",
-          borderRadius: "12px",
-          marginBottom: "1.25rem",
-          border: "1px solid rgba(255,255,255,0.05)",
-        }}
-      >
-        <button
-          onClick={() => setSearchMode("global")}
-          style={{
-            flex: 1,
-            padding: "0.6rem",
-            borderRadius: "8px",
-            border: "none",
-            background:
-              searchMode === "global"
-                ? "rgba(139, 92, 246, 0.2)"
-                : "transparent",
-            color:
-              searchMode === "global"
-                ? "var(--primary)"
-                : "var(--text-tertiary)",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-            cursor: "pointer",
-            transition: "all 0.2s",
-          }}
-        >
-          <Globe size={14} /> Глобальный
-        </button>
-        <button
-          onClick={() => setSearchMode("library")}
-          style={{
-            flex: 1,
-            padding: "0.6rem",
-            borderRadius: "8px",
-            border: "none",
-            background:
-              searchMode === "library"
-                ? "rgba(52, 211, 153, 0.2)"
-                : "transparent",
-            color:
-              searchMode === "library"
-                ? "var(--success)"
-                : "var(--text-tertiary)",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-            cursor: "pointer",
-            transition: "all 0.2s",
-          }}
-        >
-          <Library size={14} /> Моя библиотека
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <form
-        onSubmit={(e) => handleSearch(query, e)}
-        style={{ position: "relative", marginBottom: "1rem" }}
-      >
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={
-            searchMode === "global"
-              ? "Что ищем в интернете?"
-              : "Поиск в моей коллекции"
-          }
-          style={{
-            width: "100%",
-            padding: "0.85rem 1rem 0.85rem 3rem",
-            borderRadius: "var(--radius-lg)",
-            fontSize: "1rem",
-            backgroundColor: "var(--bg-surface)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "var(--text-primary)",
-            outline: "none",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          }}
-        />
-        <SearchIcon
-          size={20}
+        <div
           style={{
             position: "absolute",
-            left: "1rem",
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: "var(--text-tertiary)",
+            inset: 0,
+            backdropFilter: "blur(12px)",
+            background: "rgba(23, 23, 23, 0.85)",
+            zIndex: -1,
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            maskImage:
+              "linear-gradient(to bottom, black 90%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, black 90%, transparent 100%)",
           }}
         />
-        {query && (
-          <button
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setGlobalResults([]);
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            alignItems: "center",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <CategorySelector
+            activeCategory={currentCategory}
+            onCategoryChange={(cat) => {
+              localStorage.setItem("lastSearchCategory", cat);
+              if (cat === "all") {
+                searchParams.delete("category");
+              } else {
+                searchParams.set("category", cat);
+              }
+              setSearchParams(searchParams);
             }}
+            style={{ flex: 1, marginBottom: 0 }}
+          />
+        </div>
+
+        {/* Mode Toggle */}
+        <div
+          style={{
+            display: "flex",
+            background: "var(--bg-surface)",
+            padding: "4px",
+            borderRadius: "12px",
+            marginBottom: "1.25rem",
+            border: "1px solid rgba(255,255,255,0.05)",
+          }}
+        >
+          <button
+            onClick={() => setSearchMode("global")}
             style={{
-              position: "absolute",
-              right: "1rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
+              flex: 1,
+              padding: "0.6rem",
+              borderRadius: "8px",
               border: "none",
-              color: "var(--text-tertiary)",
+              background:
+                searchMode === "global"
+                  ? "rgba(139, 92, 246, 0.2)"
+                  : "transparent",
+              color:
+                searchMode === "global"
+                  ? "var(--primary)"
+                  : "var(--text-tertiary)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.4rem",
               cursor: "pointer",
+              transition: "all 0.2s",
             }}
           >
-            <X size={18} />
+            <Globe size={14} /> Глобальный
           </button>
-        )}
-      </form>
+          <button
+            onClick={() => setSearchMode("library")}
+            style={{
+              flex: 1,
+              padding: "0.6rem",
+              borderRadius: "8px",
+              border: "none",
+              background:
+                searchMode === "library"
+                  ? "rgba(52, 211, 153, 0.2)"
+                  : "transparent",
+              color:
+                searchMode === "library"
+                  ? "var(--success)"
+                  : "var(--text-tertiary)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.4rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <Library size={14} /> Моя библиотека
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <form
+          onSubmit={(e) => handleSearch(query, e)}
+          style={{ position: "relative", marginBottom: "1rem" }}
+        >
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={
+              searchMode === "global"
+                ? "Что ищем в интернете?"
+                : "Поиск в моей коллекции"
+            }
+            style={{
+              width: "100%",
+              padding: "0.85rem 1rem 0.85rem 3rem",
+              borderRadius: "var(--radius-lg)",
+              fontSize: "1rem",
+              backgroundColor: "var(--bg-surface)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "var(--text-primary)",
+              outline: "none",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            }}
+          />
+          <SearchIcon
+            size={20}
+            style={{
+              position: "absolute",
+              left: "1rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--text-tertiary)",
+            }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setGlobalResults([]);
+              }}
+              style={{
+                position: "absolute",
+                right: "1rem",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: "var(--text-tertiary)",
+                cursor: "pointer",
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
+        </form>
+      </div>
 
       {/* History Section */}
       {!query &&

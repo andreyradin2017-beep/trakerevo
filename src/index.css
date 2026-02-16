@@ -70,11 +70,33 @@
   --brand-rawg: #ffffff;
   --brand-google-books: #34a853;
   --brand-yandex: #fc3f1d;
+  --bg-surface-80: rgba(30, 30, 35, 0.8);
+  --bg-surface-70: rgba(30, 30, 35, 0.7);
+
+  /* Primary Transparencies */
+  --primary-10: rgba(139, 92, 246, 0.1);
+  --primary-15: rgba(139, 92, 246, 0.15);
+  --primary-20: rgba(139, 92, 246, 0.2);
+  --primary-30: rgba(139, 92, 246, 0.3);
+  --primary-40: rgba(139, 92, 246, 0.4);
+
+  /* Error Transparencies */
+  --error-10: rgba(239, 68, 68, 0.1);
+  --error-15: rgba(239, 68, 68, 0.15);
+  --error-20: rgba(239, 68, 68, 0.2);
+
+  --font-xs: 0.6rem;
+  --font-sm: 0.75rem;
+  --font-md: 0.875rem;
+  --font-lg: 1rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
 
   /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
+  --space-md-lg: 1.25rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
@@ -166,64 +188,6 @@ h6 {
   font-family: var(--font-main);
 }
 
-/* Light Theme Overrides */
-.light-theme {
-  --bg-app: #f1f5f9;
-  --bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
-
-  /* Darker surfaces for better separation from background */
-  --bg-surface: #ffffff; /* Pure white for better contrast */
-  --bg-surface-hover: #f8fafc;
-  --bg-surface-active: #f1f5f9;
-
-  /* Darker borders */
-  --border-glass: 1px solid rgba(0, 0, 0, 0.08);
-
-  --text-primary: #0f172a; /* Slate 900 - Very dark */
-  --text-secondary: #334155; /* Slate 700 - Much darker than before */
-  --text-tertiary: #64748b; /* Slate 500 - Readable grey */
-
-  --glass-header: rgba(255, 255, 255, 0.95);
-
-  /* Shadow for cards to pop in light mode */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 15px rgba(139, 92, 246, 0.3);
-}
-
-/* OLED Theme Overrides */
-.oled-theme {
-  --bg-app: #000000;
-  --bg-gradient: none;
-  --bg-noise: none; /* Cleaner look for OLED */
-
-  --bg-surface: rgba(20, 20, 20, 1); /* Solid dark grey for contrast */
-  --bg-surface-hover: rgba(40, 40, 40, 1);
-  --bg-surface-active: rgba(60, 60, 60, 1);
-  --border-glass: 1px solid rgba(255, 255, 255, 0.1);
-
-  --glass-header: rgba(0, 0, 0, 0.9);
-}
-
-/* Theme Toggle styles */
-.theme-toggle-btn {
-  background: var(--bg-surface);
-  border: var(--border-glass);
-  color: var(--text-primary);
-  padding: 0.5rem;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.theme-toggle-btn:hover {
-  background: var(--bg-surface-hover);
-  transform: scale(1.1);
-}
-
 a {
   color: inherit;
   text-decoration: none;
@@ -246,6 +210,82 @@ textarea {
 option {
   background-color: #1c1c1e;
   color: var(--text-primary);
+}
+
+/* Unified UI Components */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  outline: none;
+  user-select: none;
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  border: var(--border-glass);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: var(--border-glass);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  border: var(--border-glass);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+}
+
+.section-label {
+  font-size: var(--font-xs);
+  font-weight: 800;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* Telegram WebApp Theme Integration overrides */

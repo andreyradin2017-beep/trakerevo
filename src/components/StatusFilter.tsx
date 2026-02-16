@@ -7,11 +7,13 @@ export type StatusFilterType = "all" | ItemStatus;
 interface StatusFilterProps {
   activeStatus: StatusFilterType;
   onStatusChange: (status: StatusFilterType) => void;
+  compact?: boolean;
 }
 
 export const StatusFilter: React.FC<StatusFilterProps> = ({
   activeStatus,
   onStatusChange,
+  compact,
 }) => {
   const statuses: { id: StatusFilterType; label: string }[] = [
     { id: "all", label: "Все" },
@@ -29,7 +31,7 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
         gap: "0.5rem",
         overflowX: "auto",
         padding: "0 0.25rem",
-        margin: "0 -0.25rem 1rem", // negative margin to allow scroll to edge
+        margin: compact ? "0" : "0 -0.25rem 1rem", // negative margin to allow scroll to edge
         scrollbarWidth: "none",
       }}
     >
@@ -40,20 +42,19 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
             key={status.id}
             whileTap={{ scale: 0.95 }}
             onClick={() => onStatusChange(status.id)}
+            className={isActive ? "btn" : "btn-secondary"}
             style={{
               padding: "0.35rem 0.85rem",
-              borderRadius: "20px",
+              borderRadius: "var(--radius-full)",
+              background: isActive ? "var(--primary-15)" : "var(--bg-surface)",
               border: isActive
-                ? "1px solid var(--primary)"
-                : "1px solid rgba(255,255,255,0.1)",
-              background: isActive
-                ? "rgba(139, 92, 246, 0.15)"
-                : "rgba(255,255,255,0.03)",
+                ? "1px solid var(--primary-30)"
+                : "var(--border-glass)",
               color: isActive ? "var(--primary)" : "var(--text-secondary)",
               fontSize: "0.75rem",
               fontWeight: 600,
               whiteSpace: "nowrap",
-              cursor: "pointer",
+              height: "32px",
               flexShrink: 0,
             }}
           >

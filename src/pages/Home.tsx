@@ -1,35 +1,30 @@
 import React, { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
-import { db } from "../db/db";
+import { db } from "@db/db";
 import { Plus, Archive } from "lucide-react";
-import { GridCard } from "../components/GridCard";
-import { cardVariants } from "../utils/animations";
-import { Skeleton } from "../components/Skeleton";
-import { SkeletonCard } from "../components/SkeletonCard";
-import { AnimatedCounter } from "../components/AnimatedCounter";
-import { EmptyState } from "../components/EmptyState";
-import { Onboarding } from "../components/Onboarding";
-import { ThemeToggle } from "../components/ThemeToggle";
-import { PullToRefresh } from "../components/PullToRefresh";
+import { GridCard } from "@components/GridCard";
+import { cardVariants } from "@utils/animations";
+import { Skeleton } from "@components/Skeleton";
+import { SkeletonCard } from "@components/SkeletonCard";
+import { AnimatedCounter } from "@components/AnimatedCounter";
+import { EmptyState } from "@components/EmptyState";
+import { Onboarding } from "@components/Onboarding";
+import { PullToRefresh } from "@components/PullToRefresh";
 import { motion } from "framer-motion";
-import {
-  CategorySelector,
-  type Category,
-} from "../components/CategorySelector";
-import { PageHeader } from "../components/PageHeader";
-import type { Item } from "../types";
-import { vibrate } from "../utils/haptics";
-import { triggerAutoSync } from "../services/dbSync";
+import { CategorySelector, type Category } from "@components/CategorySelector";
+import { FilterToolbar } from "@components/FilterToolbar";
+import { type SortOption } from "@components/SortSelector";
+import { PageHeader } from "@components/PageHeader";
+import type { Item } from "@types";
+import { vibrate } from "@utils/haptics";
+import { triggerAutoSync } from "@services/dbSync";
 import {
   ConfirmDialog,
   InputDialog,
   QuickActionMenu,
 } from "../components/Dialogs";
-import {
-  StatusFilter,
-  type StatusFilterType,
-} from "../components/StatusFilter";
+import { type StatusFilterType } from "../components/StatusFilter";
 import {
   PlayCircle,
   XCircle,
@@ -41,6 +36,8 @@ import {
 } from "lucide-react";
 import { UpcomingCarousel } from "../components/UpcomingCarousel";
 import type { ItemStatus } from "../types";
+import { Section } from "@components/Section";
+import { Sparkles, FolderHeart } from "lucide-react";
 
 const UserLists: React.FC<{ onAdd: () => void }> = ({ onAdd }) => {
   const lists = useLiveQuery(() => db.lists.toArray());
@@ -100,17 +97,14 @@ const UserLists: React.FC<{ onAdd: () => void }> = ({ onAdd }) => {
           key={list.id}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate(`/list/${list.id}`)}
+          className="btn-secondary"
           style={{
-            padding: "0.4rem 0.75rem",
-            background: "var(--bg-surface)",
-            backdropFilter: "var(--backdrop-blur)",
+            padding: "0.35rem 0.8rem",
             borderRadius: "var(--radius-full)",
-            border: "var(--border-glass)",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
             fontSize: "0.75rem",
             fontWeight: 600,
-            color: "var(--text-primary)",
+            whiteSpace: "nowrap",
+            height: "32px",
           }}
         >
           {list.name}
@@ -127,28 +121,35 @@ const StatCard: React.FC<{ title: string; count: number; color: string }> = ({
 }) => (
   <div
     style={{
-      padding: "0.6rem",
-      background: "rgba(255,255,255,0.02)",
+      padding: "0.75rem 0.5rem",
+      background: "rgba(255,255,255,0.01)",
       borderRadius: "var(--radius-md)",
-      border: "1px solid rgba(255,255,255,0.03)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       textAlign: "center",
+      gap: "2px",
     }}
   >
-    <h3
+    <span
+      className="section-label"
       style={{
-        marginBottom: "0.1rem",
-        fontSize: "0.65rem",
-        color: "var(--text-secondary)",
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
+        fontSize: "0.55rem",
+        opacity: 0.8,
+        color: "var(--text-tertiary)",
       }}
     >
       {title}
-    </h3>
-    <p style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: color }}>
+    </span>
+    <p
+      style={{
+        fontSize: "1.1rem",
+        fontWeight: 800,
+        margin: 0,
+        color: color,
+        fontFamily: "var(--font-main)",
+      }}
+    >
       <AnimatedCounter value={count} />
     </p>
   </div>
@@ -160,10 +161,11 @@ import { useCategoryStats } from "../hooks/useStats";
 const RecentItemsList: React.FC<{
   category: Category;
   statusFilter: StatusFilterType;
+  sortBy: SortOption;
   onReference: (item: Item) => void;
   onLongPress: (item: Item) => void;
-}> = ({ category, statusFilter, onReference, onLongPress }) => {
-  const items = useRecentItems(category);
+}> = ({ category, statusFilter, sortBy, onReference, onLongPress }) => {
+  const items = useRecentItems(category, sortBy);
   const navigate = useNavigate();
 
   // Filter items by status locally
@@ -263,6 +265,7 @@ const RecentItemsList: React.FC<{
 export const Home: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const navigate = useNavigate();
   const stats = useCategoryStats();
 
@@ -333,44 +336,21 @@ export const Home: React.FC = () => {
               >
                 <motion.button
                   whileTap={{ scale: 0.9 }}
+                  className="btn-icon"
                   onClick={() => {
                     vibrate("medium");
                     navigate("/random");
-                  }}
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "10px",
-                    width: "36px",
-                    height: "36px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
                   }}
                   title="Мне повезет"
                 >
                   <Dices size={20} />
                 </motion.button>
-                <ThemeToggle />
                 <motion.button
                   whileTap={{ scale: 0.9 }}
+                  className="btn-icon"
                   onClick={() => {
                     vibrate("light");
                     navigate("/archive");
-                  }}
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "10px",
-                    width: "36px",
-                    height: "36px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
                   }}
                   title="Архив"
                 >
@@ -385,51 +365,77 @@ export const Home: React.FC = () => {
 
           <UpcomingCarousel />
 
-          <CategorySelector
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-            style={{ marginBottom: "0.75rem" }}
-          />
-
-          <StatusFilter
-            activeStatus={statusFilter}
-            onStatusChange={setStatusFilter}
-          />
-
-          {statusFilter === "all" && (
-            <div style={{ marginBottom: "1.25rem" }}>
-              <UserLists onAdd={() => setIsListDialogOpen(true)} />
-            </div>
-          )}
-
-          <div style={{ marginBottom: "2.5rem" }}>
-            <h2
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              background: "var(--bg-app)", // or rgba for blur
+              padding: "0.5rem 0",
+              margin: "0 -1rem", // Negative margin to stretch full width
+              paddingLeft: "1rem", // Compensate padding
+              paddingRight: "1rem",
+            }}
+          >
+            {/* Backdrop blur effect overlay */}
+            <div
               style={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                marginBottom: "0.75rem",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                color: "var(--text-tertiary)",
-                paddingLeft: "2px",
-              }}
-            >
-              {activeCategory === "all" ? "Недавнее" : "Результаты"}
-            </h2>
-            <RecentItemsList
-              category={activeCategory}
-              statusFilter={statusFilter}
-              onReference={(item) => navigate(`/item/${item.id}`)}
-              onLongPress={(item) => {
-                setQuickMenu({ isOpen: true, item });
+                position: "absolute",
+                inset: 0,
+                backdropFilter: "blur(12px)",
+                background: "rgba(23, 23, 23, 0.8)", // Semi-transparent bg-app
+                zIndex: -1,
+                maskImage:
+                  "linear-gradient(to bottom, black 90%, transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 90%, transparent 100%)",
               }}
             />
+            <CategorySelector
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              style={{ marginBottom: "0.75rem" }}
+            />
+            <FilterToolbar
+              activeStatus={statusFilter}
+              onStatusChange={setStatusFilter}
+              activeSort={sortBy}
+              onSortChange={setSortBy}
+            />
+
+            <Section
+              title="Мои Списки"
+              icon={FolderHeart}
+              plain
+              style={{ marginTop: "0.75rem", marginBottom: "0.5rem" }}
+            >
+              <UserLists onAdd={() => setIsListDialogOpen(true)} />
+            </Section>
+          </div>
+
+          <div style={{ marginBottom: "2rem" }}>
+            <Section
+              title={activeCategory === "all" ? "Недавнее" : "Результаты"}
+              icon={Sparkles}
+              plain
+            >
+              <RecentItemsList
+                category={activeCategory}
+                statusFilter={statusFilter}
+                sortBy={sortBy}
+                onReference={(item) => navigate(`/item/${item.id}`)}
+                onLongPress={(item) => {
+                  setQuickMenu({ isOpen: true, item });
+                }}
+              />
+            </Section>
           </div>
 
           <div
+            className="glass-card"
             style={{
-              borderTop: "1px solid rgba(255,255,255,0.05)",
-              paddingTop: "1.5rem",
+              padding: "0.75rem",
+              marginTop: "1.5rem",
             }}
           >
             <div
@@ -445,7 +451,7 @@ export const Home: React.FC = () => {
                 color="var(--text-secondary)"
               />
               <StatCard
-                title="Прогресс"
+                title="В процессе"
                 count={stats?.inProgress ?? 0}
                 color="var(--primary)"
               />

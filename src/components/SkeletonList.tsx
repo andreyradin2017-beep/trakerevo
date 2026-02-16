@@ -7,11 +7,11 @@ export const SkeletonList: React.FC = () => {
       style={{
         width: "100%",
         padding: "0.75rem",
-        background: "rgba(255,255,255,0.03)",
+        background: "var(--bg-surface)",
         borderRadius: "12px",
         overflow: "hidden",
         position: "relative",
-        border: "1px solid rgba(255,255,255,0.05)",
+        border: "var(--border-glass)",
         display: "flex",
         alignItems: "center",
         gap: "1rem",
@@ -24,7 +24,7 @@ export const SkeletonList: React.FC = () => {
         }}
         transition={{
           repeat: Infinity,
-          duration: 1.5,
+          duration: 1.2,
           ease: "linear",
         }}
         style={{
@@ -34,7 +34,7 @@ export const SkeletonList: React.FC = () => {
           right: 0,
           bottom: 0,
           background:
-            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
+            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%)",
           zIndex: 1,
         }}
       />
@@ -45,7 +45,7 @@ export const SkeletonList: React.FC = () => {
           width: "40px",
           height: "56px",
           borderRadius: "6px",
-          background: "rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.08)",
           zIndex: 2,
         }}
       />
@@ -65,7 +65,7 @@ export const SkeletonList: React.FC = () => {
           style={{
             height: "1rem",
             width: "60%",
-            background: "rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.08)",
             borderRadius: "4px",
           }}
         />

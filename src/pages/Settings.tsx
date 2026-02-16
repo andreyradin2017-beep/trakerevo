@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db } from "../db/db";
-import { PageHeader } from "../components/PageHeader";
+import { db } from "@db/db";
+import { PageHeader } from "@components/PageHeader";
 import {
   Trash2,
   Database,
@@ -16,12 +16,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import { useAuth } from "../context/AuthContext";
-import { LoginModal } from "../components/LoginModal";
-import { syncAll } from "../services/dbSync";
-import { useToast } from "../context/ToastContext";
-import { ConfirmDialog } from "../components/Dialogs";
-import { SearchProviderSettings } from "../components/SearchProviderSettings";
+import { useAuth } from "@context/AuthContext";
+import { LoginModal } from "@components/LoginModal";
+import { syncAll } from "@services/dbSync";
+import { useToast } from "@context/ToastContext";
+import { ConfirmDialog } from "@components/Dialogs";
+import { SearchProviderSettings } from "@components/SearchProviderSettings";
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();

@@ -7,11 +7,11 @@ export const SkeletonCard: React.FC = () => {
       style={{
         width: "100%",
         aspectRatio: "2/3",
-        background: "rgba(255,255,255,0.03)",
+        background: "var(--bg-surface)",
         borderRadius: "var(--radius-lg)",
         overflow: "hidden",
         position: "relative",
-        border: "1px solid rgba(255,255,255,0.05)",
+        border: "var(--border-glass)",
       }}
     >
       {/* Shimmer Effect */}
@@ -21,7 +21,7 @@ export const SkeletonCard: React.FC = () => {
         }}
         transition={{
           repeat: Infinity,
-          duration: 1.5,
+          duration: 1.2,
           ease: "linear",
         }}
         style={{
@@ -31,7 +31,7 @@ export const SkeletonCard: React.FC = () => {
           right: 0,
           bottom: 0,
           background:
-            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
+            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%)",
           zIndex: 1,
         }}
       />
@@ -54,7 +54,7 @@ export const SkeletonCard: React.FC = () => {
           style={{
             height: "1rem",
             width: "80%",
-            background: "rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.08)",
             borderRadius: "4px",
           }}
         />
@@ -78,7 +78,7 @@ export const SkeletonCard: React.FC = () => {
           width: "24px",
           height: "24px",
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.05)",
         }}
       />
     </div>

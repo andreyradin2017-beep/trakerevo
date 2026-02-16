@@ -31,6 +31,19 @@ export function useUserStats() {
 
     const completed = unarchived.filter((i) => i.status === "completed");
 
+    // Genres aggregation
+    const genreMap: Record<string, number> = {};
+    unarchived.forEach((item) => {
+      item.tags?.forEach((tag) => {
+        genreMap[tag] = (genreMap[tag] || 0) + 1;
+      });
+    });
+
+    const topGenres = Object.entries(genreMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     // Get streak from localStorage (synchronous)
     const streakData = localStorage.getItem("trakerevo_streaks");
     const streak = streakData ? JSON.parse(streakData).currentStreak : 0;
@@ -48,6 +61,24 @@ export function useUserStats() {
       totalBooks: books.length,
       totalGames: games.length,
       totalItems: unarchived.length,
+      // Enhanced Metrics
+      topGenres,
+      completionRate: {
+        movies: movies.length
+          ? (completed.filter((i) => i.type === "movie" || i.type === "show")
+              .length /
+              movies.length) *
+            100
+          : 0,
+        games: games.length
+          ? (completed.filter((i) => i.type === "game").length / games.length) *
+            100
+          : 0,
+        books: books.length
+          ? (completed.filter((i) => i.type === "book").length / books.length) *
+            100
+          : 0,
+      },
     };
   });
 }

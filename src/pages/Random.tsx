@@ -1,16 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db/db";
+import { db } from "@db/db";
 import { useNavigate } from "react-router-dom";
 import { Shuffle } from "lucide-react";
-import type { Item } from "../types";
-import {
-  CategorySelector,
-  type Category,
-} from "../components/CategorySelector";
-import { PageHeader } from "../components/PageHeader";
-import { vibrate } from "../utils/haptics";
-import { GridCard } from "../components/GridCard";
+import type { Item } from "@types";
+import { CategorySelector, type Category } from "@components/CategorySelector";
+import { PageHeader } from "@components/PageHeader";
+import { vibrate } from "@utils/haptics";
+import { GridCard } from "@components/GridCard";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Random: React.FC = () => {

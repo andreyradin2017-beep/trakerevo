@@ -1,236 +1,277 @@
 import React from "react";
-import { PageHeader } from "../components/PageHeader";
-import { AchievementsList } from "../components/AchievementsList";
-import { useUserStats } from "../hooks/useStats";
-import { Skeleton } from "../components/Skeleton";
-import { motion } from "framer-motion";
-import { PieChart, Activity, Zap } from "lucide-react";
+import { PageHeader } from "@components/PageHeader";
+import { AchievementsList } from "@components/AchievementsList";
+import { useUserStats } from "@hooks/useStats";
+import { Skeleton } from "@components/Skeleton";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Trophy,
+  PieChart as PieIcon,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { StatsDonutChart } from "@components/StatsDonutChart";
+import { StatsBarChart } from "@components/StatsBarChart";
+import { KPIOverview } from "@components/KPIOverview";
 
 export const Stats: React.FC = () => {
   const stats = useUserStats();
+  const [showAchievements, setShowAchievements] = React.useState(false);
+  const [showGenres, setShowGenres] = React.useState(false);
 
   if (!stats) {
     return (
-      <div
-        style={{
-          padding: "1rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-        }}
-      >
-        <Skeleton width="100%" height={200} borderRadius={16} />
-        <Skeleton width="100%" height={300} borderRadius={16} />
+      <div style={{ padding: "0 0.75rem" }}>
+        <PageHeader title="Личный кабинет" />
+        <Skeleton
+          width="100%"
+          height={80}
+          borderRadius={12}
+          style={{ marginBottom: "1rem" }}
+        />
+        <Skeleton
+          width="100%"
+          height={180}
+          borderRadius={16}
+          style={{ marginBottom: "1rem" }}
+        />
+        <Skeleton width="100%" height={250} borderRadius={16} />
       </div>
     );
   }
 
-  // Calculate percentages for Pie Chart
-  const total = stats.totalItems || 1; // avoid division by zero
-  const moviePct = (stats.totalMovies / total) * 100;
-  const gamePct = (stats.totalGames / total) * 100;
-  // bookPct is remainder
+  const donutData = [
+    { label: "Кино", value: stats.totalMovies, color: "var(--type-movie)" },
+    { label: "Игры", value: stats.totalGames, color: "var(--type-game)" },
+    { label: "Книги", value: stats.totalBooks, color: "var(--type-book)" },
+  ];
 
-  // CSS Conic Gradient for Pie Chart
-  const pieChartGradient = `conic-gradient(
-    var(--type-movie) 0% ${moviePct}%,
-    var(--type-game) ${moviePct}% ${moviePct + gamePct}%,
-    var(--type-book) ${moviePct + gamePct}% 100%
-  )`;
+  const maxGenreCount = stats.topGenres[0]?.count || 1;
 
   return (
-    <div style={{ paddingBottom: "6rem" }}>
-      <PageHeader title="Статистика" />
+    <div style={{ paddingBottom: "7rem" }}>
+      <PageHeader title="Личный кабинет" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{ padding: "0 1rem" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{ padding: "0 0.75rem" }}
       >
-        {/* Summary Cards */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "0.75rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div
-            style={{
-              background: "var(--bg-surface)",
-              border: "var(--border-glass)",
-              borderRadius: "var(--radius-lg)",
-              padding: "1rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <Activity size={24} color="var(--primary)" />
-            <div
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 800,
-                color: "var(--text-primary)",
-              }}
-            >
-              {stats.totalCompleted}
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}>
-              Завершено
-            </div>
-          </div>
+        {/* 1. Merged KPI Overview */}
+        <KPIOverview stats={stats} />
 
-          <div
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0.05) 100%)",
-              border: "1px solid rgba(249, 115, 22, 0.2)",
-              borderRadius: "var(--radius-lg)",
-              padding: "1rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <Zap size={24} color="#f97316" />
-            <div
-              style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f97316" }}
-            >
-              {stats.streak} <span style={{ fontSize: "0.8rem" }}>дней</span>
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)" }}>
-              Текущая серия
-            </div>
-          </div>
-        </div>
-
-        {/* Distribution Chart */}
+        {/* 2. Collection Chart (Donut) */}
         <div
           style={{
             background: "var(--bg-surface)",
             border: "var(--border-glass)",
             borderRadius: "var(--radius-lg)",
-            padding: "1.5rem",
-            marginBottom: "2rem",
+            padding: "0.75rem",
             display: "flex",
-            alignItems: "center",
-            gap: "2rem",
+            flexDirection: "column",
+            gap: "0.75rem",
+            marginBottom: "0.75rem",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              width: "100px",
-              height: "100px",
-              borderRadius: "50%",
-              background: pieChartGradient,
-              position: "relative",
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: "15px", // donut hole
-                background: "var(--bg-app)",
-                borderRadius: "50%",
-              }}
-            />
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <PieIcon size={14} color="var(--primary)" />
+            <h3 style={{ margin: 0, fontSize: "0.8rem", fontWeight: 700 }}>
+              Твоя коллекция
+            </h3>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-              flex: 1,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <StatsDonutChart
+              data={donutData}
+              total={stats.totalItems}
+              size={90}
+            />
+
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom: "0.5rem",
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                gap: "0.3rem",
+                flex: 1,
               }}
             >
-              <PieChart size={16} color="var(--text-secondary)" />
-              <h3 style={{ margin: 0, fontSize: "1rem" }}>Распределение</h3>
+              {donutData.map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    background: "rgba(255,255,255,0.02)",
+                    padding: "0.25rem 0.4rem",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "4px",
+                      height: "4px",
+                      borderRadius: "50%",
+                      background: item.color,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.6rem",
+                      color: "var(--text-secondary)",
+                      flex: 1,
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span style={{ fontSize: "0.65rem", fontWeight: 700 }}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
             </div>
-            <LegendItem
-              color="var(--type-movie)"
-              label="Кино & TV"
-              count={stats.totalMovies}
-            />
-            <LegendItem
-              color="var(--type-game)"
-              label="Игры"
-              count={stats.totalGames}
-            />
-            <LegendItem
-              color="var(--type-book)"
-              label="Книги"
-              count={stats.totalBooks}
-            />
           </div>
         </div>
 
-        {/* Achievements Section */}
+        {/* 3. Favorite Genres (Collapsible) */}
         <div
+          onClick={() => setShowGenres(!showGenres)}
           style={{
-            marginBottom: "1rem",
+            marginBottom: "0.5rem",
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
+            justifyContent: "space-between",
+            padding: "0.5rem 0.35rem",
+            background: "rgba(255,255,255,0.02)",
+            borderRadius: "var(--radius-md)",
+            cursor: "pointer",
+            border: "1px solid rgba(255,255,255,0.03)",
+            transition: "all 0.2s ease",
           }}
         >
-          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Достижения</h2>
-          <span
-            style={{
-              background: "var(--bg-surface-active)",
-              padding: "0.1rem 0.5rem",
-              borderRadius: "10px",
-              fontSize: "0.75rem",
-              color: "var(--text-secondary)",
-            }}
-          >
-            Beta
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <BarChart3 size={15} color="var(--primary)" />
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "0.85rem",
+                fontWeight: 750,
+                color: "var(--text-primary)",
+              }}
+            >
+              Любимые жанры
+            </h3>
+          </div>
+          {showGenres ? (
+            <ChevronUp size={16} color="var(--text-tertiary)" />
+          ) : (
+            <ChevronDown size={16} color="var(--text-tertiary)" />
+          )}
         </div>
 
-        <AchievementsList stats={stats} />
+        <AnimatePresence>
+          {showGenres && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                background: "var(--bg-surface)",
+                border: "var(--border-glass)",
+                borderRadius: "var(--radius-lg)",
+                padding: "0.75rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                marginBottom: "0.75rem",
+                overflow: "hidden",
+              }}
+            >
+              {stats.topGenres.length > 0 ? (
+                <StatsBarChart
+                  data={stats.topGenres}
+                  maxCount={maxGenreCount}
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: "0.65rem",
+                    color: "var(--text-tertiary)",
+                    textAlign: "center",
+                    padding: "0.5rem",
+                  }}
+                >
+                  Мало данных.
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 4. Achievements (Collapsible) */}
+        <div
+          onClick={() => setShowAchievements(!showAchievements)}
+          style={{
+            marginBottom: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0.5rem 0.35rem",
+            background: "rgba(255,255,255,0.02)",
+            borderRadius: "var(--radius-md)",
+            cursor: "pointer",
+            border: "1px solid rgba(255,255,255,0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <Trophy size={16} color="#fbbf24" />
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "0.85rem",
+                fontWeight: 750,
+                color: "var(--text-primary)",
+              }}
+            >
+              Достижения
+            </h2>
+            <span
+              style={{
+                background: "rgba(251, 191, 36, 0.1)",
+                padding: "0.1rem 0.4rem",
+                borderRadius: "10px",
+                fontSize: "0.5rem",
+                fontWeight: 800,
+                color: "#fbbf24",
+                textTransform: "uppercase",
+              }}
+            >
+              Premium
+            </span>
+          </div>
+          {showAchievements ? (
+            <ChevronUp size={16} color="var(--text-tertiary)" />
+          ) : (
+            <ChevronDown size={16} color="var(--text-tertiary)" />
+          )}
+        </div>
+
+        <AnimatePresence>
+          {showAchievements && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: "hidden" }}
+            >
+              <AchievementsList stats={stats} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
 };
-
-const LegendItem: React.FC<{ color: string; label: string; count: number }> = ({
-  color,
-  label,
-  count,
-}) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5rem",
-      fontSize: "0.85rem",
-    }}
-  >
-    <div
-      style={{
-        width: "8px",
-        height: "8px",
-        borderRadius: "2px",
-        background: color,
-      }}
-    />
-    <span style={{ color: "var(--text-secondary)", flex: 1 }}>{label}</span>
-    <span style={{ fontWeight: 600 }}>{count}</span>
-  </div>
-);
