@@ -5,6 +5,8 @@ import { getProxiedImageUrl } from "../utils/images";
 import type { Item } from "../types";
 import { vibrate } from "../utils/haptics";
 import { CountdownBadge } from "./CountdownBadge";
+import { LazyImage } from "./LazyImage";
+import { cardVariants } from "../utils/animations";
 
 interface GridCardProps {
   item?: Item & { isOwned?: boolean };
@@ -14,20 +16,6 @@ interface GridCardProps {
   onLongPress?: () => void;
   index?: number;
 }
-
-export const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.4,
-      ease: [0.175, 0.885, 0.32, 1.275] as const,
-    },
-  }),
-};
 
 export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
   item,
@@ -138,13 +126,13 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
   const getSourceInfo = () => {
     switch (item.source) {
       case "kinopoisk":
-        return { label: "КП", color: "#ff6600" };
+        return { label: "КП", color: "var(--brand-kp)" };
       case "tmdb":
-        return { label: "TMDB", color: "#01b4e4" };
+        return { label: "TMDB", color: "var(--brand-tmdb)" };
       case "rawg":
-        return { label: "RAWG", color: "#ffffff" };
+        return { label: "RAWG", color: "var(--brand-rawg)" };
       case "google_books":
-        return { label: "BOOKS", color: "#34a853" };
+        return { label: "BOOKS", color: "var(--brand-google-books)" };
       default:
         return null;
     }
@@ -194,44 +182,37 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     >
       {/* Image or Placeholder */}
       {item.image ? (
-        <>
-          <img
-            src={getProxiedImageUrl(item.image)}
-            alt={item.title}
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-              const fallback = e.currentTarget.parentElement?.querySelector(
-                ".fallback-icon",
-              ) as HTMLElement;
-              if (fallback) fallback.style.display = "flex";
-            }}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transition: "transform 0.5s ease",
-              position: "relative",
-              zIndex: 1,
-            }}
-          />
-          <div
-            className="fallback-icon"
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "none",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-tertiary)",
-              backgroundColor: "rgba(255,255,255,0.02)",
-              zIndex: 0,
-            }}
-          >
-            {getTypeIcon()}
-          </div>
-        </>
+        <LazyImage
+          src={getProxiedImageUrl(item.image)}
+          alt={item.title}
+          containerClassName="relative z-10" // keep relative z-10 if needed for stacking context, though handled by style?
+          // Actually LazyImage now enforces width 100% height 100%.
+          // GridCard needs the image to be z-10 relative.
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 10,
+            position: "relative",
+          }}
+          fallbackElement={
+            <div
+              className="fallback-icon"
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-tertiary)",
+                backgroundColor: "rgba(255,255,255,0.02)",
+                zIndex: 0,
+              }}
+            >
+              {getTypeIcon()}
+            </div>
+          }
+        />
       ) : (
         <div
           style={{

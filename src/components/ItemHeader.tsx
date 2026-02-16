@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Play } from "lucide-react";
 import { getProxiedImageUrl } from "../utils/images";
-
+import { LazyImage } from "./LazyImage";
 interface ItemHeaderProps {
   title: string;
   image?: string;
@@ -76,45 +76,27 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
               backgroundColor: "var(--bg-surface-hover)", // Fallback background
             }}
           >
-            <img
+            <LazyImage
               src={proxiedImage}
               alt={title}
-              loading="eager"
-              decoding="async"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                const fallback = e.currentTarget.parentElement?.querySelector(
-                  ".header-fallback-icon",
-                ) as HTMLElement;
-                if (fallback) fallback.style.display = "flex";
-              }}
+              containerClassName="h-full w-full"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              fallbackElement={
+                <div
+                  className="header-fallback-icon"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 0,
+                  }}
+                >
+                  <Play size={48} color="var(--text-tertiary)" opacity={0.2} />
+                </div>
+              }
             />
-            {/* Gradient Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(to top, var(--bg-surface), transparent 70%)",
-              }}
-            />
-
-            {/* Fallback Icon (Hidden by default) */}
-            <div
-              className="header-fallback-icon"
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "none",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 0,
-              }}
-            >
-              <Play size={48} color="var(--text-tertiary)" opacity={0.2} />
-            </div>
-
             {hasTrailer && (
               <div
                 style={{
@@ -189,7 +171,9 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
                   textTransform: "uppercase",
                   fontWeight: 700,
                   color:
-                    source === "yandex" ? "#fc3f1d" : "var(--text-secondary)",
+                    source === "yandex"
+                      ? "var(--brand-yandex)"
+                      : "var(--text-secondary)",
                 }}
               >
                 {source === "google_books"

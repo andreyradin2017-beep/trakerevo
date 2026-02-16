@@ -64,9 +64,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         }}
       >
         {[
-          { icon: <Film size={24} />, label: "Кино", color: "#01b4e4" },
-          { icon: <Gamepad2 size={24} />, label: "Игры", color: "#ffffff" },
-          { icon: <BookOpen size={24} />, label: "Книги", color: "#34a853" },
+          {
+            icon: <Film size={24} />,
+            label: "Кино",
+            color: "var(--brand-tmdb)",
+          },
+          {
+            icon: <Gamepad2 size={24} />,
+            label: "Игры",
+            color: "var(--brand-rawg)",
+          },
+          {
+            icon: <BookOpen size={24} />,
+            label: "Книги",
+            color: "var(--brand-google-books)",
+          },
         ].map((item, i) => (
           <div
             key={i}

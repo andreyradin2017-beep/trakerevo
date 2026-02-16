@@ -64,7 +64,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           onClick={action.onClick}
           style={{
             background: "var(--primary)",
-            color: "#fff",
+            color: "var(--text-primary)",
             border: "none",
             padding: "0.75rem 1.5rem",
             borderRadius: "var(--radius-full)",

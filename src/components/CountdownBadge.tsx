@@ -46,7 +46,7 @@ export const CountdownBadge: React.FC<CountdownBadgeProps> = ({
           background: isImminent
             ? "rgba(239, 68, 68, 0.25)"
             : "rgba(139, 92, 246, 0.2)",
-          color: isImminent ? "#f87171" : "var(--primary)",
+          color: isImminent ? "var(--error)" : "var(--primary)",
           padding: "2px 6px",
           borderRadius: "6px",
           fontSize: "0.6rem",
@@ -70,7 +70,7 @@ export const CountdownBadge: React.FC<CountdownBadgeProps> = ({
         background: isImminent
           ? "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))"
           : "linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08))",
-        color: isImminent ? "#f87171" : "var(--primary)",
+        color: isImminent ? "var(--error)" : "var(--primary)",
         padding: "0.4rem 0.75rem",
         borderRadius: "10px",
         fontSize: "0.75rem",

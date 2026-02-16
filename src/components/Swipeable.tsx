@@ -24,7 +24,7 @@ export const Swipeable: React.FC<SwipeableProps> = ({
   const backgroundColor = useTransform(
     x,
     [-threshold, 0, threshold],
-    ["#ef4444", "rgba(0,0,0,0)", "#f59e0b"],
+    ["var(--error)", "rgba(0,0,0,0)", "var(--warning)"],
   );
 
   const iconOpacityDelete = useTransform(

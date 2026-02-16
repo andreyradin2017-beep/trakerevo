@@ -90,7 +90,7 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
             padding: "0.5rem",
             background: "rgba(168, 85, 247, 0.1)",
             borderRadius: "10px",
-            color: "#a855f7",
+            color: "var(--primary)",
           }}
         >
           <Search size={18} />

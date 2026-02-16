@@ -61,6 +61,15 @@
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+  --bg-error: rgba(239, 68, 68, 0.1);
+  --info: #38bdf8;
+
+  /* Brand Colors */
+  --brand-kp: #ff6600;
+  --brand-tmdb: #01b4e4;
+  --brand-rawg: #ffffff;
+  --brand-google-books: #34a853;
+  --brand-yandex: #fc3f1d;
 
   /* Spacing */
   --space-xs: 0.25rem;

@@ -210,9 +210,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     <div
                       style={{
                         padding: "0.75rem",
-                        background: "rgba(255,50,50,0.1)",
+                        background: "var(--bg-error)",
                         borderRadius: "var(--radius-md)",
-                        color: "#ff4d4d",
+                        color: "var(--error)",
                         fontSize: "0.85rem",
                         marginBottom: "1rem",
                       }}
