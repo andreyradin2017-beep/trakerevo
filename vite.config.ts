@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -67,11 +66,6 @@ export default defineConfig({
           },
         ],
       },
-    }),
-    visualizer({
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
     }),
   ],
   build: {
