@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { db } from "@db/db";
-import { Plus, Archive } from "lucide-react";
+import { Plus, User } from "lucide-react";
 import { GridCard } from "@components/GridCard";
 import { cardVariants } from "@utils/animations";
 import { Skeleton } from "@components/Skeleton";
@@ -17,7 +18,6 @@ import { FilterToolbar } from "@components/FilterToolbar";
 import { type SortOption } from "@components/SortSelector";
 import { PageHeader } from "@components/PageHeader";
 import type { Item } from "@types";
-import { vibrate } from "@utils/haptics";
 import { triggerAutoSync } from "@services/dbSync";
 import {
   ConfirmDialog,
@@ -28,7 +28,6 @@ import { type StatusFilterType } from "../components/StatusFilter";
 import {
   PlayCircle,
   XCircle,
-  Dices,
   Check,
   Clock,
   Trash2,
@@ -120,15 +119,15 @@ const StatCard: React.FC<{ title: string; count: number; color: string }> = ({
   color,
 }) => (
   <div
+    className="glass-card"
     style={{
       padding: "0.75rem 0.5rem",
-      background: "rgba(255,255,255,0.01)",
-      borderRadius: "var(--radius-md)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       textAlign: "center",
       gap: "2px",
+      background: "rgba(255,255,255,0.02)",
     }}
   >
     <span
@@ -137,17 +136,20 @@ const StatCard: React.FC<{ title: string; count: number; color: string }> = ({
         fontSize: "0.55rem",
         opacity: 0.8,
         color: "var(--text-tertiary)",
+        fontWeight: "var(--fw-black)",
+        fontFamily: "var(--font-main)",
       }}
     >
       {title}
     </span>
     <p
       style={{
-        fontSize: "1.1rem",
-        fontWeight: 800,
+        fontSize: "1.25rem",
+        fontWeight: "var(--fw-black)",
         margin: 0,
         color: color,
         fontFamily: "var(--font-main)",
+        letterSpacing: "-0.5px",
       }}
     >
       <AnimatedCounter value={count} />
@@ -267,6 +269,7 @@ export const Home: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const navigate = useNavigate();
+  const { user } = useAuth();
   const stats = useCategoryStats();
 
   // Dialog States
@@ -329,34 +332,33 @@ export const Home: React.FC = () => {
       >
         <div style={{ paddingBottom: "6rem" }}>
           <PageHeader
-            title="TrakerEvo"
-            rightElement={
-              <div
-                style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
+            title="Главная"
+            showSyncStatus={true}
+            leftElement={
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                className="btn-icon"
+                onClick={() => navigate("/settings")}
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  overflow: "hidden",
+                  padding: 0,
+                }}
               >
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  className="btn-icon"
-                  onClick={() => {
-                    vibrate("medium");
-                    navigate("/random");
-                  }}
-                  title="Мне повезет"
-                >
-                  <Dices size={20} />
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  className="btn-icon"
-                  onClick={() => {
-                    vibrate("light");
-                    navigate("/archive");
-                  }}
-                  title="Архив"
-                >
-                  <Archive size={18} />
-                </motion.button>
-              </div>
+                {user?.user_metadata?.avatar_url ? (
+                  <img
+                    src={user.user_metadata.avatar_url}
+                    alt="Profile"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <User size={18} />
+                )}
+              </motion.button>
             }
             style={{
               padding: "0.25rem 0",
@@ -382,13 +384,14 @@ export const Home: React.FC = () => {
               style={{
                 position: "absolute",
                 inset: 0,
-                backdropFilter: "blur(12px)",
-                background: "rgba(23, 23, 23, 0.8)", // Semi-transparent bg-app
+                backdropFilter: "blur(20px) saturate(160%)",
+                background: "rgba(9, 9, 11, 0.8)", // Clean bg-app with opacity
                 zIndex: -1,
+                borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
                 maskImage:
-                  "linear-gradient(to bottom, black 90%, transparent 100%)",
+                  "linear-gradient(to bottom, black 95%, transparent 100%)",
                 WebkitMaskImage:
-                  "linear-gradient(to bottom, black 90%, transparent 100%)",
+                  "linear-gradient(to bottom, black 95%, transparent 100%)",
               }}
             />
             <CategorySelector

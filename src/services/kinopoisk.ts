@@ -37,7 +37,7 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
         },
         params: {
           query: query,
-          limit: 10,
+          limit: 20,
         },
         timeout: 10000,
       });
@@ -107,6 +107,7 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
 
     return {
       description: data.description || data.shortDescription,
+      genres: data.genres?.map((g: any) => g.name) || [],
       trailer: trailerUrl,
       related:
         data.similarMovies?.slice(0, 6).map((r: any) => ({

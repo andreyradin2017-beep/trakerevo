@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { Item } from "../types";
 import { CheckCircle2, PlayCircle, Bookmark } from "lucide-react";
 import { LivingIcon } from "./LivingIcon";
+import { pressAnimation } from "@utils/animations";
 
 interface ItemStatsEditorProps {
   status: Item["status"];
@@ -87,7 +88,6 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
         display: "flex",
         flexDirection: "column",
         gap: "1.25rem",
-        padding: "0 1.25rem",
       }}
     >
       {/* Status & Archive Toggle */}
@@ -98,7 +98,7 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
-              marginBottom: "0.75rem", // Increased from 0.4rem
+              marginBottom: "0.75rem",
             }}
           >
             <label
@@ -264,7 +264,7 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                 }}
               >
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  {...pressAnimation}
                   onClick={() => onSeasonChange(Math.max(1, currentSeason - 1))}
                   style={{
                     width: "30px",
@@ -289,7 +289,7 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                   {currentSeason}
                 </span>
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  {...pressAnimation}
                   onClick={() => onSeasonChange(currentSeason + 1)}
                   style={{
                     width: "30px",
@@ -333,7 +333,7 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                 }}
               >
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  {...pressAnimation}
                   onClick={() =>
                     onEpisodeChange(Math.max(1, currentEpisode - 1))
                   }
@@ -360,7 +360,7 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                   {currentEpisode}
                 </span>
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  {...pressAnimation}
                   onClick={() => onEpisodeChange(currentEpisode + 1)}
                   style={{
                     width: "30px",

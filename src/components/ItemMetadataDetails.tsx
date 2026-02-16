@@ -1,6 +1,7 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Play, ExternalLink } from "lucide-react";
+import { pressAnimation, DURATIONS, EASINGS } from "@utils/animations";
 
 interface ItemMetadataDetailsProps {
   extraMetadata: {
@@ -76,55 +77,56 @@ export const ItemMetadataDetails: React.FC<ItemMetadataDetailsProps> = ({
             expanded={!!expandedSections.providers}
             onToggle={toggleSection}
           />
-          <AnimatePresence>
-            {expandedSections.providers && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                style={{ overflow: "hidden" }}
+          {expandedSections.providers && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: DURATIONS.standard,
+                ease: EASINGS.out,
+              }}
+              style={{ overflow: "hidden" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  padding: "0.75rem 0",
+                }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    flexWrap: "wrap",
-                    padding: "0.75rem 0",
-                  }}
-                >
-                  {extraMetadata.providers.map((p, i) => (
-                    <div
-                      key={i}
+                {extraMetadata.providers.map((p, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "0.4rem 0.6rem",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <img
+                      src={p.logo}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        background: "rgba(255,255,255,0.03)",
-                        padding: "0.4rem 0.6rem",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,255,255,0.05)",
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "4px",
                       }}
-                    >
-                      <img
-                        src={p.logo}
-                        alt={p.name}
-                        loading="lazy"
-                        decoding="async"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                      <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                        {p.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    />
+                    <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                      {p.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       )}
 
@@ -137,80 +139,73 @@ export const ItemMetadataDetails: React.FC<ItemMetadataDetailsProps> = ({
             expanded={!!expandedSections.related}
             onToggle={toggleSection}
           />
-          <AnimatePresence>
-            {expandedSections.related && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                style={{ overflow: "hidden" }}
+          {expandedSections.related && (
+            <div style={{ overflow: "hidden" }}>
+              <div
+                className="no-scrollbar"
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  overflowX: "auto",
+                  padding: "0.75rem 0",
+                  margin: "0 -0.5rem",
+                }}
               >
-                <div
-                  className="no-scrollbar"
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    overflowX: "auto",
-                    padding: "0.75rem 0",
-                    margin: "0 -0.5rem",
-                  }}
-                >
-                  {extraMetadata.related.map((r) => (
-                    <motion.div
-                      key={r.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => onNavigateToSearch(r.title)}
+                {extraMetadata.related.map((r) => (
+                  <motion.div
+                    key={r.id}
+                    {...pressAnimation}
+                    onClick={() => onNavigateToSearch(r.title)}
+                    style={{
+                      minWidth: "110px",
+                      width: "110px",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
                       style={{
-                        minWidth: "110px",
-                        width: "110px",
-                        cursor: "pointer",
-                        flexShrink: 0,
+                        width: "100%",
+                        aspectRatio: "2/3",
+                        borderRadius: "10px",
+                        overflow: "hidden",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        marginBottom: "0.4rem",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
                       }}
                     >
-                      <div
+                      <img
+                        src={r.image}
+                        alt={r.title}
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: "100%",
-                          aspectRatio: "2/3",
-                          borderRadius: "10px",
-                          overflow: "hidden",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          marginBottom: "0.4rem",
-                          boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                          height: "100%",
+                          objectFit: "cover",
                         }}
-                      >
-                        <img
-                          src={r.image}
-                          alt={r.title}
-                          loading="lazy"
-                          decoding="async"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </div>
-                      <p
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 600,
-                          margin: 0,
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          color: "var(--text-primary)",
-                          textAlign: "center",
-                        }}
-                      >
-                        {r.title}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      />
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        margin: 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        color: "var(--text-primary)",
+                        textAlign: "center",
+                      }}
+                    >
+                      {r.title}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

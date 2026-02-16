@@ -210,6 +210,7 @@ export const ListPage: React.FC = () => {
     <div style={{ paddingBottom: "5rem" }}>
       <PageHeader
         title={list.name}
+        titleClassName="text-gradient"
         showBack={!selectionMode}
         leftElement={
           selectionMode ? (
@@ -320,25 +321,25 @@ export const ListPage: React.FC = () => {
             position: "sticky",
             top: 0,
             zIndex: 10,
-            background: "var(--bg-app)",
+            background: "transparent",
             padding: "0.5rem 0",
-            margin: "0 -1rem 1rem -1rem",
-            paddingLeft: "1rem",
-            paddingRight: "1rem",
+            margin: "0 -var(--space-md) 1rem -var(--space-md)",
+            paddingLeft: "var(--space-md)",
+            paddingRight: "var(--space-md)",
           }}
         >
           <div
             style={{
               position: "absolute",
               inset: 0,
-              backdropFilter: "blur(12px)",
-              background: "rgba(23, 23, 23, 0.85)",
+              backdropFilter: "blur(20px) saturate(160%)",
+              background: "rgba(9, 9, 11, 0.8)",
               zIndex: -1,
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
               maskImage:
-                "linear-gradient(to bottom, black 90%, transparent 100%)",
+                "linear-gradient(to bottom, black 95%, transparent 100%)",
               WebkitMaskImage:
-                "linear-gradient(to bottom, black 90%, transparent 100%)",
+                "linear-gradient(to bottom, black 95%, transparent 100%)",
             }}
           />
           <FilterToolbar

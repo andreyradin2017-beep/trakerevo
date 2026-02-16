@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { CheckCircle2, History, Zap, Activity } from "lucide-react";
 import { AnimatedNumber } from "./AnimatedNumber";
 
@@ -41,17 +40,15 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({ stats }) => {
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       style={{
         background: "var(--bg-surface)",
         border: "var(--border-glass)",
         borderRadius: "var(--radius-lg)",
-        padding: "0.75rem",
+        padding: "0.85rem 0.5rem",
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
-        gap: "0.25rem",
+        gap: "0rem",
         marginBottom: "0.75rem",
       }}
     >
@@ -62,10 +59,10 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({ stats }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "0.2rem",
+            gap: "0.25rem",
             borderRight:
               index < items.length - 1
-                ? "1px solid rgba(255,255,255,0.05)"
+                ? "1px solid rgba(255,255,255,0.06)"
                 : "none",
           }}
         >
@@ -74,37 +71,44 @@ export const KPIOverview: React.FC<KPIOverviewProps> = ({ stats }) => {
               color: item.color,
               display: "flex",
               alignItems: "center",
-              gap: "0.2rem",
+              gap: "0.25rem",
+              opacity: 0.9,
             }}
           >
-            <item.icon size={12} />
-            <span
-              style={{
-                fontSize: "0.6rem",
-                fontWeight: 600,
-                color: "var(--text-tertiary)",
-                textTransform: "uppercase",
-              }}
-            >
-              {item.label}
-            </span>
+            <item.icon size={11} strokeWidth={2.5} />
           </div>
           <div
             style={{
-              fontSize: "1rem",
-              fontWeight: 800,
+              fontSize: "1.1rem",
+              fontWeight: "var(--fw-black)",
               color: "var(--text-primary)",
+              fontFamily: "var(--font-main)",
+              letterSpacing: "-0.5px",
             }}
           >
             <AnimatedNumber value={item.value} />
             {item.suffix && (
-              <span style={{ fontSize: "0.6rem", marginLeft: "1px" }}>
+              <span
+                style={{ fontSize: "0.6rem", marginLeft: "1px", opacity: 0.7 }}
+              >
                 {item.suffix}
               </span>
             )}
           </div>
+          <span
+            style={{
+              fontSize: "0.55rem",
+              fontWeight: "var(--fw-black)",
+              color: "var(--text-tertiary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              fontFamily: "var(--font-main)",
+            }}
+          >
+            {item.label}
+          </span>
         </div>
       ))}
-    </motion.div>
+    </div>
   );
 };

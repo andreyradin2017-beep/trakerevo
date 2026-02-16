@@ -1,8 +1,8 @@
 import { db } from "../db/db";
 import type { Item } from "../types";
 import { searchMovies, getMovieDetails } from "./tmdb";
-import { searchGames } from "./rawg";
-import { searchBooks } from "./googleBooks";
+import { searchGames, getGameDetails } from "./rawg";
+import { searchBooks, getBookDetails } from "./googleBooks";
 import { searchKinopoisk, getKinopoiskDetails } from "./kinopoisk";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -122,8 +122,11 @@ export const searchByCategory = async (
 };
 
 export const getDetails = async (item: Item): Promise<any> => {
+  const cacheKey = `details_${item.source}_${item.externalId}`;
+  const cached = await getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
-    // Add a timeout race to prevent infinite loading
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out")), 12000),
     );
@@ -135,12 +138,22 @@ export const getDetails = async (item: Item): Promise<any> => {
       if (item.source === "kinopoisk" && item.externalId) {
         return getKinopoiskDetails(item.externalId);
       }
+      if (item.source === "rawg" && item.externalId) {
+        return getGameDetails(item.externalId);
+      }
+      if (item.source === "google_books" && item.externalId) {
+        return getBookDetails(item.externalId);
+      }
       return null;
     })();
 
-    return await Promise.race([fetchPromise, timeoutPromise]);
+    const data = await Promise.race([fetchPromise, timeoutPromise]);
+    if (data) {
+      await setCachedData(cacheKey, data);
+    }
+    return data;
   } catch (error) {
     console.error("getDetails failed:", error);
-    return null; // Return null so the UI can just show basic info
+    return null;
   }
 };

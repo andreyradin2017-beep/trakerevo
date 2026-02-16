@@ -6,17 +6,17 @@ import type { Item } from "@types";
 import { vibrate } from "@utils/haptics";
 import { CountdownBadge } from "@components/CountdownBadge";
 import { LazyImage } from "@components/LazyImage";
-import { cardVariants } from "@utils/animations";
+import { cardVariants, pressAnimation } from "@utils/animations";
+import { getDetails } from "@services/api";
 
 interface GridCardProps {
   item?: Item & { isOwned?: boolean };
   isAddCard?: boolean;
   onClick: () => void;
-  onQuickAdd?: () => void; // New prop
+  onQuickAdd?: () => void;
   onLongPress?: () => void;
   index?: number;
 }
-
 export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
   item,
   isAddCard,
@@ -61,6 +61,13 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     onClick();
   };
 
+  const handlePrefetch = () => {
+    if (item && !isAddCard) {
+      // Background prefetch
+      getDetails(item).catch(() => {});
+    }
+  };
+
   if (isAddCard) {
     return (
       <motion.div
@@ -68,7 +75,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         initial={enableMotion ? "hidden" : undefined}
         animate={enableMotion ? "visible" : undefined}
         custom={index}
-        whileTap={{ scale: 0.95 }}
+        {...pressAnimation}
         onClick={handleClick}
         role="button"
         aria-label="Добавить новый элемент"
@@ -150,14 +157,14 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
       initial={enableMotion ? "hidden" : undefined}
       animate={enableMotion ? "visible" : undefined}
       custom={index}
-      whileTap={{ scale: 0.95 }}
-      whileHover={{ scale: 1.02, zIndex: 10 }} // Micro-animation: Lift on hover
+      {...pressAnimation}
       onClick={handleClick}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
       onMouseLeave={handlePressEnd}
       onTouchStart={handlePressStart}
       onTouchEnd={handlePressEnd}
+      onPointerEnter={handlePrefetch}
       role="button"
       aria-label={`Открыть детали: ${item?.title}`}
       tabIndex={0}
@@ -184,37 +191,42 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     >
       {/* Image or Placeholder */}
       {item.image ? (
-        <LazyImage
-          src={getProxiedImageUrl(item.image)}
-          alt={item.title}
-          containerClassName="relative z-10" // keep relative z-10 if needed for stacking context, though handled by style?
-          // Actually LazyImage now enforces width 100% height 100%.
-          // GridCard needs the image to be z-10 relative.
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            zIndex: 10,
-            position: "relative",
-          }}
-          fallbackElement={
-            <div
-              className="fallback-icon"
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-tertiary)",
-                backgroundColor: "rgba(255,255,255,0.02)",
-                zIndex: 0,
-              }}
-            >
-              {getTypeIcon()}
-            </div>
-          }
-        />
+        <motion.div
+          layoutId={`item-image-${item.image}`}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <LazyImage
+            src={getProxiedImageUrl(item.image)}
+            alt={item.title}
+            containerClassName="relative z-10" // keep relative z-10 if needed for stacking context, though handled by style?
+            // Actually LazyImage now enforces width 100% height 100%.
+            // GridCard needs the image to be z-10 relative.
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: 10,
+              position: "relative",
+            }}
+            fallbackElement={
+              <div
+                className="fallback-icon"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--text-tertiary)",
+                  backgroundColor: "rgba(255,255,255,0.02)",
+                  zIndex: 0,
+                }}
+              >
+                {getTypeIcon()}
+              </div>
+            }
+          />
+        </motion.div>
       ) : (
         <div
           style={{
@@ -408,9 +420,9 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          padding: `3.5rem var(--space-md) var(--space-md)`,
+          padding: `3rem var(--space-md) var(--space-md)`,
           background:
-            "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 25%, rgba(0,0,0,0.6) 50%, transparent 100%)",
+            "linear-gradient(to top, rgba(9,9,11,1) 0%, rgba(9,9,11,0.95) 20%, rgba(9,9,11,0.6) 50%, transparent 100%)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -429,15 +441,15 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             style={{
               margin: 0,
               fontSize: "0.85rem",
-              fontWeight: 700,
-              color: "white",
+              fontWeight: "var(--fw-bold)",
+              fontFamily: "var(--font-main)",
+              color: "var(--text-primary)",
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
               lineHeight: "1.25",
-              letterSpacing: "0px",
-              textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+              letterSpacing: "-0.2px",
               flex: 1,
             }}
           >
@@ -448,14 +460,15 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             item.currentEpisode && (
               <span
                 style={{
-                  fontSize: "0.6rem",
+                  fontSize: "0.55rem",
                   color: "var(--primary)",
-                  fontWeight: 900,
+                  fontWeight: "var(--fw-black)",
                   whiteSpace: "nowrap",
                   background: "var(--primary-15)",
-                  padding: "0.1rem var(--space-xs)",
-                  borderRadius: "4px",
-                  border: "var(--primary-30)",
+                  padding: "0.15rem 0.4rem",
+                  borderRadius: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
                 S{item.currentSeason} E{item.currentEpisode}
@@ -466,9 +479,10 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           <span
             style={{
               fontSize: "0.65rem",
-              color: "rgba(255,255,255,0.5)",
+              color: "var(--text-tertiary)",
+              fontFamily: "var(--font-body)",
               marginTop: "0.2rem",
-              fontWeight: 500,
+              fontWeight: "var(--fw-medium)",
             }}
           >
             {item.year}

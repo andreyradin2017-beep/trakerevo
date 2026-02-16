@@ -1,14 +1,15 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Search, Compass, User } from "lucide-react";
+import { Home, BarChart3, Archive, Dices, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { selectionChanged } from "../utils/haptics";
 
 export const BottomNav: React.FC = () => {
   const navItems = [
-    { path: "/", icon: <Home size={22} />, label: "Home" },
-    { path: "/search", icon: <Search size={22} />, label: "Поиск" },
-    { path: "/discover", icon: <Compass size={22} />, label: "Открытия" },
+    { path: "/", icon: <Home size={22} />, label: "Главная" },
+    { path: "/random", icon: <Dices size={22} />, label: "Рандом" },
+    { path: "/archive", icon: <Archive size={22} />, label: "Архив" },
+    { path: "/stats", icon: <BarChart3 size={22} />, label: "Инфо" },
     { path: "/settings", icon: <User size={22} />, label: "Профиль" },
   ];
 
@@ -16,20 +17,20 @@ export const BottomNav: React.FC = () => {
     <nav
       style={{
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: "80px", // slightly taller for modern look
-        background: "rgba(9, 9, 11, 0.85)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(255,255,255,0.05)",
+        bottom: "1.5rem",
+        left: "1rem",
+        right: "1rem",
+        height: "64px",
+        background: "rgba(15, 15, 18, 0.75)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: "var(--radius-xl)",
         display: "flex",
         justifyContent: "space-around",
         alignItems: "center",
-        paddingBottom: "20px", // Safe area for iOS home indicator
         zIndex: 1000,
-        boxShadow: "0 -10px 40px -10px rgba(0,0,0,0.5)",
+        boxShadow: "0 10px 40px -10px rgba(0,0,0,0.7)",
       }}
     >
       {navItems.map((item) => (
@@ -42,12 +43,13 @@ export const BottomNav: React.FC = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "4px",
+            gap: "2px",
             color: isActive ? "var(--primary)" : "var(--text-tertiary)",
             textDecoration: "none",
             flex: 1,
             height: "100%",
             position: "relative",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           })}
         >
           {({ isActive }) => (
@@ -57,18 +59,46 @@ export const BottomNav: React.FC = () => {
                   layoutId="navIndicator"
                   style={{
                     position: "absolute",
-                    top: "0",
-                    width: "40px",
-                    height: "2px",
-                    background:
-                      "linear-gradient(90deg, transparent, var(--primary), transparent)",
-                    borderRadius: "0 0 4px 4px",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: "44px",
+                    height: "44px",
+                    background: "rgba(139, 92, 246, 0.1)",
+                    borderRadius: "14px",
+                    zIndex: -1,
+                  }}
+                  transition={{
+                    type: "spring",
+                    bounce: 0.2,
+                    duration: 0.6,
                   }}
                 />
               )}
-              {item.icon}
+              <motion.div
+                animate={{
+                  scale: isActive ? 1.15 : 1,
+                  y: isActive ? -1 : 0,
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {item.icon}
+              </motion.div>
               <span
-                style={{ fontSize: "0.6rem", fontWeight: 600, opacity: 0.85 }}
+                style={{
+                  fontSize: "0.55rem",
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  opacity: isActive ? 1 : 0.5,
+                  transition: "opacity 0.3s",
+                  fontFamily: "var(--font-main)",
+                }}
               >
                 {item.label}
               </span>

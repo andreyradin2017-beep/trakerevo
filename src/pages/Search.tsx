@@ -17,11 +17,12 @@ import { GridCard } from "@components/GridCard";
 import { SkeletonCard } from "@components/SkeletonCard";
 import { CategorySelector, type Category } from "@components/CategorySelector";
 import { PageHeader } from "@components/PageHeader";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { useLibrarySearch } from "@hooks/useItems";
 import { triggerAutoSync } from "@services/dbSync";
 import { useToast } from "@context/ToastContext";
+import { PullToRefresh } from "@components/PullToRefresh";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -57,12 +58,17 @@ export const Search: React.FC = () => {
     [],
   );
 
+  const searchCounter = React.useRef(0);
+
   const handleSearch = async (
     targetQuery: string = query,
     e?: React.FormEvent,
   ) => {
     if (e) e.preventDefault();
     const trimmedQuery = targetQuery.trim().toLowerCase();
+
+    // Increment counter to track the latest request
+    const currentCounter = ++searchCounter.current;
 
     // Library search is handled by the hook, so we only need to handle global search here
     if (searchMode === "library") return;
@@ -104,7 +110,13 @@ export const Search: React.FC = () => {
         }
         return item;
       });
-      setGlobalResults(processedResults);
+      setGlobalResults((prev) => {
+        // Only update if this is still the latest request
+        if (currentCounter === searchCounter.current) {
+          return processedResults;
+        }
+        return prev;
+      });
 
       // Save to history if query is not empty
       if (trimmedQuery) {
@@ -121,7 +133,7 @@ export const Search: React.FC = () => {
     }
   };
 
-  // Auto-search when URL contains 'q' parameter (e.g., from recommendations)
+  // Auto-search when URL contains 'q' parameter
   useEffect(() => {
     const queryParam = searchParams.get("q");
     if (queryParam && queryParam.trim()) {
@@ -129,8 +141,28 @@ export const Search: React.FC = () => {
       setSearchMode("global");
       handleSearch(queryParam);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on mount
+  }, []);
+
+  // Live Search (Debounced)
+  useEffect(() => {
+    if (searchMode === "library") return;
+    if (!query.trim()) {
+      setGlobalResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleSearch(query);
+    }, 500); // 500ms delay for live search
+
+    return () => clearTimeout(timer);
+  }, [query, searchMode, currentCategory]);
+
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    // Auto focus search on mount
+    inputRef.current?.focus();
+  }, []);
 
   const { showToast } = useToast();
 
@@ -179,197 +211,271 @@ export const Search: React.FC = () => {
   };
 
   return (
-    <div style={{ paddingBottom: "2rem" }}>
-      <PageHeader title="Поиск" showBack />
+    <PullToRefresh onRefresh={async () => handleSearch(query)}>
+      <div style={{ paddingBottom: "2rem" }}>
+        <PageHeader title="Поиск" showBack />
 
-      <div
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 20,
-          margin: "0 -1rem",
-          padding: "0.5rem 1rem",
-        }}
-      >
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backdropFilter: "blur(12px)",
-            background: "rgba(23, 23, 23, 0.85)",
-            zIndex: -1,
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-            maskImage:
-              "linear-gradient(to bottom, black 90%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, black 90%, transparent 100%)",
-          }}
-        />
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            alignItems: "center",
-            marginBottom: "0.75rem",
+            position: "sticky",
+            top: 0,
+            zIndex: 20,
+            margin: "0 -var(--space-md)",
+            padding: "0.5rem var(--space-md)",
           }}
         >
-          <CategorySelector
-            activeCategory={currentCategory}
-            onCategoryChange={(cat) => {
-              localStorage.setItem("lastSearchCategory", cat);
-              if (cat === "all") {
-                searchParams.delete("category");
-              } else {
-                searchParams.set("category", cat);
-              }
-              setSearchParams(searchParams);
-            }}
-            style={{ flex: 1, marginBottom: 0 }}
-          />
-        </div>
-
-        {/* Mode Toggle */}
-        <div
-          style={{
-            display: "flex",
-            background: "var(--bg-surface)",
-            padding: "4px",
-            borderRadius: "12px",
-            marginBottom: "1.25rem",
-            border: "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
-          <button
-            onClick={() => setSearchMode("global")}
-            style={{
-              flex: 1,
-              padding: "0.6rem",
-              borderRadius: "8px",
-              border: "none",
-              background:
-                searchMode === "global"
-                  ? "rgba(139, 92, 246, 0.2)"
-                  : "transparent",
-              color:
-                searchMode === "global"
-                  ? "var(--primary)"
-                  : "var(--text-tertiary)",
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.4rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            <Globe size={14} /> Глобальный
-          </button>
-          <button
-            onClick={() => setSearchMode("library")}
-            style={{
-              flex: 1,
-              padding: "0.6rem",
-              borderRadius: "8px",
-              border: "none",
-              background:
-                searchMode === "library"
-                  ? "rgba(52, 211, 153, 0.2)"
-                  : "transparent",
-              color:
-                searchMode === "library"
-                  ? "var(--success)"
-                  : "var(--text-tertiary)",
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.4rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            <Library size={14} /> Моя библиотека
-          </button>
-        </div>
-
-        {/* Search Bar */}
-        <form
-          onSubmit={(e) => handleSearch(query, e)}
-          style={{ position: "relative", marginBottom: "1rem" }}
-        >
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              searchMode === "global"
-                ? "Что ищем в интернете?"
-                : "Поиск в моей коллекции"
-            }
-            style={{
-              width: "100%",
-              padding: "0.85rem 1rem 0.85rem 3rem",
-              borderRadius: "var(--radius-lg)",
-              fontSize: "1rem",
-              backgroundColor: "var(--bg-surface)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "var(--text-primary)",
-              outline: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            }}
-          />
-          <SearchIcon
-            size={20}
+          <div
             style={{
               position: "absolute",
-              left: "1rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: "var(--text-tertiary)",
+              inset: 0,
+              backdropFilter: "blur(20px) saturate(160%)",
+              background: "rgba(9, 9, 11, 0.8)",
+              zIndex: -1,
+              borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+              maskImage:
+                "linear-gradient(to bottom, black 95%, transparent 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black 95%, transparent 100%)",
             }}
           />
-          {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setGlobalResults([]);
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              alignItems: "center",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <CategorySelector
+              activeCategory={currentCategory}
+              onCategoryChange={(cat) => {
+                localStorage.setItem("lastSearchCategory", cat);
+                if (cat === "all") {
+                  searchParams.delete("category");
+                } else {
+                  searchParams.set("category", cat);
+                }
+                setSearchParams(searchParams);
               }}
+              style={{ flex: 1, marginBottom: 0 }}
+            />
+          </div>
+
+          {/* Mode Toggle */}
+          <div
+            style={{
+              display: "flex",
+              background: "var(--bg-surface)",
+              padding: "4px",
+              borderRadius: "12px",
+              marginBottom: "1.25rem",
+              border: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <button
+              onClick={() => setSearchMode("global")}
+              style={{
+                flex: 1,
+                padding: "0.6rem",
+                borderRadius: "8px",
+                border: "none",
+                background:
+                  searchMode === "global"
+                    ? "rgba(139, 92, 246, 0.2)"
+                    : "transparent",
+                color:
+                  searchMode === "global"
+                    ? "var(--primary)"
+                    : "var(--text-tertiary)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.4rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              <Globe size={14} /> Глобальный
+            </button>
+            <button
+              onClick={() => setSearchMode("library")}
+              style={{
+                flex: 1,
+                padding: "0.6rem",
+                borderRadius: "8px",
+                border: "none",
+                background:
+                  searchMode === "library"
+                    ? "rgba(52, 211, 153, 0.2)"
+                    : "transparent",
+                color:
+                  searchMode === "library"
+                    ? "var(--success)"
+                    : "var(--text-tertiary)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.4rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              <Library size={14} /> Моя библиотека
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <form
+            onSubmit={(e) => handleSearch(query, e)}
+            style={{ position: "relative", marginBottom: "1rem" }}
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={
+                searchMode === "global"
+                  ? "Что ищем в интернете?"
+                  : "Поиск в моей коллекции"
+              }
+              style={{
+                width: "100%",
+                padding: "0.85rem 1rem 0.85rem 3rem",
+                borderRadius: "var(--radius-lg)",
+                fontSize: "1rem",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "var(--text-primary)",
+                outline: "none",
+                boxShadow: "var(--shadow-md)",
+                fontFamily: "var(--font-body)",
+              }}
+            />
+            <SearchIcon
+              size={20}
               style={{
                 position: "absolute",
-                right: "1rem",
+                left: "1rem",
                 top: "50%",
                 transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
                 color: "var(--text-tertiary)",
-                cursor: "pointer",
               }}
-            >
-              <X size={18} />
-            </button>
-          )}
-        </form>
-      </div>
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setGlobalResults([]);
+                }}
+                style={{
+                  position: "absolute",
+                  right: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-tertiary)",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} />
+              </button>
+            )}
+          </form>
+        </div>
 
-      {/* History Section */}
-      {!query &&
-        !loading &&
-        searchMode === "global" &&
-        searchHistory &&
-        searchHistory.length > 0 && (
-          <div style={{ marginBottom: "2rem" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "0.75rem",
-              }}
-            >
+        {/* Content Area (Stable Container) */}
+        {!query && !loading && searchMode === "global" ? (
+          <div style={{ paddingBottom: "2rem" }}>
+            {/* Recent History */}
+            {searchHistory && searchHistory.length > 0 && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "0.75rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      color: "var(--text-tertiary)",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    <History size={12} /> Недавнее
+                  </div>
+                  <button
+                    onClick={clearHistory}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--text-tertiary)",
+                      fontSize: "0.7rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+                <div
+                  style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
+                >
+                  {searchHistory.map((h) => (
+                    <motion.div
+                      key={h.query}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        background: "rgba(255,255,255,0.05)",
+                        padding: "0.4rem 0.6rem",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        border: "1px solid rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <span
+                        onClick={() => {
+                          setQuery(h.query);
+                          handleSearch(h.query);
+                        }}
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        {h.query}
+                      </span>
+                      <X
+                        size={12}
+                        color="var(--text-tertiary)"
+                        onClick={() => removeHistoryItem(h.query)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trending Suggestions */}
+            <div>
               <div
                 style={{
                   display: "flex",
@@ -380,139 +486,130 @@ export const Search: React.FC = () => {
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
+                  marginBottom: "0.75rem",
                 }}
               >
-                <History size={12} /> Недавнее
+                🚀 Популярные запросы
               </div>
-              <button
-                onClick={clearHistory}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-tertiary)",
-                  fontSize: "0.7rem",
-                  cursor: "pointer",
-                }}
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {searchHistory.map((h) => (
-                <motion.div
-                  key={h.query}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileTap={{ scale: 0.95 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.4rem",
-                    background: "rgba(255,255,255,0.05)",
-                    padding: "0.4rem 0.6rem",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    border: "1px solid rgba(255,255,255,0.05)",
-                  }}
-                >
-                  <span
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                {[
+                  "Inception",
+                  "Cyberpunk 2077",
+                  "Harry Potter",
+                  "Dune",
+                  "Interstellar",
+                ].map((term) => (
+                  <motion.button
+                    key={term}
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "rgba(139, 92, 246, 0.2)",
+                    }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      setQuery(h.query);
-                      handleSearch(h.query);
+                      setQuery(term);
+                      handleSearch(term);
                     }}
                     style={{
-                      fontSize: "0.8rem",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: "12px",
+                      padding: "0.6rem 1rem",
                       color: "var(--text-secondary)",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s",
                     }}
                   >
-                    {h.query}
-                  </span>
-                  <X
-                    size={12}
-                    color="var(--text-tertiary)"
-                    onClick={() => removeHistoryItem(h.query)}
-                  />
-                </motion.div>
-              ))}
+                    {term}
+                  </motion.button>
+                ))}
+              </div>
             </div>
           </div>
-        )}
+        ) : (
+          (query || loading) && (
+            <div style={{ width: "100%" }}>
+              {/* Results Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                  gap: "var(--space-md)",
+                  padding: "0 var(--space-xs)",
+                  minHeight: "400px",
+                }}
+              >
+                {results.length === 0 && loading
+                  ? [1, 2, 3, 4, 5, 6].map((_, idx) => (
+                      <SkeletonCard key={`skeleton-${idx}`} />
+                    ))
+                  : results.map((item, idx) => (
+                      <GridCard
+                        key={`${item.source}-${item.externalId || item.id || idx}`}
+                        item={item as Item}
+                        index={idx}
+                        enableMotion={results.length === 0}
+                        onClick={() => {
+                          if (item.isOwned && item.id) {
+                            navigate(`/item/${item.id}`);
+                          } else {
+                            handleAdd(item);
+                          }
+                        }}
+                        onQuickAdd={() => handleAdd(item, true)}
+                      />
+                    ))}
+              </div>
 
-      {/* Results Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-          gap: "0.75rem",
-        }}
-      >
-        <AnimatePresence mode="popLayout">
-          {loading
-            ? [1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)
-            : results.map((item, idx) => (
-                <GridCard
-                  key={item.externalId || item.id || idx}
-                  item={item as Item}
-                  index={idx}
-                  onClick={() => {
-                    // Navigate to details
-                    if (item.isOwned && item.id) {
-                      navigate(`/item/${item.id}`);
-                    } else {
-                      // If not owned, open details (which has add button)
-                      // or we could add immediately.
-                      // User asked "must go to card", implying they want to just click to add?
-                      // But existing logic was: click -> add.
-                      // If we have Quick Add button, click -> details is better UX?
-                      // Let's keep click -> add/details for now, but handle Quick Add strictly as ADD.
-
-                      // Actually, let's make the main click navigate to details preview (if we had one) or add.
-                      // For now, keep existing behavior: click = add/view
-                      handleAdd(item);
-                    }
+              {!loading && results.length === 0 && query && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "4rem 1rem",
+                    color: "var(--text-tertiary)",
+                    textAlign: "center",
                   }}
-                  onQuickAdd={() => handleAdd(item, true)}
-                />
-              ))}
-        </AnimatePresence>
+                >
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      padding: "1.5rem",
+                      borderRadius: "50%",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    <Ghost size={48} strokeWidth={1.5} />
+                  </div>
+                  <p
+                    style={{
+                      margin: "0 0 0.5rem 0",
+                      fontSize: "1.1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Ничего не найдено
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "0.9rem",
+                      maxWidth: "250px",
+                      opacity: 0.7,
+                    }}
+                  >
+                    Попробуйте изменить запрос или поискать в другой категории
+                  </p>
+                </motion.div>
+              )}
+            </div>
+          )
+        )}
       </div>
-
-      {!loading && results.length === 0 && query && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "4rem 1rem",
-            color: "var(--text-tertiary)",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              padding: "1.5rem",
-              borderRadius: "50%",
-              marginBottom: "1rem",
-            }}
-          >
-            <Ghost size={48} strokeWidth={1.5} />
-          </div>
-          <p
-            style={{
-              margin: "0 0 0.5rem 0",
-              fontSize: "1.1rem",
-              fontWeight: 600,
-            }}
-          >
-            Ничего не найдено
-          </p>
-          <p style={{ fontSize: "0.9rem", maxWidth: "250px", opacity: 0.7 }}>
-            Попробуйте изменить запрос или поискать в другой категории
-          </p>
-        </div>
-      )}
-    </div>
+    </PullToRefresh>
   );
 };

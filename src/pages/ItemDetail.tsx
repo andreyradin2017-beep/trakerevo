@@ -35,6 +35,8 @@ export const ItemDetail: React.FC = () => {
   const [isArchived, setIsArchived] = useState(false);
 
   const [extraMetadata, setExtraMetadata] = useState<{
+    description?: string;
+    genres?: string[];
     trailer?: string;
     providers?: { name: string; logo: string }[];
     related?: { id: string; title: string; image?: string; type: string }[];
@@ -163,8 +165,7 @@ export const ItemDetail: React.FC = () => {
     <div
       style={{
         paddingBottom: "120px",
-        paddingLeft: "0.5rem",
-        paddingRight: "0.5rem",
+        paddingTop: "var(--space-xs)",
       }}
     >
       {showTrailer && extraMetadata?.trailer && (
@@ -205,7 +206,7 @@ export const ItemDetail: React.FC = () => {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "0.5rem",
+          gap: "0.75rem",
           maxWidth: "800px",
           margin: "0 auto",
         }}
@@ -219,10 +220,31 @@ export const ItemDetail: React.FC = () => {
             year={item.year}
             hasTrailer={!!extraMetadata?.trailer}
             source={item.source}
+            genres={extraMetadata?.genres || item.tags}
             onBack={() => navigate(-1)}
             onShowTrailer={() => setShowTrailer(true)}
           />
         </BentoTile>
+
+        {/* Row 1.5: Description (if available) */}
+        {(item.description || extraMetadata?.description) && (
+          <BentoTile colSpan={2} delay={0.15} style={{ padding: "1.25rem" }}>
+            <label className="section-label" style={{ marginBottom: "0.5rem" }}>
+              Об инструменте / Сюжет
+            </label>
+            <p
+              style={{
+                fontSize: "0.9rem",
+                lineHeight: "1.6",
+                color: "var(--text-secondary)",
+                margin: 0,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {extraMetadata?.description || item.description}
+            </p>
+          </BentoTile>
+        )}
 
         {/* Row 2: Status Tracking */}
         <BentoTile colSpan={2} delay={0.2}>

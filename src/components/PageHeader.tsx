@@ -11,6 +11,7 @@ interface PageHeaderProps {
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;
   style?: React.CSSProperties;
+  titleClassName?: string;
   showSyncStatus?: boolean; // New prop
 }
 
@@ -21,6 +22,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   rightElement,
   leftElement,
   style,
+  titleClassName = "",
   showSyncStatus = true, // Default to true
 }) => {
   const navigate = useNavigate();
@@ -37,33 +39,33 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         ...style,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-md)",
+        }}
+      >
         {leftElement}
         {showBack && (
           <button
             onClick={onBack || (() => navigate(-1))}
+            className="btn-icon"
             aria-label="Назад"
-            style={{
-              padding: "0.5rem",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              borderRadius: "50%",
-              background: "var(--bg-surface)",
-              color: "var(--text-primary)",
-            }}
           >
             <ArrowLeft size={18} />
           </button>
         )}
         <h1
+          className={titleClassName}
           style={{
-            fontSize: "1.2rem",
-            fontWeight: 800,
+            fontSize: "1.1rem",
+            fontWeight: "var(--fw-black)",
             margin: 0,
-            letterSpacing: "-0.3px",
+            letterSpacing: "-0.5px",
             color: "var(--text-primary)",
+            fontFamily: "var(--font-main)",
+            lineHeight: 1,
           }}
         >
           {title}

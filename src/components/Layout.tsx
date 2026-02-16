@@ -5,6 +5,7 @@ import { BottomNav } from "./BottomNav";
 import styles from "./Layout.module.css";
 
 import { ScrollProgress } from "./ScrollProgress";
+import { FloatingActionButton } from "./FloatingActionButton";
 
 export const Layout: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ export const Layout: React.FC = () => {
         <Outlet />
       </main>
 
+      <FloatingActionButton />
       <BottomNav />
     </div>
   );

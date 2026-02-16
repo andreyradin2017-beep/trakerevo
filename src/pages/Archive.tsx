@@ -36,8 +36,8 @@ export const Archive: React.FC = () => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: "var(--space-md)",
             }}
           >
             {archivedItems.map((item) => (

@@ -1,8 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { getProxiedImageUrl } from "../utils/images";
 import { LazyImage } from "./LazyImage";
+import { PageHeader } from "./PageHeader";
 interface ItemHeaderProps {
   title: string;
   image?: string;
@@ -10,6 +11,7 @@ interface ItemHeaderProps {
   year?: string | number;
   hasTrailer: boolean;
   source?: string;
+  genres?: string[];
   onBack: () => void;
   onShowTrailer: () => void;
 }
@@ -21,6 +23,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
   year,
   hasTrailer,
   source,
+  genres,
   onBack,
   onShowTrailer,
 }) => {
@@ -28,121 +31,111 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
 
   return (
     <>
-      <div
+      <PageHeader
+        title="Детали"
+        showBack
+        onBack={onBack}
+        showSyncStatus={false}
         style={{
-          display: "flex",
-          alignItems: "center",
-          marginBottom: "var(--space-md-lg)",
-          gap: "var(--space-md)",
+          padding: "var(--space-md) 1.25rem 0 1.25rem",
+          marginBottom: "var(--space-md)",
         }}
-      >
-        <button
-          onClick={onBack}
-          aria-label="Назад"
-          style={{
-            background: "var(--bg-surface)",
-            width: "36px",
-            height: "36px",
-            border: "none",
-            borderRadius: "50%",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ArrowLeft size={20} color="var(--text-primary)" />
-        </button>
-        <h1 style={{ fontSize: "var(--font-xl)", fontWeight: 700, margin: 0 }}>
-          Детали
-        </h1>
-      </div>
+      />
 
       <div
         style={{
           overflow: "hidden",
-          marginBottom: "0.5rem",
+          marginBottom: "var(--space-md)",
         }}
       >
         {proxiedImage && (
           <div
             style={{
-              height: "220px",
-              overflow: "hidden",
-              position: "relative",
-              backgroundColor: "var(--bg-surface-hover)", // Fallback background
+              padding: "0 var(--space-sm)",
+              marginBottom: "var(--space-md)",
             }}
           >
-            <LazyImage
-              src={proxiedImage}
-              alt={title}
-              containerClassName="h-full w-full"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              fallbackElement={
+            <motion.div
+              layoutId={`item-image-${image}`}
+              style={{
+                height: "220px",
+                overflow: "hidden",
+                position: "relative",
+                borderRadius: "var(--radius-lg)",
+                backgroundColor: "var(--bg-surface)",
+                boxShadow: "var(--shadow-lg)",
+              }}
+            >
+              <LazyImage
+                src={proxiedImage}
+                alt={title}
+                containerClassName="h-full w-full"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                fallbackElement={
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--text-tertiary)",
+                    }}
+                  >
+                    <Play size={40} opacity={0.2} />
+                  </div>
+                }
+              />
+              {hasTrailer && (
                 <div
-                  className="header-fallback-icon"
                   style={{
                     position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 0,
+                    bottom: "1rem",
+                    right: "1rem",
+                    zIndex: 1,
                   }}
                 >
-                  <Play size={48} color="var(--text-tertiary)" opacity={0.2} />
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onShowTrailer}
+                    style={{
+                      background: "rgba(15, 15, 18, 0.6)",
+                      backdropFilter: "blur(12px)",
+                      padding: "var(--space-sm) var(--space-md)",
+                      borderRadius: "12px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      color: "white",
+                      fontWeight: "var(--fw-bold)",
+                      fontSize: "var(--font-sm)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--space-xs)",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    <Play size={14} fill="white" /> Трейлер
+                  </motion.button>
                 </div>
-              }
-            />
-            {hasTrailer && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 1,
-                }}
-              >
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onShowTrailer}
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    backdropFilter: "blur(8px)",
-                    padding: "var(--space-sm) var(--space-md-lg)",
-                    borderRadius: "var(--radius-full)",
-                    border: "1px solid rgba(255,255,255,0.3)",
-                    color: "white",
-                    fontWeight: 700,
-                    fontSize: "var(--font-md)",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
-                  <Play size={16} fill="white" /> Трейлер
-                </motion.button>
-              </div>
-            )}
+              )}
+            </motion.div>
           </div>
         )}
 
         <div
           style={{
-            padding:
-              "var(--space-md-lg) var(--space-md-lg) var(--space-sm) var(--space-md-lg)",
+            padding: "0 1.25rem var(--space-sm) 1.25rem",
           }}
         >
           <h2
             style={{
-              fontSize: "var(--font-2xl)",
-              fontWeight: 800,
+              fontSize: "1.75rem",
+              fontWeight: "var(--fw-black)",
+              fontFamily: "var(--font-main)",
               marginBottom: "var(--space-sm)",
-              letterSpacing: "-0.5px",
-              lineHeight: 1.2,
+              letterSpacing: "-0.8px",
+              lineHeight: 1.15,
+              color: "var(--text-primary)",
             }}
           >
             {title}
@@ -159,23 +152,24 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             {source && (
               <span
                 style={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.6rem",
                   background:
                     source === "yandex"
-                      ? "rgba(252, 63, 29, 0.2)"
-                      : "var(--bg-surface-hover)",
+                      ? "rgba(252, 63, 29, 0.1)"
+                      : "var(--bg-surface)",
                   border:
                     source === "yandex"
-                      ? "1px solid rgba(252, 63, 29, 0.5)"
-                      : "none",
-                  padding: "0.2rem 0.5rem",
-                  borderRadius: "var(--radius-sm)",
+                      ? "1px solid rgba(252, 63, 29, 0.3)"
+                      : "1px solid rgba(255,255,255,0.05)",
+                  padding: "0.15rem 0.5rem",
+                  borderRadius: "6px",
                   textTransform: "uppercase",
-                  fontWeight: 700,
+                  fontWeight: "var(--fw-black)",
                   color:
                     source === "yandex"
                       ? "var(--brand-yandex)"
                       : "var(--text-secondary)",
+                  letterSpacing: "0.5px",
                 }}
               >
                 {source === "google_books"
@@ -187,25 +181,61 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             )}
             <span
               style={{
-                fontSize: "0.7rem",
-                background: "var(--bg-surface-hover)",
-                padding: "0.2rem 0.5rem",
-                borderRadius: "var(--radius-sm)",
+                fontSize: "0.6rem",
+                background: "var(--bg-surface)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                padding: "0.15rem 0.5rem",
+                borderRadius: "6px",
                 textTransform: "uppercase",
-                fontWeight: 700,
+                fontWeight: "var(--fw-black)",
                 color: "var(--text-secondary)",
+                letterSpacing: "0.5px",
               }}
             >
               {type}
             </span>
             {year && (
               <span
-                style={{ fontSize: "0.85rem", color: "var(--text-tertiary)" }}
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-tertiary)",
+                  fontWeight: "var(--fw-semibold)",
+                  marginLeft: "0.25rem",
+                }}
               >
                 {year}
               </span>
             )}
           </div>
+
+          {/* Genres Tags */}
+          {genres && genres.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: "0.4rem",
+                flexWrap: "wrap",
+                marginTop: "0.5rem",
+              }}
+            >
+              {genres.map((g, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "var(--text-secondary)",
+                    background: "rgba(255,255,255,0.03)",
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "6px",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

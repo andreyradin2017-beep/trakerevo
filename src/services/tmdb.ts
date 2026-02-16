@@ -37,6 +37,7 @@ export const getMovieDetails = async (
 
     return {
       description: details.data.overview,
+      genres: details.data.genres?.map((g: any) => g.name) || [],
       trailer: trailer
         ? `https://www.youtube.com/embed/${trailer.key}`
         : undefined,
@@ -96,8 +97,8 @@ export const searchMovies = async (query: string): Promise<Item[]> => {
           result.media_type === "movie"
             ? "movie"
             : result.media_type === "tv"
-              ? "movie"
-              : "other", // Mapping tv to movie for now or handle 'show' if we had it
+              ? "movie" // Mapping tv to movie for now or handle 'show' if we had it
+              : "other",
         status: "planned",
         image: result.poster_path
           ? `https://image.tmdb.org/t/p/w200${result.poster_path}`

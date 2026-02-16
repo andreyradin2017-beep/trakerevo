@@ -23,7 +23,7 @@ export const Stats: React.FC = () => {
   if (!stats) {
     return (
       <div style={{ padding: "0 0.75rem" }}>
-        <PageHeader title="Личный кабинет" />
+        <PageHeader title="Инфо" showBack={true} />
         <Skeleton
           width="100%"
           height={80}
@@ -51,7 +51,7 @@ export const Stats: React.FC = () => {
 
   return (
     <div style={{ paddingBottom: "7rem" }}>
-      <PageHeader title="Личный кабинет" />
+      <PageHeader title="Инфо" showBack={true} />
 
       <motion.div
         initial={{ opacity: 0 }}

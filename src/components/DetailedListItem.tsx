@@ -152,8 +152,8 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
           <h3
             style={{
               margin: 0,
-              fontSize: "0.95rem",
-              fontWeight: 800,
+              fontSize: "1rem",
+              fontWeight: "var(--fw-black)",
               color: "var(--text-primary)",
               fontFamily: "var(--font-main)",
               display: "-webkit-box",

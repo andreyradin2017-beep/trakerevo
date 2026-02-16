@@ -55,13 +55,20 @@ export const Section: React.FC<SectionProps> = ({
           transition: "all 0.2s ease",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-sm)",
+          }}
+        >
           {Icon && (
             <span
               style={{
                 color: iconColor,
                 display: "flex",
                 alignItems: "center",
+                opacity: 0.9,
               }}
             >
               {React.isValidElement(Icon) ? (
@@ -78,7 +85,10 @@ export const Section: React.FC<SectionProps> = ({
               color: isCollapsed
                 ? "var(--text-tertiary)"
                 : "var(--text-secondary)",
-              fontSize: "0.7rem",
+              fontSize: "0.65rem",
+              fontWeight: "var(--fw-black)",
+              fontFamily: "var(--font-main)",
+              letterSpacing: "0.8px",
             }}
           >
             {title}
@@ -86,13 +96,15 @@ export const Section: React.FC<SectionProps> = ({
           {badge !== undefined && (
             <span
               style={{
-                background: `${badgeColor}15`,
-                padding: "0.05rem 0.3rem",
-                borderRadius: "6px",
+                background: `${badgeColor}10`,
+                padding: "0.1rem 0.4rem",
+                borderRadius: "5px",
                 fontSize: "0.55rem",
-                fontWeight: 900,
+                fontWeight: "var(--fw-black)",
                 color: badgeColor,
                 textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                border: `1px solid ${badgeColor}20`,
               }}
             >
               {badge}

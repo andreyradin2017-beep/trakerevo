@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Skeleton } from "./Skeleton";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackSrc?: string;
@@ -36,24 +35,19 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         // But since we know the issue is missing Tailwind, we enforce 100% here.
       }}
     >
-      <AnimatePresence>
-        {!isLoaded && !hasError && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 10,
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            <Skeleton width="100%" height="100%" borderRadius={0} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!isLoaded && !hasError && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <Skeleton width="100%" height="100%" borderRadius={0} />
+        </div>
+      )}
 
       {hasError && fallbackElement ? (
         fallbackElement

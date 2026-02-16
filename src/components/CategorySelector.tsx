@@ -11,6 +11,8 @@ interface CategorySelectorProps {
   style?: React.CSSProperties;
 }
 
+import { pressAnimation, EASINGS } from "@utils/animations";
+
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
   activeCategory,
   onCategoryChange,
@@ -42,8 +44,9 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
       {categories.map((cat) => {
         const isActive = activeCategory === cat.id;
         return (
-          <button
+          <motion.button
             key={cat.id}
+            {...pressAnimation}
             onClick={() => {
               if (!isActive) {
                 selectionChanged();
@@ -79,12 +82,12 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                   zIndex: -1,
                   boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
                 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={EASINGS.spring}
               />
             )}
             <cat.icon size={13} style={{ position: "relative", zIndex: 2 }} />
             <span style={{ position: "relative", zIndex: 2 }}>{cat.label}</span>
-          </button>
+          </motion.button>
         );
       })}
     </div>

@@ -31,8 +31,8 @@ const DiscoverCard: React.FC<{
       whileTap={{ scale: 0.95 }}
       onClick={() => onAdd(item)}
       style={{
-        minWidth: "130px",
-        width: "130px",
+        minWidth: "124px",
+        width: "124px",
         cursor: "pointer",
         flexShrink: 0,
       }}
@@ -41,12 +41,13 @@ const DiscoverCard: React.FC<{
         style={{
           width: "100%",
           aspectRatio: "2/3",
-          borderRadius: "12px",
+          borderRadius: "var(--radius-lg)",
           overflow: "hidden",
           position: "relative",
-          border: "1px solid rgba(255,255,255,0.08)",
-          marginBottom: "0.4rem",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          marginBottom: "var(--space-sm)",
+          boxShadow: "var(--shadow-md)",
+          background: "var(--bg-surface)",
         }}
       >
         {item.image ? (
@@ -69,7 +70,7 @@ const DiscoverCard: React.FC<{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(255,255,255,0.03)",
+              background: "rgba(255,255,255,0.02)",
               color: "var(--text-tertiary)",
             }}
           >
@@ -84,6 +85,7 @@ const DiscoverCard: React.FC<{
               position: "absolute",
               top: "0.35rem",
               right: "0.35rem",
+              zIndex: 10,
             }}
           >
             <CountdownBadge
@@ -98,15 +100,18 @@ const DiscoverCard: React.FC<{
           <div
             style={{
               position: "absolute",
-              bottom: "0.35rem",
-              left: "0.35rem",
-              background: "rgba(0,0,0,0.7)",
-              backdropFilter: "blur(4px)",
-              padding: "2px 6px",
-              borderRadius: "6px",
+              bottom: "0.4rem",
+              left: "0.4rem",
+              background: "rgba(0,0,0,0.65)",
+              backdropFilter: "blur(8px)",
+              padding: "0.1rem 0.4rem",
+              borderRadius: "5px",
               fontSize: "0.6rem",
-              fontWeight: 700,
-              color: "var(--text-secondary)",
+              fontWeight: "var(--fw-black)",
+              color: "white",
+              zIndex: 5,
+              border: "1px solid rgba(255,255,255,0.1)",
+              fontFamily: "var(--font-main)",
             }}
           >
             {item.year}
@@ -117,14 +122,16 @@ const DiscoverCard: React.FC<{
       <p
         style={{
           fontSize: "0.72rem",
-          fontWeight: 600,
+          fontWeight: "var(--fw-bold)",
+          fontFamily: "var(--font-main)",
           margin: 0,
           display: "-webkit-box",
           WebkitLineClamp: 2,
           WebkitBoxOrient: "vertical",
           overflow: "hidden",
           color: "var(--text-primary)",
-          lineHeight: 1.3,
+          lineHeight: 1.25,
+          letterSpacing: "-0.2px",
         }}
       >
         {item.title}
@@ -250,52 +257,46 @@ export const Discover: React.FC = () => {
           style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
         >
           {sections.map((section) => (
-            <motion.div
+            <Section
               key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              title={section.title}
+              icon={section.icon}
+              badge={section.items.length}
+              plain
             >
-              <Section
-                title={section.title}
-                icon={section.icon}
-                badge={section.items.length}
-                plain
-              >
-                {/* Horizontal Scroll */}
-                {section.items.length > 0 ? (
-                  <div
-                    className="no-scrollbar"
-                    style={{
-                      display: "flex",
-                      gap: "0.75rem",
-                      overflowX: "auto",
-                      padding: "0 0.25rem 0.5rem",
-                      scrollbarWidth: "none",
-                    }}
-                  >
-                    {section.items.map((item) => (
-                      <DiscoverCard
-                        key={`${item.source}-${item.externalId}`}
-                        item={item}
-                        onAdd={handleAdd}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      padding: "2rem",
-                      textAlign: "center",
-                      color: "var(--text-tertiary)",
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Нет данных
-                  </div>
-                )}
-              </Section>
-            </motion.div>
+              {/* Horizontal Scroll */}
+              {section.items.length > 0 ? (
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    overflowX: "auto",
+                    padding: "0 0.25rem 0.5rem",
+                    scrollbarWidth: "none",
+                  }}
+                >
+                  {section.items.map((item) => (
+                    <DiscoverCard
+                      key={`${item.source}-${item.externalId}`}
+                      item={item}
+                      onAdd={handleAdd}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "2rem",
+                    textAlign: "center",
+                    color: "var(--text-tertiary)",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Нет данных
+                </div>
+              )}
+            </Section>
           ))}
         </div>
       )}

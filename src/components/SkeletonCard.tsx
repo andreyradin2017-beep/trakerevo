@@ -1,9 +1,13 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { skeletonPulse } from "@utils/animations";
 
 export const SkeletonCard: React.FC = () => {
   return (
-    <div
+    <motion.div
+      variants={skeletonPulse}
+      initial="initial"
+      animate="animate"
       style={{
         width: "100%",
         aspectRatio: "2/3",
@@ -40,12 +44,15 @@ export const SkeletonCard: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          bottom: "1rem",
-          left: "0.8rem",
-          right: "0.8rem",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: `3rem var(--space-md) var(--space-md)`,
+          background:
+            "linear-gradient(to top, rgba(9,9,11,1) 0%, rgba(9,9,11,0.6) 50%, transparent 100%)",
           display: "flex",
           flexDirection: "column",
-          gap: "0.5rem",
+          gap: "0.4rem",
           zIndex: 2,
         }}
       >
@@ -53,34 +60,36 @@ export const SkeletonCard: React.FC = () => {
         <div
           style={{
             height: "1rem",
-            width: "80%",
-            background: "rgba(255,255,255,0.08)",
+            width: "85%",
+            background: "rgba(255,255,255,0.1)",
             borderRadius: "4px",
           }}
         />
         {/* Subtitle/Year Line */}
         <div
           style={{
-            height: "0.8rem",
-            width: "40%",
-            background: "rgba(255,255,255,0.05)",
+            height: "0.7rem",
+            width: "35%",
+            background: "rgba(255,255,255,0.06)",
             borderRadius: "4px",
           }}
         />
       </div>
 
-      {/* Type Icon Placeholder */}
+      {/* Type Indicator Placeholder */}
       <div
         style={{
           position: "absolute",
-          top: "0.5rem",
-          right: "0.5rem",
-          width: "24px",
-          height: "24px",
+          top: "0.4rem",
+          right: "0.4rem",
+          width: "26px",
+          height: "26px",
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.05)",
+          background: "rgba(0,0,0,0.5)",
+          border: "1px solid rgba(255,255,255,0.05)",
+          zIndex: 2,
         }}
       />
-    </div>
+    </motion.div>
   );
 };

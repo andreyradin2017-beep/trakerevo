@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { db } from "@db/db";
 import { PageHeader } from "@components/PageHeader";
 import {
-  Trash2,
   Database,
   Info,
   Download,
@@ -11,9 +10,7 @@ import {
   User,
   LogOut,
   Check,
-  BarChart2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import { useAuth } from "@context/AuthContext";
@@ -25,7 +22,6 @@ import { SearchProviderSettings } from "@components/SearchProviderSettings";
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -94,7 +90,6 @@ export const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset input so verify same file can be selected again if needed
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     const text = await file.text();
@@ -160,9 +155,13 @@ export const Settings: React.FC = () => {
     });
   };
 
+  const userLevel = Math.floor(stats.items / 10) + 1;
+  const itemsToNextLevel = 10 - (stats.items % 10);
+  const progressToNextLevel = (stats.items % 10) * 10;
+
   return (
-    <div style={{ paddingBottom: "3rem" }}>
-      <PageHeader title="Настройки" showBack />
+    <div style={{ paddingBottom: "6rem" }}>
+      <PageHeader title="Профиль" showBack={true} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
 
       <ConfirmDialog
@@ -177,198 +176,250 @@ export const Settings: React.FC = () => {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "1.5rem",
+          gap: "1.25rem",
           marginTop: "1rem",
         }}
       >
-        {/* Account Section */}
+        {/* Profile Card Section */}
         <div
           style={{
-            padding: "1.25rem",
+            padding: "1.5rem",
             background: "var(--bg-surface)",
             borderRadius: "var(--radius-xl)",
             border: "var(--border-glass)",
+            position: "relative",
+            overflow: "hidden",
+            boxShadow: "var(--shadow-lg)",
           }}
         >
+          {/* Background Glow Overlay */}
+          <div
+            style={{
+              position: "absolute",
+              top: "-20%",
+              right: "-10%",
+              width: "150px",
+              height: "150px",
+              background: "var(--primary-glow)",
+              filter: "blur(60px)",
+              opacity: 0.4,
+              zIndex: 0,
+            }}
+          />
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "1rem",
+              gap: "1.25rem",
+              position: "relative",
+              zIndex: 1,
+              marginBottom: "1.5rem",
             }}
           >
+            {/* Avatar / Initial */}
             <div
               style={{
-                padding: "0.5rem",
-                background: "rgba(56, 189, 248, 0.1)",
-                borderRadius: "10px",
-                color: "#38bdf8",
+                width: "64px",
+                height: "64px",
+                borderRadius: "20px",
+                background: "var(--primary-gradient)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontSize: "1.5rem",
+                fontWeight: 800,
+                boxShadow: "0 8px 16px rgba(139, 92, 246, 0.4)",
+                transform: "rotate(-3deg)",
               }}
             >
-              <User size={18} />
+              {user ? user.email?.charAt(0).toUpperCase() : <User size={32} />}
             </div>
-            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>
-              Аккаунт
-            </h3>
-          </div>
 
-          {user ? (
-            <div>
+            <div style={{ flex: 1 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: 800,
+                  fontFamily: "var(--font-main)",
+                }}
+              >
+                {user ? user.email?.split("@")[0] : "Гость"}
+              </h2>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.75rem",
-                  padding: "0.75rem",
-                  background: "rgba(255,255,255,0.03)",
-                  borderRadius: "var(--radius-lg)",
-                  marginBottom: "1rem",
+                  gap: "0.5rem",
+                  marginTop: "0.25rem",
                 }}
               >
                 <div
                   style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    background: "var(--primary-gradient)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontSize: "0.9rem",
+                    background: "rgba(139, 92, 246, 0.2)",
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "8px",
+                    fontSize: "0.7rem",
                     fontWeight: 700,
+                    color: "var(--primary)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
                   }}
                 >
-                  {user.email?.charAt(0).toUpperCase()}
+                  Уровень {userLevel}
                 </div>
-                <div style={{ flex: 1, overflow: "hidden" }}>
-                  <div
-                    style={{
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      color: "var(--text-primary)",
-                      whiteSpace: "nowrap",
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {user.email}
-                  </div>
+                {user && (
                   <div
                     style={{
                       fontSize: "0.7rem",
                       color: "var(--success)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "0.25rem",
+                      gap: "0.15rem",
                     }}
                   >
-                    <Check size={10} /> Подключено
+                    <Check size={12} /> Синхронизация ВКЛ
                   </div>
-                </div>
+                )}
               </div>
-
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={signOut}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "var(--radius-lg)",
-                  color: "var(--text-secondary)",
-                  fontWeight: 600,
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <LogOut size={16} /> Выйти
-              </motion.button>
             </div>
-          ) : (
-            <div>
-              <p
+          </div>
+
+          {/* Level Progress */}
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <span
                 style={{
-                  fontSize: "0.85rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
                   color: "var(--text-secondary)",
-                  marginBottom: "1rem",
-                  lineHeight: "1.4",
                 }}
               >
-                Войдите, чтобы синхронизировать библиотеку между устройствами.
-              </p>
+                Прогресс до уровня {userLevel + 1}
+              </span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "var(--primary)",
+                }}
+              >
+                {stats.items % 10} / 10
+              </span>
+            </div>
+            <div
+              style={{
+                height: "8px",
+                background: "rgba(255,255,255,0.05)",
+                borderRadius: "10px",
+                overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.05)",
+              }}
+            >
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progressToNextLevel}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                style={{
+                  height: "100%",
+                  background: "var(--primary-gradient)",
+                  boxShadow: "0 0 10px var(--primary-glow)",
+                }}
+              />
+            </div>
+            <p
+              style={{
+                fontSize: "0.65rem",
+                color: "var(--text-tertiary)",
+                marginTop: "0.5rem",
+                textAlign: "center",
+              }}
+            >
+              Добавьте еще {itemsToNextLevel} предметов для повышения уровня 🚀
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.75rem",
+              marginTop: "1.5rem",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {!user ? (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsLoginOpen(true)}
-                style={{
-                  width: "100%",
-                  padding: "0.85rem",
-                  background: "var(--primary)",
-                  border: "none",
-                  borderRadius: "var(--radius-lg)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: "1rem",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                  boxShadow: "0 4px 12px rgba(var(--primary-rgb), 0.3)",
-                }}
+                className="btn-primary"
+                style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
               >
-                <User size={18} /> Войти / Регистрация
+                Войти в аккаунт
               </motion.button>
-            </div>
-          )}
-
-          {user && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={async () => {
-                const btn = document.getElementById("sync-btn");
-                if (btn) btn.innerText = "Синхронизация...";
-
-                const result = await syncAll();
-
-                if (btn) btn.innerText = "Синхронизировать сейчас";
-
-                if (result.success) {
-                  showToast("Синхронизация завершена", "success");
-                  refreshStats();
-                } else {
-                  showToast("Ошибка синхронизации", "error");
-                  console.error(result.errors);
-                }
-              }}
-              id="sync-btn"
-              style={{
-                width: "100%",
-                marginTop: "1rem",
-                padding: "0.75rem",
-                background: "rgba(56, 189, 248, 0.1)",
-                border: "1px solid rgba(56, 189, 248, 0.2)",
-                borderRadius: "var(--radius-lg)",
-                color: "#38bdf8",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <Database size={16} /> Синхронизировать сейчас
-            </motion.button>
-          )}
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={signOut}
+                className="btn-secondary"
+                style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
+              >
+                <LogOut size={16} /> Выйти
+              </motion.button>
+            )}
+          </div>
         </div>
+
+        {/* Account Sync Button (Only if logged in) */}
+        {user && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={async () => {
+              const btn = document.getElementById("sync-btn");
+              if (btn) btn.innerText = "Синхронизация...";
+
+              const result = await syncAll();
+
+              if (btn) btn.innerText = "Синхронизировать сейчас";
+
+              if (result.success) {
+                showToast("Синхронизация завершена", "success");
+                refreshStats();
+              } else {
+                showToast("Ошибка синхронизации", "error");
+                console.error(result.errors);
+              }
+            }}
+            id="sync-btn"
+            style={{
+              width: "100%",
+              padding: "0.75rem",
+              background: "rgba(56, 189, 248, 0.1)",
+              border: "1px solid rgba(56, 189, 248, 0.2)",
+              borderRadius: "var(--radius-lg)",
+              color: "#38bdf8",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+            }}
+          >
+            <Database size={16} /> Синхронизировать сейчас
+          </motion.button>
+        )}
 
         {/* Search Provider Settings */}
         <SearchProviderSettings
@@ -376,13 +427,11 @@ export const Settings: React.FC = () => {
           setConfirmState={setConfirmState}
         />
 
-        {/* Database Info */}
+        {/* Database Actions Section */}
         <div
+          className="glass-card"
           style={{
             padding: "1.25rem",
-            background: "var(--bg-surface)",
-            borderRadius: "var(--radius-xl)",
-            border: "var(--border-glass)",
           }}
         >
           <div
@@ -393,18 +442,8 @@ export const Settings: React.FC = () => {
               marginBottom: "1.25rem",
             }}
           >
-            <div
-              style={{
-                padding: "0.5rem",
-                background: "rgba(52, 211, 153, 0.1)",
-                borderRadius: "10px",
-                color: "var(--success)",
-              }}
-            >
-              <Database size={18} />
-            </div>
             <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>
-              База данных
+              Управление данными
             </h3>
           </div>
 
@@ -412,98 +451,8 @@ export const Settings: React.FC = () => {
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "1rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div
-              style={{
-                padding: "1rem",
-                background: "rgba(255,255,255,0.02)",
-                borderRadius: "var(--radius-lg)",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.2rem",
-                  fontWeight: 800,
-                  color: "var(--text-primary)",
-                }}
-              >
-                {stats.items}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "var(--text-tertiary)",
-                  textTransform: "uppercase",
-                  fontWeight: 700,
-                }}
-              >
-                Элементов
-              </div>
-            </div>
-            <div
-              style={{
-                padding: "1rem",
-                background: "rgba(255,255,255,0.02)",
-                borderRadius: "var(--radius-lg)",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.2rem",
-                  fontWeight: 800,
-                  color: "var(--text-primary)",
-                }}
-              >
-                {stats.lists}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "var(--text-tertiary)",
-                  textTransform: "uppercase",
-                  fontWeight: 700,
-                }}
-              >
-                Списков
-              </div>
-            </div>
-          </div>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate("/stats")}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              marginBottom: "1rem",
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "var(--radius-lg)",
-              color: "var(--text-primary)",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <BarChart2 size={18} /> Полная статистика и достижения
-          </motion.button>
-
-          {/* Backup Actions */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
               gap: "0.75rem",
-              marginBottom: "1.5rem",
+              marginBottom: "1rem",
             }}
           >
             <motion.button
@@ -511,13 +460,13 @@ export const Settings: React.FC = () => {
               onClick={handleExport}
               disabled={exporting}
               style={{
-                padding: "0.75rem",
+                padding: "0.85rem",
                 background: "rgba(255,255,255,0.03)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: "var(--radius-lg)",
                 color: "var(--text-primary)",
                 fontWeight: 600,
-                fontSize: "0.8rem",
+                fontSize: "0.85rem",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -526,10 +475,10 @@ export const Settings: React.FC = () => {
               }}
             >
               {exporting ? (
-                <Loader size={14} className="animate-spin" />
+                <Loader size={16} className="animate-spin" />
               ) : (
-                <Download size={14} />
-              )}{" "}
+                <Download size={16} />
+              )}
               Экспорт
             </motion.button>
 
@@ -538,13 +487,13 @@ export const Settings: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
               style={{
-                padding: "0.75rem",
+                padding: "0.85rem",
                 background: "rgba(255,255,255,0.03)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: "var(--radius-lg)",
                 color: "var(--text-primary)",
                 fontWeight: 600,
-                fontSize: "0.8rem",
+                fontSize: "0.85rem",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -553,19 +502,12 @@ export const Settings: React.FC = () => {
               }}
             >
               {importing ? (
-                <Loader size={14} className="animate-spin" />
+                <Loader size={16} className="animate-spin" />
               ) : (
-                <Upload size={14} />
-              )}{" "}
+                <Upload size={16} />
+              )}
               Импорт
             </motion.button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImport}
-              accept=".json"
-              style={{ display: "none" }}
-            />
           </div>
 
           <button
@@ -573,21 +515,26 @@ export const Settings: React.FC = () => {
             style={{
               width: "100%",
               padding: "0.85rem",
-              background: "rgba(239, 68, 68, 0.1)",
-              border: "1px solid rgba(239, 68, 68, 0.2)",
+              background: "rgba(239, 68, 68, 0.05)",
+              border: "1px solid rgba(239, 68, 68, 0.1)",
               borderRadius: "var(--radius-lg)",
               color: "var(--error)",
-              fontWeight: 700,
-              fontSize: "0.9rem",
+              fontWeight: 600,
+              fontSize: "0.85rem",
               cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
+              opacity: 0.8,
             }}
           >
-            <Trash2 size={18} /> Очистить все данные
+            Очистить все данные
           </button>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImport}
+            accept=".json"
+            style={{ display: "none" }}
+          />
         </div>
 
         {/* App Info */}
