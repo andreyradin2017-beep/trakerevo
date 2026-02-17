@@ -16,7 +16,7 @@ import { getDetails } from "@services/api";
 import { useToast } from "@context/ToastContext";
 import { notificationOccurred } from "@utils/haptics";
 import { triggerAutoSync } from "@services/dbSync";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 
 export const ItemDetail: React.FC = () => {
