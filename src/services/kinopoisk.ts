@@ -1,15 +1,16 @@
 import axios from "axios";
 import { db } from "../db/db";
 import type { Item } from "../types";
+import type { KinopoiskMovieResult } from "../types/api";
+import { logger } from "../utils/logger";
 
 const KINOPOISK_BASE_URL = "https://api.kinopoisk.dev/v1.4";
+const CONTEXT = "KinopoiskService";
 
 export const searchKinopoisk = async (query: string): Promise<Item[]> => {
-  // 1. Try to get key from DB (in case user overrides it later)
   const settingsKey = await db.settings.get("kinopoisk_key");
   let apiKey = settingsKey?.value;
 
-  // 2. Fallback to env var
   if (!apiKey) {
     apiKey = import.meta.env.VITE_KINOPOISK_API_KEY;
   }
@@ -18,8 +19,6 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
 
   try {
     let response;
-    // If we have a user key, we can call directly (but might still have CORS)
-    // Actually, better to always use proxy in production if possible to avoid CORS
     const isProd = import.meta.env.PROD;
 
     if (isProd && !settingsKey?.value) {
@@ -47,8 +46,12 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
       return [];
     }
 
-    return response.data.docs.map((result: any) => ({
-      title: result.name || result.alternativeName || result.enName,
+    return (response.data.docs as KinopoiskMovieResult[]).map((result) => ({
+      title:
+        result.name ||
+        result.alternativeName ||
+        result.enName ||
+        "Без названия",
       type:
         result.type === "tv-series" || result.type === "mini-series"
           ? "show"
@@ -60,12 +63,12 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
       rating: result.rating?.kp || result.rating?.imdb,
       source: "kinopoisk",
       externalId: result.id.toString(),
-      tags: result.genres ? result.genres.map((g: any) => g.name) : [],
+      tags: result.genres ? result.genres.map((g) => g.name) : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
   } catch (error) {
-    console.error("Kinopoisk Search Error:", error);
+    logger.error("Kinopoisk Search Error", CONTEXT, error);
     return [];
   }
 };

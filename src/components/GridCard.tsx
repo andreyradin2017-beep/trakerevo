@@ -324,6 +324,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             vibrate("medium");
             onQuickAdd();
           }}
+          aria-label={`Добавить в коллекцию: ${item.title}`}
           style={{
             position: "absolute",
             bottom: "3.5rem", // Above the title gradient

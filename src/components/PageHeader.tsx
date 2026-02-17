@@ -46,7 +46,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           gap: "var(--space-md)",
         }}
       >
-        {leftElement}
+        {leftElement && leftElement}
         {showBack && (
           <button
             onClick={onBack || (() => navigate(-1))}

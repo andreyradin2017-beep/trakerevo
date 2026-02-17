@@ -550,11 +550,11 @@ export const Settings: React.FC = () => {
           >
             <Info size={14} />
             <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-              TrakerEvo v1.2.2 (Quality Update)
+              TrakerEvo v1.2.2 (Обновление качества)
             </span>
           </div>
           <p style={{ fontSize: "0.65rem", margin: 0 }}>
-            Built with React & Dexie DB
+            Сделано на React и Dexie DB
           </p>
         </div>
       </div>

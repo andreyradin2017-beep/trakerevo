@@ -12,12 +12,13 @@ declare global {
   }
 }
 
-const TG = window.Telegram?.WebApp;
+const getTG = () => window.Telegram?.WebApp;
 
 type HapticStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
 type NotificationType = "error" | "success" | "warning";
 
 export const vibrate = (style: HapticStyle = "light") => {
+  const TG = getTG();
   // 1. Try Telegram Haptics first (best experience on TG)
   if (TG?.HapticFeedback) {
     TG.HapticFeedback.impactOccurred(style);
@@ -47,6 +48,7 @@ export const vibrate = (style: HapticStyle = "light") => {
 };
 
 export const notificationOccurred = (type: NotificationType) => {
+  const TG = getTG();
   if (TG?.HapticFeedback) {
     TG.HapticFeedback.notificationOccurred(type);
     return;
@@ -68,6 +70,7 @@ export const notificationOccurred = (type: NotificationType) => {
 };
 
 export const selectionChanged = () => {
+  const TG = getTG();
   if (TG?.HapticFeedback) {
     TG.HapticFeedback.selectionChanged();
     return;

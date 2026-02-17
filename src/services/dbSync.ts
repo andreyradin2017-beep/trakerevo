@@ -1,11 +1,16 @@
 import { db } from "../db/db";
 import { supabase } from "./supabase";
 import type { Item, List } from "../types";
+import type { RemoteItem, RemoteList } from "../types/supabase";
+import type { SyncResult } from "../types/sync";
+import { logger } from "../utils/logger";
+
+const CONTEXT = "dbSync";
 
 // Helper to map Local List -> Remote List
-const toRemoteList = (list: List, userId: string): Record<string, any> => {
+const toRemoteList = (list: List, userId: string): RemoteList => {
   return {
-    id: list.supabaseId, // If undefined, Supabase generates one
+    id: list.supabaseId,
     user_id: userId,
     name: list.name,
     icon: list.icon,
@@ -19,9 +24,9 @@ const toRemoteList = (list: List, userId: string): Record<string, any> => {
 };
 
 // Helper to map Remote List -> Local List
-const toLocalList = (remote: Record<string, any>): List => {
+const toLocalList = (remote: RemoteList): List => {
   return {
-    id: remote.local_id || undefined, // We might not have local_id if created elsewhere
+    id: remote.local_id || undefined,
     supabaseId: remote.id,
     name: remote.name,
     icon: remote.icon,
@@ -35,10 +40,9 @@ const toLocalList = (remote: Record<string, any>): List => {
 const toRemoteItem = async (
   item: Item,
   userId: string,
-): Promise<Record<string, any>> => {
-  let listUuid = null;
+): Promise<RemoteItem> => {
+  let listUuid: string | undefined = undefined;
   if (item.listId) {
-    // We need to find the UUID of the list
     const list = await db.lists.get(item.listId);
     if (list && list.supabaseId) {
       listUuid = list.supabaseId;
@@ -70,16 +74,15 @@ const toRemoteItem = async (
     source: item.source,
     created_at: item.createdAt.toISOString(),
     updated_at: item.updatedAt.toISOString(),
-    list_id: listUuid, // Map local list ID to UUID
+    list_id: listUuid,
     local_id: item.id,
   };
 };
 
 // Helper to map Remote Item -> Local Item
-const toLocalItem = async (remote: Record<string, any>): Promise<Item> => {
-  let localListId = undefined;
+const toLocalItem = async (remote: RemoteItem): Promise<Item> => {
+  let localListId: number | undefined = undefined;
   if (remote.list_id) {
-    // Find local list by supabaseId
     const list = await db.lists
       .where("supabaseId")
       .equals(remote.list_id)
@@ -93,8 +96,8 @@ const toLocalItem = async (remote: Record<string, any>): Promise<Item> => {
     id: remote.local_id || undefined,
     supabaseId: remote.id,
     title: remote.title,
-    type: remote.type as any,
-    status: remote.status as any,
+    type: remote.type as Item["type"],
+    status: remote.status as Item["status"],
     image: remote.image,
     description: remote.description,
     year: remote.year,
@@ -118,8 +121,9 @@ const toLocalItem = async (remote: Record<string, any>): Promise<Item> => {
   };
 };
 
-export const syncDeletions = async (userId: string) => {
+export const syncDeletions = async (userId: string): Promise<number> => {
   const deletions = await db.deleted_metadata.toArray();
+  let count = 0;
   for (const del of deletions) {
     const { error } = await supabase
       .from(del.table)
@@ -129,25 +133,27 @@ export const syncDeletions = async (userId: string) => {
 
     if (!error) {
       await db.deleted_metadata.delete(del.id);
+      count++;
     } else {
-      console.error(
+      logger.error(
         `Failed to push deletion for ${del.table}:${del.id}`,
+        CONTEXT,
         error,
       );
     }
   }
+  return count;
 };
 
-export const syncLists = async (userId: string) => {
-  // 0. PUSH DELETIONS
-  await syncDeletions(userId);
+export const syncLists = async (userId: string): Promise<number> => {
+  // 0. PUSH DELETIONS - handled by syncAll or here if needed
+  // await syncDeletions(userId);
 
-  // 1. PUSH: Send local lists that are new or updated
   const localLists = await db.lists.toArray();
+  let processed = 0;
 
   for (const list of localLists) {
     if (!list.supabaseId) {
-      // New list -> Insert
       const { data, error } = await supabase
         .from("lists")
         .insert(toRemoteList(list, userId))
@@ -156,33 +162,31 @@ export const syncLists = async (userId: string) => {
 
       if (!error && data) {
         await db.lists.update(list.id!, { supabaseId: data.id });
+        processed++;
       }
     } else {
-      // Existing list -> Update if needed (simple check for now can be refined)
-      // For strict sync we should check updatedAt, but for now let's just upsert all that have ID
-      // Actually, let's only upsert if we think we might have changes.
-      // A better way is "Last Write Wins".
-      // Let's assume local is source of truth for now if it has changed recently.
       const { error } = await supabase
         .from("lists")
         .update(toRemoteList(list, userId))
         .eq("id", list.supabaseId);
-      if (error) console.error("Error updating list", error);
+      if (!error) processed++;
+      else logger.error(`Error updating list ${list.name}`, CONTEXT, error);
     }
   }
 
-  // 2. PULL: Get all remote lists
   const { data: remoteLists, error } = await supabase.from("lists").select("*");
-  if (error || !remoteLists) return;
+  if (error || !remoteLists) {
+    if (error) throw error;
+    return processed;
+  }
 
-  for (const remote of remoteLists) {
+  for (const remote of remoteLists as RemoteList[]) {
     const local = localLists.find((l) => l.supabaseId === remote.id);
 
     if (!local) {
-      // New remote list -> Create local - use put() to avoid constraint errors
       await db.lists.put(toLocalList(remote));
+      processed++;
     } else {
-      // Conflict resolution: Remote wins if remote.updated_at > local.updatedAt
       const remoteTime = new Date(remote.updated_at).getTime();
       const localTime = local.updatedAt ? local.updatedAt.getTime() : 0;
 
@@ -190,24 +194,27 @@ export const syncLists = async (userId: string) => {
         const mapped = toLocalList(remote);
         mapped.id = local.id;
         await db.lists.put(mapped);
+        processed++;
       }
     }
   }
 
-  // 3. PULL DELETIONS: Remove local lists that don't exist in remote
   for (const local of localLists) {
     if (
       local.supabaseId &&
       !remoteLists.some((r) => r.id === local.supabaseId)
     ) {
       await db.lists.delete(local.id!);
+      processed++;
     }
   }
+  return processed;
 };
 
-export const syncItems = async (userId: string) => {
-  // 1. PUSH
+export const syncItems = async (userId: string): Promise<number> => {
   const localItems = await db.items.toArray();
+  let processed = 0;
+
   for (const item of localItems) {
     const payload = await toRemoteItem(item, userId);
 
@@ -219,32 +226,33 @@ export const syncItems = async (userId: string) => {
         .single();
       if (!error && data) {
         await db.items.update(item.id!, { supabaseId: data.id });
+        processed++;
       } else {
-        console.error("Failed to push item", item.title, error);
+        logger.error(`Failed to push item ${item.title}`, CONTEXT, error);
       }
     } else {
       const { error } = await supabase
         .from("items")
         .update(payload)
         .eq("id", item.supabaseId);
-      if (error) console.error("Failed to update item", item.title, error);
+      if (!error) processed++;
+      else logger.error(`Failed to update item ${item.title}`, CONTEXT, error);
     }
   }
 
-  // 2. PULL
   const { data: remoteItems, error } = await supabase.from("items").select("*");
-  if (error || !remoteItems) return;
+  if (error || !remoteItems) {
+    if (error) throw error;
+    return processed;
+  }
 
-  for (const remote of remoteItems) {
-    // We need to find local item by supabaseId OR by finding matching externalId/source for initial sync?
-    // Let's stick to supabaseId for now.
+  for (const remote of remoteItems as RemoteItem[]) {
     const local = localItems.find((i) => i.supabaseId === remote.id);
     const mapped = await toLocalItem(remote);
 
     if (!local) {
-      // New remote item - use put() instead of add() to avoid constraint errors
-      // if item already exists with same auto-increment ID
       await db.items.put(mapped);
+      processed++;
     } else {
       const remoteTime = new Date(remote.updated_at).getTime();
       const localTime = local.updatedAt.getTime();
@@ -252,64 +260,194 @@ export const syncItems = async (userId: string) => {
       if (remoteTime > localTime) {
         mapped.id = local.id;
         await db.items.put(mapped);
+        processed++;
       }
     }
   }
 
-  // 3. PULL DELETIONS: Remove local items that don't exist in remote
   for (const local of localItems) {
     if (
       local.supabaseId &&
       !remoteItems.some((r) => r.id === local.supabaseId)
     ) {
       await db.items.delete(local.id!);
+      processed++;
     }
+  }
+  return processed;
+};
+
+export const syncAll = async (): Promise<SyncResult> => {
+  const result: SyncResult = {
+    success: true,
+    timestamp: new Date(),
+    processedCount: { lists: 0, items: 0, deletions: 0 },
+    errors: [],
+  };
+
+  const {
+    data: { session },
+    error: authError,
+  } = await supabase.auth.getSession();
+
+  if (authError || !session?.user) {
+    result.success = false;
+    result.errors.push({
+      context: "auth",
+      message: "Пользователь не авторизован",
+      originalError: authError,
+    });
+    return result;
+  }
+
+  const userId = session.user.id;
+
+  try {
+    logger.info("Starting Sync...", CONTEXT);
+
+    try {
+      result.processedCount.deletions = await syncDeletions(userId);
+    } catch (err) {
+      result.errors.push({
+        context: "deletions",
+        message: "Ошибка удаления",
+        originalError: err,
+      });
+    }
+
+    try {
+      result.processedCount.lists = await syncLists(userId);
+    } catch (err) {
+      result.errors.push({
+        context: "lists",
+        message: "Ошибка списков",
+        originalError: err,
+      });
+    }
+
+    try {
+      result.processedCount.items = await syncItems(userId);
+    } catch (err) {
+      result.errors.push({
+        context: "items",
+        message: "Ошибка элементов",
+        originalError: err,
+      });
+    }
+
+    // 4. Cache Cleanup
+    try {
+      const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days for sync cleanup
+      const now = Date.now();
+      await db.cache
+        .where("timestamp")
+        .below(now - CACHE_TTL)
+        .delete();
+    } catch (err) {
+      logger.warn("Cache cleanup failed", CONTEXT, err);
+    }
+
+    result.success = result.errors.length === 0;
+    logger.info("Sync Completed", CONTEXT, result.processedCount);
+    return result;
+  } catch (error) {
+    logger.error("Critical Sync Error", CONTEXT, error);
+    result.success = false;
+    result.errors.push({
+      context: "auth",
+      message: "Критическая ошибка синхронизации",
+      originalError: error,
+    });
+    return result;
   }
 };
 
-export const syncAll = async (): Promise<{
-  success: boolean;
-  errors: string[];
-}> => {
-  const errors: string[] = [];
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+// --- MIGRATION LOGIC ---
 
-  if (!session?.user) {
-    errors.push("Пользователь не авторизован");
-    return { success: false, errors };
+/**
+ * Migrates data from local guest state to user's remote state.
+ * @param userId - Supabase user ID
+ * @param mode - 'merge' (deduplicate & sync) or 'replace' (start fresh with remote data)
+ */
+export const migrateGuestData = async (
+  userId: string,
+  mode: "merge" | "replace",
+) => {
+  if (mode === "replace") {
+    // Simply clear and pull from remote
+    await Promise.all([
+      db.items.clear(),
+      db.lists.clear(),
+      db.deleted_metadata.clear(),
+    ]);
+    return syncAll();
   }
 
-  try {
-    console.log("Starting Sync...");
+  // --- MERGE MODE: Smart deduplication ---
 
-    try {
-      await syncLists(session.user.id);
-      console.log("✓ Lists synced");
-    } catch (err) {
-      const msg = `Ошибка синхронизации списков: ${err instanceof Error ? err.message : String(err)}`;
-      console.error(msg, err);
-      errors.push(msg);
+  // 1. Sync Lists first
+  const localLists = await db.lists.toArray();
+  const { data: remoteLists } = await supabase
+    .from("lists")
+    .select("*")
+    .eq("user_id", userId);
+
+  for (const local of localLists) {
+    // If it has supabaseId, it's already "owned" or synced
+    if (local.supabaseId) continue;
+
+    // Check if a remote list with the same name exists
+    const match = remoteLists?.find((r) => r.name === local.name);
+    if (match) {
+      // Link local to remote
+      await db.lists.update(local.id!, { supabaseId: match.id });
+    } else {
+      // Create new remote list
+      const { data, error } = await supabase
+        .from("lists")
+        .insert(toRemoteList(local, userId))
+        .select()
+        .single();
+      if (!error && data) {
+        await db.lists.update(local.id!, { supabaseId: data.id });
+      }
     }
-
-    try {
-      await syncItems(session.user.id);
-      console.log("✓ Items synced");
-    } catch (err) {
-      const msg = `Ошибка синхронизации элементов: ${err instanceof Error ? err.message : String(err)}`;
-      console.error(msg, err);
-      errors.push(msg);
-    }
-
-    console.log("Sync Completed.");
-    return { success: errors.length === 0, errors };
-  } catch (error) {
-    const msg = `Критическая ошибка синхронизации: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(msg, error);
-    errors.push(msg);
-    return { success: false, errors };
   }
+
+  // 2. Sync Items with deduplication
+  const localItems = await db.items.toArray();
+  const { data: remoteItems } = await supabase
+    .from("items")
+    .select("*")
+    .eq("user_id", userId);
+
+  for (const local of localItems) {
+    if (local.supabaseId) continue;
+
+    // Deduplicate by externalId + source
+    const match = remoteItems?.find(
+      (r) => r.external_id === local.externalId && r.source === local.source,
+    );
+
+    if (match) {
+      // Link to existing
+      await db.items.update(local.id!, { supabaseId: match.id });
+    } else {
+      // Push new
+      const payload = await toRemoteItem(local, userId);
+      const { data, error } = await supabase
+        .from("items")
+        .insert(payload)
+        .select()
+        .single();
+      if (!error && data) {
+        await db.items.update(local.id!, { supabaseId: data.id });
+      }
+    }
+  }
+
+  // Final catch-up sync
+  return syncAll();
 };
 
 // --- AUTO-SYNC LOGIC ---

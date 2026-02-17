@@ -55,8 +55,7 @@ export const BottomNav: React.FC = () => {
           {({ isActive }) => (
             <>
               {isActive && (
-                <motion.div
-                  layoutId="navIndicator"
+                <div
                   style={{
                     position: "absolute",
                     top: "50%",
@@ -67,11 +66,6 @@ export const BottomNav: React.FC = () => {
                     background: "rgba(139, 92, 246, 0.1)",
                     borderRadius: "14px",
                     zIndex: -1,
-                  }}
-                  transition={{
-                    type: "spring",
-                    bounce: 0.2,
-                    duration: 0.6,
                   }}
                 />
               )}

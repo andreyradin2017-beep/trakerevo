@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
+import { db } from "../db/db";
 
 interface AuthContextType {
   session: Session | null;
@@ -47,6 +48,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear all tables on logout to prevent data leak between users
+    await Promise.all([
+      db.items.clear(),
+      db.lists.clear(),
+      db.settings.clear(),
+      db.cache.clear(),
+      db.search_history.clear(),
+      db.deleted_metadata.clear(),
+    ]);
+    // Force reload to reset application state
+    window.location.href = "/";
   };
 
   const signInWithEmail = async (email: string) => {

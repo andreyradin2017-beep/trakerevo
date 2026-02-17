@@ -4,32 +4,32 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useSync } from "../context/SyncContext";
 
 export const SyncStatusBadge: React.FC = () => {
-  const { status, lastSyncTime, error } = useSync();
+  const { status, lastResult } = useSync();
 
   const getStatusConfig = () => {
     switch (status) {
       case "syncing":
         return {
           icon: Loader2,
-          text: "Синхронизация...",
-          color: "#38bdf8",
-          bgColor: "rgba(56, 189, 248, 0.1)",
+          text: "", // Compact
+          color: "var(--primary)",
+          bgColor: "var(--primary-15)",
           spin: true,
         };
       case "success":
         return {
           icon: CheckCircle2,
-          text: "Синхронизировано",
-          color: "#10b981",
-          bgColor: "rgba(16, 185, 129, 0.1)",
+          text: "", // Compact
+          color: "var(--success)",
+          bgColor: "var(--success-15)",
           spin: false,
         };
       case "error":
         return {
           icon: AlertCircle,
-          text: "Ошибка синхронизации",
-          color: "#ef4444",
-          bgColor: "rgba(239, 68, 68, 0.1)",
+          text: "", // Compact
+          color: "var(--error)",
+          bgColor: "var(--error-15)",
           spin: false,
         };
       default:
@@ -38,34 +38,38 @@ export const SyncStatusBadge: React.FC = () => {
   };
 
   const config = getStatusConfig();
-
   if (!config) return null;
 
   const Icon = config.icon;
+  const lastTime = lastResult?.timestamp
+    ? lastResult.timestamp.toLocaleTimeString()
+    : "";
+  const errorCount = lastResult?.errors.length || 0;
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "0.5rem",
-          padding: "0.5rem 0.75rem",
-          borderRadius: "var(--radius-lg)",
+          justifyContent: "center",
+          width: "32px",
+          height: "32px",
+          borderRadius: "50%",
           background: config.bgColor,
           border: `1px solid ${config.color}33`,
           color: config.color,
-          fontSize: "0.875rem",
-          fontWeight: 500,
+          cursor: "help",
         }}
         title={
-          error ||
-          (lastSyncTime
-            ? `Последняя синхронизация: ${lastSyncTime.toLocaleTimeString()}`
-            : "")
+          status === "error"
+            ? `Ошибок: ${errorCount}. Нажмите для подробностей в настройках.`
+            : lastTime
+              ? `Последняя синхронизация: ${lastTime}`
+              : "Синхронизация..."
         }
       >
         <motion.div
@@ -76,7 +80,6 @@ export const SyncStatusBadge: React.FC = () => {
         >
           <Icon size={16} />
         </motion.div>
-        <span>{config.text}</span>
       </motion.div>
     </AnimatePresence>
   );

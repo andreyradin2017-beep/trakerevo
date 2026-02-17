@@ -5,92 +5,82 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { syncAll } from "../services/dbSync";
 import { useAuth } from "./AuthContext";
+import { syncAll } from "../services/dbSync";
+import type { SyncStatus, SyncResult } from "../types/sync";
+import { logger } from "../utils/logger";
 
-type SyncStatus = "idle" | "syncing" | "success" | "error";
+const CONTEXT = "SyncContext";
 
 interface SyncContextType {
   status: SyncStatus;
-  lastSyncTime: Date | null;
-  error: string | null;
-  triggerSync: () => Promise<void>;
+  lastResult: SyncResult | null;
+  triggerSync: () => Promise<SyncResult | null>;
+  isOnline: boolean;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
+
+export const useSync = () => {
+  const context = useContext(SyncContext);
+  if (!context) throw new Error("useSync must be used within SyncProvider");
+  return context;
+};
 
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth();
   const [status, setStatus] = useState<SyncStatus>("idle");
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<SyncResult | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const triggerSync = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isOnline) return null;
 
     setStatus("syncing");
-    setError(null);
+    logger.debug("Manual sync triggered", CONTEXT);
 
     try {
       const result = await syncAll();
+      setLastResult(result);
+      setStatus(result.success ? "success" : "error");
 
+      // Auto-reset status to idle after 3 seconds if success
       if (result.success) {
-        setStatus("success");
-        setLastSyncTime(new Date());
-        // Auto-reset to idle after 3 seconds
         setTimeout(() => setStatus("idle"), 3000);
-      } else {
-        setStatus("error");
-        setError(result.errors.join(", "));
       }
-    } catch (err) {
+      return result;
+    } catch (error) {
+      logger.error("Sync failed in context", CONTEXT, error);
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Unknown error");
+      return null;
     }
-  }, [user]);
+  }, [user, isOnline]);
 
-  // Auto-sync on login
+  // Initial sync on mount/auth
   useEffect(() => {
-    if (user) {
-      console.log("User logged in, triggering auto-sync...");
-      // Use setTimeout to avoid synchronous setState in effect
-      setTimeout(() => triggerSync(), 0);
+    if (user && isOnline) {
+      triggerSync();
     }
-  }, [user, triggerSync]);
-
-  // Background sync on visibility change
-  useEffect(() => {
-    if (!user) return;
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Debounce: only sync if last sync was more than 5 minutes ago
-        const fiveMinutesAgo = Date.now() - 300000;
-        if (!lastSyncTime || lastSyncTime.getTime() < fiveMinutesAgo) {
-          console.log("App became visible, triggering background sync...");
-          triggerSync();
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user, lastSyncTime, triggerSync]);
+  }, [user, isOnline, triggerSync]);
 
   return (
-    <SyncContext.Provider value={{ status, lastSyncTime, error, triggerSync }}>
+    <SyncContext.Provider value={{ status, lastResult, triggerSync, isOnline }}>
       {children}
     </SyncContext.Provider>
   );
-};
-
-export const useSync = () => {
-  const context = useContext(SyncContext);
-  if (!context) {
-    throw new Error("useSync must be used within SyncProvider");
-  }
-  return context;
 };

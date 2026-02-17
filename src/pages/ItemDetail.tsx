@@ -9,6 +9,7 @@ import { BentoTile } from "@components/BentoTile";
 import { ItemHeader } from "@components/ItemHeader";
 import { ItemStatsEditor } from "@components/ItemStatsEditor";
 import { ItemMetadataDetails } from "@components/ItemMetadataDetails";
+import { PageHeader } from "@components/PageHeader";
 import { getDetails } from "@services/api";
 import { useToast } from "@context/ToastContext";
 import { notificationOccurred } from "@utils/haptics";
@@ -162,12 +163,7 @@ export const ItemDetail: React.FC = () => {
   const isTVShow = item.type === "show";
 
   return (
-    <div
-      style={{
-        paddingBottom: "120px",
-        paddingTop: "var(--space-xs)",
-      }}
-    >
+    <>
       {showTrailer && extraMetadata?.trailer && (
         <div
           onClick={() => setShowTrailer(false)}
@@ -201,7 +197,17 @@ export const ItemDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Main Grid Wrapper */}
+      <PageHeader
+        title="Детали"
+        showBack
+        onBack={() => navigate(-1)}
+        showSyncStatus={false}
+        style={{
+          paddingTop: "var(--space-md)",
+          marginBottom: "var(--space-md)",
+        }}
+      />
+
       <div
         style={{
           display: "grid",
@@ -209,9 +215,9 @@ export const ItemDetail: React.FC = () => {
           gap: "0.75rem",
           maxWidth: "800px",
           margin: "0 auto",
+          paddingBottom: "120px",
         }}
       >
-        {/* Row 1: Hero Block */}
         <BentoTile colSpan={2} style={{ padding: 0 }} delay={0.1}>
           <ItemHeader
             title={item.title}
@@ -221,7 +227,6 @@ export const ItemDetail: React.FC = () => {
             hasTrailer={!!extraMetadata?.trailer}
             source={item.source}
             genres={extraMetadata?.genres || item.tags}
-            onBack={() => navigate(-1)}
             onShowTrailer={() => setShowTrailer(true)}
           />
         </BentoTile>
@@ -377,6 +382,6 @@ export const ItemDetail: React.FC = () => {
           </BentoTile>
         ) : null}
       </div>
-    </div>
+    </>
   );
 };
