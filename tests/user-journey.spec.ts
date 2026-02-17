@@ -5,6 +5,29 @@ test.describe("User Journey: Guest to Authenticated", () => {
   test.setTimeout(90000);
 
   test.beforeEach(async ({ page }) => {
+    // Mock TMDB search for CI/Reliability
+    await page.route(
+      "**/api.themoviedb.org/3/search/multi**",
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            results: [
+              {
+                id: 1,
+                media_type: "movie",
+                title: "Начало",
+                overview: "Mocked overview for Inception",
+                poster_path: "/mock-poster.jpg",
+                release_date: "2010-07-16",
+              },
+            ],
+          }),
+        });
+      },
+    );
+
     await page.goto("/");
     await page.evaluate(async () => {
       const databases = await window.indexedDB.databases();
