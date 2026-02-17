@@ -1,0 +1,75 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - button "Назад" [ref=e8]:
+          - img [ref=e9]
+        - heading "Открытия" [level=1] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e15]:
+            - img [ref=e17]
+            - heading "Популярное сейчас" [level=2] [ref=e19]
+            - generic [ref=e20]: "1"
+          - generic [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]:
+              - img "Test Movie" [ref=e25]
+              - generic [ref=e26]: "2024"
+            - paragraph [ref=e27]: Test Movie
+        - generic [ref=e28]:
+          - generic [ref=e30]:
+            - img [ref=e32]
+            - heading "Скоро в кино" [level=2] [ref=e34]
+            - generic [ref=e35]: "1"
+          - generic [ref=e38] [cursor=pointer]:
+            - generic [ref=e39]:
+              - img "Test Movie" [ref=e40]
+              - generic [ref=e41]: "2024"
+            - paragraph [ref=e42]: Test Movie
+        - generic [ref=e43]:
+          - generic [ref=e45]:
+            - img [ref=e47]
+            - heading "Игровые новинки" [level=2] [ref=e49]
+            - generic [ref=e50]: "1"
+          - generic [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]:
+              - img "Test Game" [ref=e55]
+              - generic [ref=e56]: "2024"
+            - paragraph [ref=e57]: Test Game
+        - generic [ref=e58]:
+          - generic [ref=e60]:
+            - img [ref=e62]
+            - heading "Скоро в играх" [level=2] [ref=e66]
+            - generic [ref=e67]: "1"
+          - generic [ref=e70] [cursor=pointer]:
+            - generic [ref=e71]:
+              - img "Test Game" [ref=e72]
+              - generic [ref=e73]: "2024"
+            - paragraph [ref=e74]: Test Game
+  - button [ref=e75] [cursor=pointer]:
+    - img [ref=e76]
+  - navigation [ref=e77]:
+    - link "Главная" [ref=e78] [cursor=pointer]:
+      - /url: /
+      - img [ref=e80]
+      - generic [ref=e83]: Главная
+    - link "Рандом" [ref=e84] [cursor=pointer]:
+      - /url: /random
+      - img [ref=e86]
+      - generic [ref=e89]: Рандом
+    - link "Архив" [ref=e90] [cursor=pointer]:
+      - /url: /archive
+      - img [ref=e92]
+      - generic [ref=e95]: Архив
+    - link "Инфо" [ref=e96] [cursor=pointer]:
+      - /url: /stats
+      - img [ref=e98]
+      - generic [ref=e100]: Инфо
+    - link "Профиль" [ref=e101] [cursor=pointer]:
+      - /url: /settings
+      - img [ref=e103]
+      - generic [ref=e106]: Профиль
+```

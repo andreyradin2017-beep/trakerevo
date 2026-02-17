@@ -30,19 +30,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div
+      className="flex-between"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
         marginBottom: "1.25rem",
         gap: "1rem",
         ...style,
       }}
     >
       <div
+        className="flex-center"
         style={{
-          display: "flex",
-          alignItems: "center",
           gap: "var(--space-md)",
         }}
       >
@@ -71,7 +68,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {title}
         </h1>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div className="flex-center" style={{ gap: "0.75rem" }}>
         {showSyncStatus && user && <SyncStatusBadge />}
         {rightElement}
       </div>

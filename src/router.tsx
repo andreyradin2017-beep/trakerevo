@@ -28,9 +28,6 @@ const Settings = lazy(() =>
 const Archive = lazy(() =>
   import("@pages/Archive").then((module) => ({ default: module.Archive })),
 );
-const Stats = lazy(() =>
-  import("@pages/Stats").then((module) => ({ default: module.Stats })),
-);
 const Discover = lazy(() =>
   import("@pages/Discover").then((module) => ({ default: module.Discover })),
 );
@@ -108,14 +105,6 @@ export const router = createBrowserRouter([
             element: (
               <SuspenseWrapper>
                 <Archive />
-              </SuspenseWrapper>
-            ),
-          },
-          {
-            path: "stats",
-            element: (
-              <SuspenseWrapper>
-                <Stats />
               </SuspenseWrapper>
             ),
           },

@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { Flame, Calendar, Gamepad2, Ghost, CalendarClock } from "lucide-react";
+import {
+  Flame,
+  Calendar,
+  Gamepad2,
+  CalendarClock,
+  Sparkles,
+  Plus,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getDiscoverData } from "@services/discover";
 import { db } from "@db/db";
+import { useLiveQuery } from "dexie-react-hooks";
 import type { Item } from "@types";
 import { PageHeader } from "@components/PageHeader";
-import { CountdownBadge } from "@components/CountdownBadge";
 import { motion } from "framer-motion";
-import { getProxiedImageUrl } from "@utils/images";
 import { vibrate } from "@utils/haptics";
 import { useToast } from "@context/ToastContext";
 import { triggerAutoSync } from "@services/dbSync";
 import { Section } from "@components/Section";
+import { GridCard } from "@components/GridCard";
+import { getDetails } from "@services/api";
+import { bulkAddPlannedItems } from "@services/itemService";
 
 interface DiscoverSection {
   title: string;
@@ -20,136 +29,31 @@ interface DiscoverSection {
   gradient: string;
 }
 
-const DiscoverCard: React.FC<{
-  item: Item;
-  onAdd: (item: Item) => void;
-}> = ({ item, onAdd }) => {
-  const isFuture = item.releaseDate && new Date(item.releaseDate) > new Date();
-
-  return (
-    <motion.div
-      whileTap={{ scale: 0.95 }}
-      onClick={() => onAdd(item)}
-      style={{
-        minWidth: "124px",
-        width: "124px",
-        cursor: "pointer",
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          aspectRatio: "2/3",
-          borderRadius: "var(--radius-lg)",
-          overflow: "hidden",
-          position: "relative",
-          border: "1px solid rgba(255,255,255,0.06)",
-          marginBottom: "var(--space-sm)",
-          boxShadow: "var(--shadow-md)",
-          background: "var(--bg-surface)",
-        }}
-      >
-        {item.image ? (
-          <img
-            src={getProxiedImageUrl(item.image)}
-            alt={item.title}
-            loading="lazy"
-            decoding="async"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(255,255,255,0.02)",
-              color: "var(--text-tertiary)",
-            }}
-          >
-            <Ghost size={24} />
-          </div>
-        )}
-
-        {/* Countdown badge */}
-        {isFuture && item.releaseDate && (
-          <div
-            style={{
-              position: "absolute",
-              top: "0.35rem",
-              right: "0.35rem",
-              zIndex: 10,
-            }}
-          >
-            <CountdownBadge
-              releaseDate={new Date(item.releaseDate).toISOString()}
-              compact
-            />
-          </div>
-        )}
-
-        {/* Year badge */}
-        {item.year && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "0.4rem",
-              left: "0.4rem",
-              background: "rgba(0,0,0,0.65)",
-              backdropFilter: "blur(8px)",
-              padding: "0.1rem 0.4rem",
-              borderRadius: "5px",
-              fontSize: "0.6rem",
-              fontWeight: "var(--fw-black)",
-              color: "white",
-              zIndex: 5,
-              border: "1px solid rgba(255,255,255,0.1)",
-              fontFamily: "var(--font-main)",
-            }}
-          >
-            {item.year}
-          </div>
-        )}
-      </div>
-
-      <p
-        style={{
-          fontSize: "0.72rem",
-          fontWeight: "var(--fw-bold)",
-          fontFamily: "var(--font-main)",
-          margin: 0,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          color: "var(--text-primary)",
-          lineHeight: 1.25,
-          letterSpacing: "-0.2px",
-        }}
-      >
-        {item.title}
-      </p>
-    </motion.div>
-  );
-};
+const GENRES = [
+  "Все",
+  "Экшен",
+  "Драма",
+  "Комедия",
+  "Фантастика",
+  "Фэнтези",
+  "Ужасы",
+  "Приключения",
+  "RPG",
+];
 
 export const Discover: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [sections, setSections] = useState<DiscoverSection[]>([]);
+  const [personalized, setPersonalized] = useState<DiscoverSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeGenre, setActiveGenre] = useState("Все");
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Force refresh if data seems stale or lacks tags
         const data = await getDiscoverData();
         setSections([
           {
@@ -181,6 +85,34 @@ export const Discover: React.FC = () => {
               "linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.08))",
           },
         ]);
+
+        // Personalization logic
+        const lastItems = await db.items
+          .orderBy("createdAt")
+          .reverse()
+          .limit(2)
+          .toArray();
+
+        if (lastItems.length > 0) {
+          const recPromises = lastItems.map((item) => getDetails(item));
+          const recResults = await Promise.all(recPromises);
+
+          const personal: DiscoverSection[] = [];
+
+          recResults.forEach((details, index) => {
+            if (details?.related && details.related.length > 0) {
+              personal.push({
+                title: `Похоже на «${lastItems[index].title}»`,
+                icon: <Sparkles size={16} />,
+                items: details.related,
+                gradient:
+                  "linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))",
+              });
+            }
+          });
+
+          setPersonalized(personal);
+        }
       } catch (error) {
         console.error("Discover fetch failed:", error);
       } finally {
@@ -188,9 +120,10 @@ export const Discover: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [showToast]);
 
-  const handleAdd = async (item: Item) => {
+  const handleAdd = async (item: Item, silent = false) => {
+    // Check if item already exists in local DB
     if (item.externalId) {
       const existing = await db.items
         .where("[externalId+source]")
@@ -198,8 +131,7 @@ export const Discover: React.FC = () => {
         .first();
 
       if (existing) {
-        navigate(`/item/${existing.id}`);
-        return;
+        return existing.id;
       }
     }
 
@@ -211,19 +143,83 @@ export const Discover: React.FC = () => {
       updatedAt: new Date(),
     };
 
+    // Remove existing ID if present from enhanceItem to allow auto-increment
+    if ("id" in newItem) delete (newItem as any).id;
+
     const id = await db.items.add(newItem);
-    vibrate("medium");
-    triggerAutoSync();
-    showToast("Добавлено в планы", "success");
-    navigate(`/item/${id}`);
+    if (!silent) {
+      vibrate("medium");
+      triggerAutoSync();
+      showToast(`«${item.title}» в планах`, "success");
+    }
+    return id;
+  };
+
+  const ownedItems = useLiveQuery(() => db.items.toArray());
+
+  const enhanceItem = (item: Item) => {
+    const owned = ownedItems?.find(
+      (o) => o.externalId === item.externalId && o.source === item.source,
+    );
+    return {
+      ...item,
+      isOwned: !!owned,
+      id: owned?.id,
+    };
+  };
+
+  const filterItems = (items: Item[]) => {
+    const enhanced = items.map(enhanceItem);
+    if (activeGenre === "Все") return enhanced;
+    const searchGenre = activeGenre.toLowerCase();
+    return enhanced.filter((item) =>
+      item.tags?.some((tag) => tag.toLowerCase().includes(searchGenre)),
+    );
   };
 
   return (
     <div style={{ paddingBottom: "2rem" }}>
       <PageHeader title="Открытия" showBack />
 
+      {/* Genre Chips */}
+      <div
+        className="no-scrollbar"
+        style={{
+          display: "flex",
+          gap: "0.6rem",
+          overflowX: "auto",
+          padding: "0.5rem 0 1.2rem",
+          scrollbarWidth: "none",
+        }}
+      >
+        {GENRES.map((genre) => (
+          <motion.button
+            key={genre}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setActiveGenre(genre)}
+            style={{
+              padding: "0.5rem 1.1rem",
+              borderRadius: "20px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              background:
+                activeGenre === genre
+                  ? "var(--primary)"
+                  : "rgba(255,255,255,0.05)",
+              color: activeGenre === genre ? "#fff" : "var(--text-secondary)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {genre}
+          </motion.button>
+        ))}
+      </div>
+
       {loading ? (
-        <div style={{ padding: "2rem 0" }}>
+        <div style={{ padding: "0" }}>
           {[1, 2, 3].map((i) => (
             <div key={i} style={{ marginBottom: "2rem" }}>
               <div
@@ -243,7 +239,7 @@ export const Discover: React.FC = () => {
                       width: "130px",
                       aspectRatio: "2/3",
                       background: "rgba(255,255,255,0.03)",
-                      borderRadius: "12px",
+                      borderRadius: "16px",
                       flexShrink: 0,
                     }}
                   />
@@ -254,50 +250,196 @@ export const Discover: React.FC = () => {
         </div>
       ) : (
         <div
-          style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+          style={{ display: "flex", flexDirection: "column", gap: "1.8rem" }}
         >
-          {sections.map((section) => (
-            <Section
-              key={section.title}
-              title={section.title}
-              icon={section.icon}
-              badge={section.items.length}
-              plain
-            >
-              {/* Horizontal Scroll */}
-              {section.items.length > 0 ? (
+          {/* Personalized Sections */}
+          {personalized.map((section, sIdx) => {
+            const filteredPersonal = filterItems(section.items);
+            if (filteredPersonal.length === 0) return null;
+            return (
+              <Section
+                key={`${section.title}-${sIdx}`}
+                title={section.title}
+                icon={section.icon}
+                badge={filteredPersonal.length}
+                plain
+                rightElement={
+                  filteredPersonal.length > 0 && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        vibrate("medium");
+                        const result =
+                          await bulkAddPlannedItems(filteredPersonal);
+                        if (result.added > 0) {
+                          showToast(
+                            `Добавлено ${result.added} элементов`,
+                            "success",
+                          );
+                        } else if (result.skipped > 0) {
+                          showToast("Все элементы уже в библиотеке", "info");
+                        }
+                      }}
+                      style={{
+                        padding: "0 0.75rem",
+                        height: "32px",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        background: "var(--primary-15)",
+                        color: "var(--primary)",
+                        border: "1px solid var(--primary-20)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                      Добавить все
+                    </motion.button>
+                  )
+                }
+              >
                 <div
                   className="no-scrollbar"
                   style={{
                     display: "flex",
-                    gap: "0.75rem",
+                    gap: "0.8rem",
                     overflowX: "auto",
                     padding: "0 0.25rem 0.5rem",
                     scrollbarWidth: "none",
                   }}
                 >
-                  {section.items.map((item) => (
-                    <DiscoverCard
-                      key={`${item.source}-${item.externalId}`}
-                      item={item}
-                      onAdd={handleAdd}
-                    />
+                  {filteredPersonal.map((item, idx) => (
+                    <div
+                      key={`${item.source || "src"}-${item.externalId || idx}`}
+                      style={{
+                        minWidth: "124px",
+                        width: "124px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <GridCard
+                        item={item}
+                        onQuickAdd={() => handleAdd(item)}
+                        onClick={() => {
+                          const targetId = item.id || item.externalId;
+                          const url = item.isOwned
+                            ? `/item/${targetId}`
+                            : `/item/${targetId}?source=${item.source}`;
+                          navigate(url);
+                        }}
+                      />
+                    </div>
                   ))}
                 </div>
-              ) : (
-                <div
-                  style={{
-                    padding: "2rem",
-                    textAlign: "center",
-                    color: "var(--text-tertiary)",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  Нет данных
-                </div>
-              )}
-            </Section>
-          ))}
+              </Section>
+            );
+          })}
+
+          {/* Regular Sections */}
+          {sections.map((section, sIdx) => {
+            const filtered = filterItems(section.items);
+            if (filtered.length === 0 && activeGenre !== "Все") return null;
+
+            return (
+              <Section
+                key={`${section.title}-${sIdx}`}
+                title={section.title}
+                icon={section.icon}
+                badge={filtered.length}
+                plain
+                rightElement={
+                  filtered.length > 0 && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        vibrate("medium");
+                        const result = await bulkAddPlannedItems(filtered);
+                        if (result.added > 0) {
+                          showToast(
+                            `Добавлено ${result.added} элементов`,
+                            "success",
+                          );
+                        } else if (result.skipped > 0) {
+                          showToast("Все элементы уже в библиотеке", "info");
+                        }
+                      }}
+                      style={{
+                        padding: "0 0.75rem",
+                        height: "32px",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        background: "var(--primary-15)",
+                        color: "var(--primary)",
+                        border: "1px solid var(--primary-20)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                      Добавить все
+                    </motion.button>
+                  )
+                }
+              >
+                {filtered.length > 0 ? (
+                  <div
+                    className="no-scrollbar"
+                    style={{
+                      display: "flex",
+                      gap: "0.8rem",
+                      overflowX: "auto",
+                      padding: "0 0.25rem 0.5rem",
+                      scrollbarWidth: "none",
+                    }}
+                  >
+                    {filtered.map((item, idx) => (
+                      <div
+                        key={`${item.source || "src"}-${item.externalId || idx}`}
+                        style={{
+                          minWidth: "124px",
+                          width: "124px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <GridCard
+                          item={item}
+                          onQuickAdd={() => handleAdd(item)}
+                          onClick={() => {
+                            const targetId = item.id || item.externalId;
+                            const url = item.isOwned
+                              ? `/item/${targetId}`
+                              : `/item/${targetId}?source=${item.source}`;
+                            navigate(url);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "var(--text-tertiary)",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    В жанре «{activeGenre}» пока ничего не найдено
+                  </div>
+                )}
+              </Section>
+            );
+          })}
         </div>
       )}
     </div>

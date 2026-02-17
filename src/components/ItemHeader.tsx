@@ -11,7 +11,9 @@ interface ItemHeaderProps {
   hasTrailer: boolean;
   source?: string;
   genres?: string[];
+  authors?: string[];
   onShowTrailer: () => void;
+  onAuthorClick?: (author: string) => void;
 }
 
 export const ItemHeader: React.FC<ItemHeaderProps> = ({
@@ -22,7 +24,9 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
   hasTrailer,
   source,
   genres,
+  authors,
   onShowTrailer,
+  onAuthorClick,
 }) => {
   const proxiedImage = getProxiedImageUrl(image);
 
@@ -125,6 +129,36 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
         >
           {title}
         </h2>
+
+        {authors && authors.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              alignItems: "center",
+              marginBottom: "var(--space-sm)",
+              flexWrap: "wrap",
+            }}
+          >
+            {authors.map((author, i) => (
+              <span
+                key={i}
+                onClick={() => onAuthorClick?.(author)}
+                style={{
+                  fontSize: "0.9rem",
+                  color: "var(--primary)",
+                  fontWeight: "var(--fw-bold)",
+                  cursor: onAuthorClick ? "pointer" : "default",
+                  textDecoration: onAuthorClick ? "underline" : "none",
+                  opacity: 0.9,
+                }}
+              >
+                {author}
+                {i < authors.length - 1 ? ", " : ""}
+              </span>
+            ))}
+          </div>
+        )}
         <div
           style={{
             display: "flex",

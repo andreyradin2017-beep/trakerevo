@@ -128,13 +128,79 @@
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --transition-fast: 0.15s ease;
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Animation Durations */
+  --duration-short: 150ms;
+  --duration-medium: 300ms;
+  --duration-long: 500ms;
 }
 
+/* --- UTILITY CLASSES --- */
+
+/* Text & Visual Effects */
 .text-gradient {
   background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Layout Helpers */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-cols-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Card Standards */
+.card-base {
+  background: var(--bg-surface);
+  border: var(--border-glass);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition-smooth);
+  isolation: isolate; /* Create new stacking context */
+  transform: translateZ(0); /* Force hardware acceleration and clipping */
+  position: relative; /* Ensure children position relative to the card */
+}
+
+.card-hover:hover {
+  background: var(--bg-surface-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Glass Basics */
+.glass {
+  background: var(--bg-surface);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: var(--border-glass);
 }
 
 @keyframes fade-in-up {

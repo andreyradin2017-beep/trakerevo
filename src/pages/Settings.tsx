@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { db } from "@db/db";
 import { PageHeader } from "@components/PageHeader";
 import {
@@ -10,6 +10,7 @@ import {
   User,
   LogOut,
   Check,
+  BarChart3,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -19,15 +20,17 @@ import { syncAll } from "@services/dbSync";
 import { useToast } from "@context/ToastContext";
 import { ConfirmDialog } from "@components/Dialogs";
 import { SearchProviderSettings } from "@components/SearchProviderSettings";
+import { useUserStats } from "@hooks/useStats";
+import { StatsBarChart } from "@components/StatsBarChart";
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
   const { showToast } = useToast();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const userStats = useUserStats();
 
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [stats, setStats] = useState({ items: 0, lists: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog States
@@ -42,18 +45,6 @@ export const Settings: React.FC = () => {
     message: "",
     onConfirm: () => {},
   });
-
-  useEffect(() => {
-    refreshStats();
-  }, []);
-
-  const refreshStats = async () => {
-    const [items, lists] = await Promise.all([
-      db.items.count(),
-      db.lists.count(),
-    ]);
-    setStats({ items, lists });
-  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -155,10 +146,6 @@ export const Settings: React.FC = () => {
     });
   };
 
-  const userLevel = Math.floor(stats.items / 10) + 1;
-  const itemsToNextLevel = 10 - (stats.items % 10);
-  const progressToNextLevel = (stats.items % 10) * 10;
-
   return (
     <div style={{ paddingBottom: "6rem" }}>
       <PageHeader title="Профиль" showBack={true} />
@@ -256,20 +243,6 @@ export const Settings: React.FC = () => {
                   marginTop: "0.25rem",
                 }}
               >
-                <div
-                  style={{
-                    background: "rgba(139, 92, 246, 0.2)",
-                    padding: "0.2rem 0.6rem",
-                    borderRadius: "8px",
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    color: "var(--primary)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Уровень {userLevel}
-                </div>
                 {user && (
                   <div
                     style={{
@@ -285,67 +258,6 @@ export const Settings: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Level Progress */}
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                }}
-              >
-                Прогресс до уровня {userLevel + 1}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  color: "var(--primary)",
-                }}
-              >
-                {stats.items % 10} / 10
-              </span>
-            </div>
-            <div
-              style={{
-                height: "8px",
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: "10px",
-                overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.05)",
-              }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progressToNextLevel}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                style={{
-                  height: "100%",
-                  background: "var(--primary-gradient)",
-                  boxShadow: "0 0 10px var(--primary-glow)",
-                }}
-              />
-            </div>
-            <p
-              style={{
-                fontSize: "0.65rem",
-                color: "var(--text-tertiary)",
-                marginTop: "0.5rem",
-                textAlign: "center",
-              }}
-            >
-              Добавьте еще {itemsToNextLevel} предметов для повышения уровня 🚀
-            </p>
           </div>
 
           {/* Action Buttons */}
@@ -380,6 +292,43 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
+        {/* Favorite Genres Section */}
+        {userStats && userStats.topGenres.length > 0 && (
+          <div
+            style={{
+              background: "var(--bg-surface)",
+              border: "var(--border-glass)",
+              borderRadius: "var(--radius-lg)",
+              padding: "1rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <BarChart3 size={16} color="var(--primary)" />
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "0.9rem",
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Любимые жанры
+              </h3>
+            </div>
+            <StatsBarChart
+              data={userStats.topGenres}
+              maxCount={userStats.topGenres[0]?.count || 1}
+            />
+          </div>
+        )}
+
         {/* Account Sync Button (Only if logged in) */}
         {user && (
           <motion.button
@@ -394,7 +343,6 @@ export const Settings: React.FC = () => {
 
               if (result.success) {
                 showToast("Синхронизация завершена", "success");
-                refreshStats();
               } else {
                 showToast("Ошибка синхронизации", "error");
                 console.error(result.errors);

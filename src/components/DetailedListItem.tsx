@@ -86,20 +86,18 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="glass-card"
+      className="card-base flex-center"
       style={{
-        display: "flex",
         gap: "1rem",
         padding: "0.75rem",
         cursor: "pointer",
-        position: "relative",
-        overflow: "hidden",
         marginBottom: "0.25rem",
         ...style,
       }}
     >
       {/* Thumbnail */}
       <div
+        className="flex-center"
         style={{
           width: "70px",
           height: "105px",
@@ -134,17 +132,15 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
 
       {/* Content */}
       <div
+        className="flex-column"
         style={{
           flex: 1,
-          display: "flex",
-          flexDirection: "column",
           minWidth: 0,
         }}
       >
         <div
+          className="flex-between"
           style={{
-            display: "flex",
-            justifyContent: "space-between",
             alignItems: "flex-start",
             gap: "0.5rem",
           }}
@@ -166,9 +162,8 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
           </h3>
           {item.rating && (
             <div
+              className="flex-center"
               style={{
-                display: "flex",
-                alignItems: "center",
                 gap: "2px",
                 color: "var(--warning)",
               }}
@@ -182,19 +177,17 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
         </div>
 
         <div
+          className="flex-center"
           style={{
-            display: "flex",
-            alignItems: "center",
             gap: "0.5rem",
             marginTop: "0.3rem",
+            justifyContent: "flex-start",
           }}
         >
           <span
-            className="section-label"
+            className="section-label flex-center"
             style={{
               fontSize: "0.6rem",
-              display: "flex",
-              alignItems: "center",
               gap: "0.3rem",
             }}
           >
@@ -239,9 +232,8 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
         {item.status === "in_progress" && (
           <div style={{ marginTop: "auto", paddingTop: "0.5rem" }}>
             <div
+              className="flex-between"
               style={{
-                display: "flex",
-                justifyContent: "space-between",
                 fontSize: "0.65rem",
                 marginBottom: "3px",
               }}

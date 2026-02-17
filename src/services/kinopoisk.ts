@@ -1,52 +1,23 @@
-import axios from "axios";
-import { db } from "../db/db";
 import type { Item } from "../types";
 import type { KinopoiskMovieResult } from "../types/api";
 import { logger } from "../utils/logger";
+import { kinopoiskClient } from "./apiClient";
 
-const KINOPOISK_BASE_URL = "https://api.kinopoisk.dev/v1.4";
 const CONTEXT = "KinopoiskService";
 
 export const searchKinopoisk = async (query: string): Promise<Item[]> => {
-  const settingsKey = await db.settings.get("kinopoisk_key");
-  let apiKey = settingsKey?.value;
-
-  if (!apiKey) {
-    apiKey = import.meta.env.VITE_KINOPOISK_API_KEY;
-  }
-
-  if (!apiKey) return [];
-
   try {
-    let response;
-    const isProd = import.meta.env.PROD;
+    const data = await kinopoiskClient.get<any>("/movie/search", {
+      settingsKey: "kinopoisk_key",
+      envKey: "VITE_KINOPOISK_API_KEY",
+      params: { query, limit: 20 },
+    });
 
-    if (isProd && !settingsKey?.value) {
-      response = await axios.get("/api/kinopoisk", {
-        params: {
-          path: "/movie/search",
-          query: query,
-          limit: 10,
-        },
-      });
-    } else {
-      response = await axios.get(`${KINOPOISK_BASE_URL}/movie/search`, {
-        headers: {
-          "X-API-KEY": apiKey,
-        },
-        params: {
-          query: query,
-          limit: 20,
-        },
-        timeout: 10000,
-      });
-    }
-
-    if (!response.data || !response.data.docs) {
+    if (!data?.docs) {
       return [];
     }
 
-    return (response.data.docs as KinopoiskMovieResult[]).map((result) => ({
+    return (data.docs as KinopoiskMovieResult[]).map((result) => ({
       title:
         result.name ||
         result.alternativeName ||
@@ -73,28 +44,13 @@ export const searchKinopoisk = async (query: string): Promise<Item[]> => {
   }
 };
 export const getKinopoiskDetails = async (id: string): Promise<any> => {
-  const settingsKey = await db.settings.get("kinopoisk_key");
-  const apiKey = settingsKey?.value || import.meta.env.VITE_KINOPOISK_API_KEY;
-  if (!apiKey) return null;
-
   try {
-    let response;
-    const isProd = import.meta.env.PROD;
+    const data = await kinopoiskClient.get<any>(`/movie/${id}`, {
+      settingsKey: "kinopoisk_key",
+      envKey: "VITE_KINOPOISK_API_KEY",
+    });
 
-    if (isProd && !settingsKey?.value) {
-      response = await axios.get("/api/kinopoisk", {
-        params: {
-          path: `/movie/${id}`,
-        },
-      });
-    } else {
-      response = await axios.get(`${KINOPOISK_BASE_URL}/movie/${id}`, {
-        headers: { "X-API-KEY": apiKey },
-        timeout: 10000,
-      });
-    }
-
-    const data = response.data;
+    if (!data) return null;
 
     // Find a YouTube trailer
     const trailer = data.videos?.trailers?.find(
@@ -114,13 +70,14 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
       trailer: trailerUrl,
       related:
         data.similarMovies?.slice(0, 6).map((r: any) => ({
-          id: r.id.toString(),
+          externalId: r.id.toString(),
           title: r.name || r.enName || r.alternativeName,
           image: r.poster?.previewUrl || r.poster?.url,
           type:
             r.type === "tv-series" || r.type === "mini-series"
               ? "show"
               : "movie",
+          source: "kinopoisk",
         })) || [],
       providers:
         data.watchability?.items?.map((p: any) => ({

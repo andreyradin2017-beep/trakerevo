@@ -4,6 +4,7 @@ import { db } from "../db/db";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SearchProviderId } from "../types";
+import { Section } from "./Section";
 
 interface SearchProviderSettingsProps {
   showToast: (message: string, type: "success" | "error" | "info") => void;
@@ -69,37 +70,14 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
   const enabledCount = providers.filter((p) => p.enabled).length;
 
   return (
-    <div
-      style={{
-        padding: "1.25rem",
-        background: "var(--bg-surface)",
-        borderRadius: "var(--radius-xl)",
-        border: "var(--border-glass)",
-      }}
+    <Section
+      title="ИСТОЧНИКИ ПОИСКА"
+      icon={<Search size={14} />}
+      collapsible={true}
+      defaultCollapsed={true}
+      badge={`${enabledCount}/${providers.length}`}
+      style={{ marginBottom: "0.25rem" }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.75rem",
-          marginBottom: "1.25rem",
-        }}
-      >
-        <div
-          style={{
-            padding: "0.5rem",
-            background: "rgba(168, 85, 247, 0.1)",
-            borderRadius: "10px",
-            color: "var(--primary)",
-          }}
-        >
-          <Search size={18} />
-        </div>
-        <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>
-          Источники поиска
-        </h3>
-      </div>
-
       <p
         style={{
           fontSize: "0.85rem",
@@ -179,6 +157,6 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
             </motion.div>
           ))}
       </div>
-    </div>
+    </Section>
   );
 };

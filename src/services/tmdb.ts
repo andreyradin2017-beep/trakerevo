@@ -1,122 +1,109 @@
-import axios from "axios";
-import { db } from "../db/db";
+import { tmdbClient } from "./apiClient";
 import type { Item } from "../types";
 import { getProxiedImageUrl } from "../utils/images";
 
-const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+const defaultConfig = {
+  settingsKey: "tmdb_key",
+  envKey: "VITE_TMDB_API_KEY",
+};
 
 export const getMovieDetails = async (
   id: string,
   type: "movie" | "tv" | "show",
 ): Promise<any> => {
-  const settingsKey = await db.settings.get("tmdb_key");
-  const apiKey = settingsKey?.value || import.meta.env.VITE_TMDB_API_KEY;
-  if (!apiKey) return null;
-
   const mediaType = type === "movie" ? "movie" : "tv";
 
-  try {
-    const [details, videos, recommendations, providers] = await Promise.all([
-      axios.get(`${TMDB_BASE_URL}/${mediaType}/${id}`, {
-        params: { api_key: apiKey, language: "ru-RU" },
-      }),
-      axios.get(`${TMDB_BASE_URL}/${mediaType}/${id}/videos`, {
-        params: { api_key: apiKey },
-      }),
-      axios.get(`${TMDB_BASE_URL}/${mediaType}/${id}/recommendations`, {
-        params: { api_key: apiKey, language: "ru-RU" },
-      }),
-      axios.get(`${TMDB_BASE_URL}/${mediaType}/${id}/watch/providers`, {
-        params: { api_key: apiKey },
-      }),
-    ]);
+  const [details, videos, recommendations, providers] = await Promise.all([
+    tmdbClient.get<any>(`/${mediaType}/${id}`, {
+      ...defaultConfig,
+      params: { language: "ru-RU" },
+    }),
+    tmdbClient.get<any>(`/${mediaType}/${id}/videos`, defaultConfig),
+    tmdbClient.get<any>(`/${mediaType}/${id}/recommendations`, {
+      ...defaultConfig,
+      params: { language: "ru-RU" },
+    }),
+    tmdbClient.get<any>(`/${mediaType}/${id}/watch/providers`, defaultConfig),
+  ]);
 
-    const trailer = videos.data.results.find(
-      (v: any) => v.type === "Trailer" && v.site === "YouTube",
-    );
+  if (!details) return null;
 
-    return {
-      description: details.data.overview,
-      genres: details.data.genres?.map((g: any) => g.name) || [],
-      trailer: trailer
-        ? `https://www.youtube.com/embed/${trailer.key}`
+  const trailer = videos?.results?.find(
+    (v: any) => v.type === "Trailer" && v.site === "YouTube",
+  );
+
+  return {
+    description: details.overview,
+    genres: details.genres?.map((g: any) => g.name) || [],
+    trailer: trailer
+      ? `https://www.youtube.com/embed/${trailer.key}`
+      : undefined,
+    related: (recommendations?.results || []).slice(0, 6).map((r: any) => ({
+      externalId: r.id.toString(),
+      title: r.title || r.name,
+      image: r.poster_path
+        ? getProxiedImageUrl(`https://image.tmdb.org/t/p/w200${r.poster_path}`)
         : undefined,
-      related: recommendations.data.results.slice(0, 6).map((r: any) => ({
-        id: r.id.toString(),
-        title: r.title || r.name,
-        image: r.poster_path
-          ? getProxiedImageUrl(
-              `https://image.tmdb.org/t/p/w200${r.poster_path}`,
-            )
-          : undefined,
-        type: mediaType === "movie" ? "movie" : "show",
-      })),
-      providers:
-        providers.data.results?.RU?.flatrate?.map((p: any) => ({
-          name: p.provider_name,
-          logo: getProxiedImageUrl(
-            `https://image.tmdb.org/t/p/original${p.logo_path}`,
-          ),
-        })) || [],
-    };
-  } catch (error) {
-    console.error("TMDB Details Error:", error);
-    return null;
-  }
+      type: r.media_type === "tv" ? "show" : "movie",
+      source: "tmdb",
+    })),
+    providers:
+      providers?.results?.RU?.flatrate?.map((p: any) => ({
+        name: p.provider_name,
+        logo: getProxiedImageUrl(
+          `https://image.tmdb.org/t/p/original${p.logo_path}`,
+        ),
+      })) || [],
+  };
 };
 
 export const searchMovies = async (query: string): Promise<Item[]> => {
-  // 1. Try to get key from DB
-  const settingsKey = await db.settings.get("tmdb_key");
-  let apiKey = settingsKey?.value;
+  const data = await tmdbClient.get<any>("/search/multi", {
+    ...defaultConfig,
+    params: {
+      language: "ru-RU",
+      query: query,
+    },
+  });
 
-  // 2. Fallback to env var
-  if (!apiKey) {
-    apiKey = import.meta.env.VITE_TMDB_API_KEY;
-  }
+  if (!data?.results) return [];
 
-  if (!apiKey) return [];
-
-  try {
-    const response = await axios.get(`${TMDB_BASE_URL}/search/multi`, {
-      params: {
-        api_key: apiKey,
-        language: "ru-RU",
-        query: query,
-      },
-    });
-
-    return response.data.results
-      .filter(
-        (result: any) =>
-          result.media_type === "movie" || result.media_type === "tv",
-      )
-      .map((result: any) => ({
-        title: result.title || result.name,
-        type:
-          result.media_type === "movie"
-            ? "movie"
-            : result.media_type === "tv"
-              ? "movie" // Mapping tv to movie for now or handle 'show' if we had it
-              : "other",
-        status: "planned",
-        image: result.poster_path
-          ? `https://image.tmdb.org/t/p/w200${result.poster_path}`
+  return data.results
+    .filter(
+      (result: any) =>
+        result.media_type === "movie" || result.media_type === "tv",
+    )
+    .map((result: any) => ({
+      title: result.title || result.name,
+      type: result.media_type === "tv" ? "show" : "movie",
+      status: "planned",
+      image: result.poster_path
+        ? `https://image.tmdb.org/t/p/w200${result.poster_path}`
+        : undefined,
+      description: result.overview,
+      year: result.release_date
+        ? new Date(result.release_date).getFullYear()
+        : result.first_air_date
+          ? new Date(result.first_air_date).getFullYear()
           : undefined,
-        description: result.overview,
-        year: result.release_date
-          ? new Date(result.release_date).getFullYear()
-          : result.first_air_date
-            ? new Date(result.first_air_date).getFullYear()
-            : undefined,
-        source: "tmdb",
-        externalId: result.id.toString(),
-        tags: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
-  } catch (error) {
-    console.error("TMDB Search Error:", error);
-    return [];
-  }
+      source: "tmdb",
+      externalId: result.id.toString(),
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+};
+
+export const getTrendingMovies = async (
+  timeWindow: "day" | "week" = "day",
+): Promise<string[]> => {
+  const data = await tmdbClient.get<any>(`/trending/all/${timeWindow}`, {
+    ...defaultConfig,
+    params: { language: "ru-RU" },
+  });
+
+  return (data?.results || [])
+    .slice(0, 6)
+    .map((r: any) => r.title || r.name)
+    .filter(Boolean);
 };

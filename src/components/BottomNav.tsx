@@ -1,16 +1,15 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, BarChart3, Archive, Dices, User } from "lucide-react";
-import { motion } from "framer-motion";
+import { Home, Archive, Sparkles, Dices, User } from "lucide-react";
 import { selectionChanged } from "../utils/haptics";
 
 export const BottomNav: React.FC = () => {
   const navItems = [
-    { path: "/", icon: <Home size={22} />, label: "Главная" },
-    { path: "/random", icon: <Dices size={22} />, label: "Рандом" },
-    { path: "/archive", icon: <Archive size={22} />, label: "Архив" },
-    { path: "/stats", icon: <BarChart3 size={22} />, label: "Инфо" },
-    { path: "/settings", icon: <User size={22} />, label: "Профиль" },
+    { path: "/", icon: <Home size={20} />, label: "Главная" },
+    { path: "/discover", icon: <Sparkles size={20} />, label: "Открытия" },
+    { path: "/random", icon: <Dices size={20} />, label: "Рандом" },
+    { path: "/archive", icon: <Archive size={20} />, label: "Архив" },
+    { path: "/settings", icon: <User size={20} />, label: "Профиль" },
   ];
 
   return (
@@ -69,20 +68,17 @@ export const BottomNav: React.FC = () => {
                   }}
                 />
               )}
-              <motion.div
-                animate={{
-                  scale: isActive ? 1.15 : 1,
-                  y: isActive ? -1 : 0,
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  transform: isActive ? "scale(1.15) translateY(-1px)" : "none",
+                  transition: "transform 0.2s ease-out",
                 }}
               >
                 {item.icon}
-              </motion.div>
+              </div>
               <span
                 style={{
                   fontSize: "0.55rem",

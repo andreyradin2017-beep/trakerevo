@@ -30,6 +30,7 @@ export interface Item {
   notes?: string;
   tags: string[];
   externalId?: string;
+  authors?: string[];
   source?: "tmdb" | "rawg" | "google_books" | "kinopoisk" | "manual";
   supabaseId?: string; // UUID from Supabase
   createdAt: Date;

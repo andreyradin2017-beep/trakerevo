@@ -2,18 +2,22 @@ import React, { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "@db/db";
-import type { Item, List } from "@types";
-import { Trash2, Save } from "lucide-react";
+import type { Item } from "@types";
 
 import { BentoTile } from "@components/BentoTile";
 import { ItemHeader } from "@components/ItemHeader";
 import { ItemStatsEditor } from "@components/ItemStatsEditor";
 import { ItemMetadataDetails } from "@components/ItemMetadataDetails";
 import { PageHeader } from "@components/PageHeader";
+import { HLTBTile } from "@components/HLTBTile";
+import { DetailDescription } from "@components/DetailDescription";
+import { ItemNotesAndList } from "@components/ItemNotesAndList";
 import { getDetails } from "@services/api";
 import { useToast } from "@context/ToastContext";
 import { notificationOccurred } from "@utils/haptics";
 import { triggerAutoSync } from "@services/dbSync";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
 
 export const ItemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +44,14 @@ export const ItemDetail: React.FC = () => {
     genres?: string[];
     trailer?: string;
     providers?: { name: string; logo: string }[];
-    related?: { id: string; title: string; image?: string; type: string }[];
+    related?: {
+      externalId: string;
+      title: string;
+      image?: string;
+      type: string;
+    }[];
+    hltb?: { main: string; extra: string; completionist: string };
+    authors?: string[];
   } | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
@@ -57,14 +68,44 @@ export const ItemDetail: React.FC = () => {
   };
 
   const lists = useLiveQuery(() => db.lists.toArray());
+  const queryParams = new URLSearchParams(window.location.search);
+  const sourceParam = queryParams.get("source");
 
   useEffect(() => {
     if (id) {
-      db.items
-        .get(Number(id))
-        .then(async (found: Item | undefined) => {
+      setLoading(true);
+
+      const fetchItem = async () => {
+        try {
+          let found: Item | undefined;
+
+          // 1. If source is specified, it's definitely an externalId lookup
+          if (sourceParam && id) {
+            found = await db.items
+              .where("[externalId+source]")
+              .equals([id, sourceParam])
+              .first();
+          }
+
+          // 2. Try by local auto-increment ID (only if it looks like a local ID and no source was found)
+          if (!found) {
+            const numericId = Number(id);
+            if (!isNaN(numericId)) {
+              found = await db.items.get(numericId);
+            }
+          }
+
+          // 3. Last resort: try externalId alone (backward compatibility)
+          if (!found && id) {
+            found = await db.items.where("externalId").equals(id).first();
+          }
+
+          // 4. Try searching by supabaseId (UUID)
+          if (!found && id && id.includes("-")) {
+            found = await db.items.where("supabaseId").equals(id).first();
+          }
+
           if (found) {
-            // Set local data immediately
             setItem(found);
             setStatus(found.status);
             setNotes(found.notes || "");
@@ -74,8 +115,6 @@ export const ItemDetail: React.FC = () => {
             setCurrentSeason(found.currentSeason || 1);
             setCurrentEpisode(found.currentEpisode || 1);
             setIsArchived(found.isArchived || false);
-
-            setLoading(false); // Unblock UI immediately
 
             // Fetch external details in background
             if (found.externalId) {
@@ -87,14 +126,40 @@ export const ItemDetail: React.FC = () => {
                   console.error("Failed to load external details:", error);
                 });
             }
-          } else {
-            setLoading(false);
+          } else if (sourceParam && id) {
+            // Preview Mode: Item not in DB, but we have external ID and source
+            // We fetch details to show the page
+            getDetails({ externalId: id, source: sourceParam } as any)
+              .then((data: any) => {
+                if (data) {
+                  setExtraMetadata(data);
+                  setItem({
+                    title: data.title || "Загрузка...",
+                    type: data.type || "movie",
+                    source: sourceParam as any,
+                    externalId: id,
+                    image: data.image,
+                    description: data.description,
+                    year: data.year,
+                    tags: data.genres || [],
+                    status: "planned",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  } as Item);
+                }
+              })
+              .catch((err) => {
+                console.error("Failed to load preview details:", err);
+              });
           }
-        })
-        .catch((err) => {
+          setLoading(false);
+        } catch (err) {
           console.error("Failed to load item:", err);
           setLoading(false);
-        });
+        }
+      };
+
+      fetchItem();
     }
   }, [id]);
 
@@ -149,13 +214,33 @@ export const ItemDetail: React.FC = () => {
     navigate(-1);
   };
 
+  const handleQuickAddRecord = async () => {
+    if (!item) return;
+    const newItem: Item = {
+      ...item,
+      status: "planned",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    if ("id" in newItem) delete (newItem as any).id;
+    const newId = await db.items.add(newItem);
+    notificationOccurred("success");
+    showToast(`«${item.title}» добавлена в библиотеку`, "success");
+    triggerAutoSync();
+    // Swap URL to local ID to enable full editing without full page reload if possible
+    // but navigating is cleaner
+    navigate(`/item/${newId}`, { replace: true });
+  };
+
   if (loading)
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>Загрузка...</div>
+      <div className="flex-center" style={{ height: "100vh" }}>
+        Загрузка...
+      </div>
     );
   if (!item)
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
+      <div className="flex-center" style={{ height: "100vh" }}>
         Элемент не найден
       </div>
     );
@@ -164,38 +249,38 @@ export const ItemDetail: React.FC = () => {
 
   return (
     <>
-      {showTrailer && extraMetadata?.trailer && (
-        <div
-          onClick={() => setShowTrailer(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
+      <AnimatePresence>
+        {showTrailer && extraMetadata?.trailer && (
           <div
+            onClick={() => setShowTrailer(false)}
+            className="flex-center"
             style={{
-              width: "100%",
-              maxWidth: "800px",
-              aspectRatio: "16/9",
-              background: "black",
-              borderRadius: "12px",
-              overflow: "hidden",
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              background: "rgba(0,0,0,0.9)",
+              padding: "1rem",
             }}
           >
-            <iframe
-              src={extraMetadata.trailer}
-              style={{ width: "100%", height: "100%", border: "none" }}
-              allowFullScreen
-            />
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "800px",
+                aspectRatio: "16/9",
+                background: "black",
+                borderRadius: "12px",
+                overflow: "hidden",
+              }}
+            >
+              <iframe
+                src={extraMetadata.trailer}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                allowFullScreen
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <PageHeader
         title="Детали"
@@ -227,146 +312,95 @@ export const ItemDetail: React.FC = () => {
             hasTrailer={!!extraMetadata?.trailer}
             source={item.source}
             genres={extraMetadata?.genres || item.tags}
+            authors={extraMetadata?.authors || item.authors}
             onShowTrailer={() => setShowTrailer(true)}
+            onAuthorClick={(author) => {
+              navigate(`/search?q=${encodeURIComponent(author)}&category=book`);
+            }}
           />
         </BentoTile>
 
-        {/* Row 1.5: Description (if available) */}
+        {/* Row 1.5: Description */}
         {(item.description || extraMetadata?.description) && (
-          <BentoTile colSpan={2} delay={0.15} style={{ padding: "1.25rem" }}>
-            <label className="section-label" style={{ marginBottom: "0.5rem" }}>
-              Об инструменте / Сюжет
-            </label>
-            <p
-              style={{
-                fontSize: "0.9rem",
-                lineHeight: "1.6",
-                color: "var(--text-secondary)",
-                margin: 0,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {extraMetadata?.description || item.description}
-            </p>
-          </BentoTile>
+          <DetailDescription
+            description={extraMetadata?.description || item.description || ""}
+            delay={0.15}
+          />
         )}
 
-        {/* Row 2: Status Tracking */}
+        {/* Game completion time (HLTB) */}
+        {item.type === "game" && extraMetadata?.hltb && (
+          <HLTBTile hltb={extraMetadata.hltb} delay={0.18} />
+        )}
+
+        {/* Row 2: Status Tracking or Add Button */}
         <BentoTile colSpan={2} delay={0.2}>
-          <ItemStatsEditor
-            status={status}
-            itemType={item.type}
-            isArchived={isArchived}
-            isTVShow={isTVShow}
-            currentSeason={currentSeason}
-            currentEpisode={currentEpisode}
-            progress={progress}
-            totalProgress={totalProgress}
-            onStatusChange={setStatus}
-            onArchiveToggle={toggleArchive}
-            onSeasonChange={setCurrentSeason}
-            onEpisodeChange={setCurrentEpisode}
-            onProgressChange={setProgress}
-          />
-        </BentoTile>
-
-        {/* Row 3: Notes & List */}
-        <BentoTile
-          colSpan={window.innerWidth > 600 ? 1 : 2}
-          delay={0.3}
-          style={{ gap: "0.5rem" }}
-        >
-          <label className="section-label">Заметки</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={5}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              borderRadius: "var(--radius-md)",
-              backgroundColor: "rgba(0,0,0,0.2)",
-              color: "var(--text-primary)",
-              border: "1px solid rgba(255,255,255,0.05)",
-              resize: "none",
-              fontSize: "0.9rem",
-              outline: "none",
-              flex: 1,
-            }}
-            placeholder="О чем этот тайтл? Или ваши мысли..."
-          />
-        </BentoTile>
-
-        <BentoTile colSpan={window.innerWidth > 600 ? 1 : 2} delay={0.4}>
-          <label className="section-label" style={{ marginBottom: "0.75rem" }}>
-            Настройка
-          </label>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-          >
-            <div>
-              <span
+          {item.id ? (
+            <ItemStatsEditor
+              status={status}
+              itemType={item.type}
+              isArchived={isArchived}
+              isTVShow={isTVShow}
+              currentSeason={currentSeason}
+              currentEpisode={currentEpisode}
+              progress={progress}
+              totalProgress={totalProgress}
+              onStatusChange={setStatus}
+              onArchiveToggle={toggleArchive}
+              onSeasonChange={setCurrentSeason}
+              onEpisodeChange={setCurrentEpisode}
+              onProgressChange={setProgress}
+            />
+          ) : (
+            <div
+              className="flex-center flex-column"
+              style={{ padding: "1.5rem", gap: "1rem" }}
+            >
+              <p
                 style={{
-                  fontSize: "0.7rem",
-                  color: "var(--text-tertiary)",
-                  marginBottom: "0.25rem",
-                  display: "block",
+                  fontSize: "0.85rem",
+                  color: "var(--text-secondary)",
+                  textAlign: "center",
+                  margin: 0,
                 }}
               >
-                Список
-              </span>
-              <select
-                value={selectedListId || ""}
-                onChange={(e) =>
-                  setSelectedListId(
-                    e.target.value ? Number(e.target.value) : undefined,
-                  )
-                }
+                Этот элемент еще не добавлен в вашу библиотеку
+              </p>
+              <button
+                onClick={handleQuickAddRecord}
+                className="flex-center"
                 style={{
                   width: "100%",
-                  height: "44px",
-                  padding: "0 1rem",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "rgba(0,0,0,0.2)",
-                  color: "var(--text-primary)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  padding: "0.85rem",
+                  borderRadius: "12px",
+                  background: "var(--primary)",
+                  color: "white",
+                  border: "none",
+                  fontWeight: 700,
                   fontSize: "0.9rem",
-                  fontWeight: 600,
-                  outline: "none",
+                  gap: "0.5rem",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
                 }}
               >
-                <option value="">Без списка</option>
-                {lists?.map((list: List) => (
-                  <option key={list.id} value={list.id}>
-                    {list.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto" }}>
-              <button
-                onClick={handleSave}
-                className="btn btn-primary"
-                style={{ flex: 1, height: "50px" }}
-              >
-                <Save size={18} /> Сохранить
-              </button>
-              <button
-                onClick={handleDelete}
-                className="btn-icon"
-                style={{
-                  height: "50px",
-                  width: "50px",
-                  backgroundColor: "rgba(239, 68, 68, 0.1)",
-                  color: "var(--error)",
-                }}
-              >
-                <Trash2 size={20} />
+                <Plus size={18} /> Добавить в планы
               </button>
             </div>
-          </div>
+          )}
         </BentoTile>
+
+        {/* Row 3: Notes & List (Only if owned) */}
+        {item.id ? (
+          <ItemNotesAndList
+            notes={notes}
+            setNotes={setNotes}
+            selectedListId={selectedListId}
+            setSelectedListId={setSelectedListId}
+            lists={lists}
+            onSave={handleSave}
+            onDelete={handleDelete}
+          />
+        ) : null}
 
         {/* Row 4: External Metadata */}
         {extraMetadata?.providers?.length || extraMetadata?.related?.length ? (

@@ -7,52 +7,40 @@ import type { Variants } from "framer-motion";
  */
 
 export const DURATIONS = {
-  fast: 0.1,
-  standard: 0.2,
-  slow: 0.4,
+  fast: 0,
+  standard: 0.05, // Almost instant
+  slow: 0.1,
 };
 
 export const EASINGS = {
-  // Ease-Out: Used for elements entering the stage. Responsive and snappy.
   out: [0.33, 1, 0.68, 1] as [number, number, number, number],
-  // Ease-In: Used for elements leaving the stage.
   in: [0.32, 0, 0.67, 0] as [number, number, number, number],
-  // Standard Curve: For elements moving within the screen.
   standard: [0.4, 0, 0.2, 1] as [number, number, number, number],
-  // Anticipate/Overshoot: For characterizing actions.
-  spring: { type: "spring", stiffness: 400, damping: 30 } as const,
+  spring: { type: "spring", stiffness: 1000, damping: 50 } as const, // Very stiff, no bounce
 };
 
-// 1. MACRO: Page Transitions
+// 1. MACRO: Page Transitions - Simplified to instant
 export const pageVariants: Variants = {
-  initial: { opacity: 0, scale: 0.98, y: 10 },
+  initial: { opacity: 0 },
   enter: {
     opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: DURATIONS.standard, ease: EASINGS.out },
+    transition: { duration: 0.05 },
   },
   exit: {
     opacity: 0,
-    scale: 1.02,
-    y: -10,
-    transition: { duration: DURATIONS.fast, ease: EASINGS.in },
+    transition: { duration: 0.05 },
   },
 };
 
-// 2. MICRO: Shared Elements / Cards
+// 2. MICRO: Shared Elements / Cards - Disabled stagger and movement
 export const cardVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.9, y: 20 },
-  visible: (i: number) => ({
+  hidden: { opacity: 0 },
+  visible: {
     opacity: 1,
-    scale: 1,
-    y: 0,
     transition: {
-      delay: i * 0.015, // Ultra-fast stagger
-      duration: DURATIONS.standard,
-      ease: EASINGS.out,
+      duration: 0.05,
     },
-  }),
+  },
 };
 
 // 3. MICRO: Interactive Feedback (Buttons, Toggles)

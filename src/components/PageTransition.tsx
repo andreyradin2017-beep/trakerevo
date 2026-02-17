@@ -1,6 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { pageVariants } from "@utils/animations";
 
 interface PageTransitionProps {
   children: React.ReactNode;
@@ -8,17 +6,13 @@ interface PageTransitionProps {
 
 export const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="enter"
-      exit="exit"
+    <div
       style={{
         width: "100%",
-        minHeight: "100vh", // Ensure full height for smooth backdrop
+        minHeight: "100vh",
       }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };

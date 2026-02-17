@@ -8,7 +8,6 @@ import { GridCard } from "@components/GridCard";
 import { cardVariants } from "@utils/animations";
 import { Skeleton } from "@components/Skeleton";
 import { SkeletonCard } from "@components/SkeletonCard";
-import { AnimatedCounter } from "@components/AnimatedCounter";
 import { EmptyState } from "@components/EmptyState";
 import { Onboarding } from "@components/Onboarding";
 import { PullToRefresh } from "@components/PullToRefresh";
@@ -113,52 +112,7 @@ const UserLists: React.FC<{ onAdd: () => void }> = ({ onAdd }) => {
   );
 };
 
-const StatCard: React.FC<{ title: string; count: number; color: string }> = ({
-  title,
-  count,
-  color,
-}) => (
-  <div
-    className="glass-card"
-    style={{
-      padding: "0.75rem 0.5rem",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-      gap: "2px",
-      background: "rgba(255,255,255,0.02)",
-    }}
-  >
-    <span
-      className="section-label"
-      style={{
-        fontSize: "0.55rem",
-        opacity: 0.8,
-        color: "var(--text-tertiary)",
-        fontWeight: "var(--fw-black)",
-        fontFamily: "var(--font-main)",
-      }}
-    >
-      {title}
-    </span>
-    <p
-      style={{
-        fontSize: "1.25rem",
-        fontWeight: "var(--fw-black)",
-        margin: 0,
-        color: color,
-        fontFamily: "var(--font-main)",
-        letterSpacing: "-0.5px",
-      }}
-    >
-      <AnimatedCounter value={count} />
-    </p>
-  </div>
-);
-
 import { useRecentItems } from "../hooks/useItems";
-import { useCategoryStats } from "../hooks/useStats";
 
 const RecentItemsList: React.FC<{
   category: Category;
@@ -270,7 +224,6 @@ export const Home: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const navigate = useNavigate();
   const { user } = useAuth();
-  const stats = useCategoryStats();
 
   // Dialog States
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
@@ -360,9 +313,6 @@ export const Home: React.FC = () => {
                 )}
               </motion.button>
             }
-            style={{
-              padding: "0.25rem 0",
-            }}
           />
 
           <UpcomingCarousel />
@@ -432,38 +382,6 @@ export const Home: React.FC = () => {
                 }}
               />
             </Section>
-          </div>
-
-          <div
-            className="glass-card"
-            style={{
-              padding: "0.75rem",
-              marginTop: "1.5rem",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gap: "0.5rem",
-                gridTemplateColumns: "repeat(3, 1fr)",
-              }}
-            >
-              <StatCard
-                title="Планы"
-                count={stats?.planned ?? 0}
-                color="var(--text-secondary)"
-              />
-              <StatCard
-                title="В процессе"
-                count={stats?.inProgress ?? 0}
-                color="var(--primary)"
-              />
-              <StatCard
-                title="Готово"
-                count={stats?.completed ?? 0}
-                color="var(--success)"
-              />
-            </div>
           </div>
         </div>
         {/* Dialogs */}

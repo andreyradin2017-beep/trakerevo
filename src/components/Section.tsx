@@ -14,6 +14,7 @@ interface SectionProps {
   style?: React.CSSProperties;
   className?: string;
   plain?: boolean; // If true, don't wrap in glass-card
+  rightElement?: React.ReactNode;
 }
 
 export const Section: React.FC<SectionProps> = ({
@@ -28,6 +29,7 @@ export const Section: React.FC<SectionProps> = ({
   style,
   className = "",
   plain = false,
+  rightElement,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
@@ -111,11 +113,18 @@ export const Section: React.FC<SectionProps> = ({
             </span>
           )}
         </div>
-        {collapsible && (
-          <div style={{ color: "var(--text-tertiary)" }}>
-            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {rightElement}
+          {collapsible && (
+            <div style={{ color: "var(--text-tertiary)" }}>
+              {isCollapsed ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronUp size={14} />
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Section Content */}

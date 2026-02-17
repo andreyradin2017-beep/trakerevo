@@ -1,7 +1,7 @@
 import { db } from "../db/db";
 import type { Item } from "../types";
-import { searchMovies, getMovieDetails } from "./tmdb";
-import { searchGames, getGameDetails } from "./rawg";
+import { searchMovies, getMovieDetails, getTrendingMovies } from "./tmdb";
+import { searchGames, getGameDetails, getPopularGames } from "./rawg";
 import { searchBooks, getBookDetails } from "./googleBooks";
 import { searchKinopoisk, getKinopoiskDetails } from "./kinopoisk";
 
@@ -43,39 +43,19 @@ export const searchAll = async (query: string): Promise<Item[]> => {
     const searches: Promise<Item[]>[] = [];
 
     if (enabledProviders.has("tmdb")) {
-      searches.push(
-        searchMovies(query).catch((e) => {
-          console.warn("TMDB Search failed", e);
-          return [];
-        }),
-      );
+      searches.push(searchMovies(query));
     }
 
     if (enabledProviders.has("rawg")) {
-      searches.push(
-        searchGames(query).catch((e) => {
-          console.warn("RAWG Search failed", e);
-          return [];
-        }),
-      );
+      searches.push(searchGames(query));
     }
 
     if (enabledProviders.has("google_books")) {
-      searches.push(
-        searchBooks(query).catch((e) => {
-          console.warn("Google Books Search failed", e);
-          return [];
-        }),
-      );
+      searches.push(searchBooks(query));
     }
 
     if (enabledProviders.has("kinopoisk")) {
-      searches.push(
-        searchKinopoisk(query).catch((e) => {
-          console.warn("Kinopoisk Search failed", e);
-          return [];
-        }),
-      );
+      searches.push(searchKinopoisk(query));
     }
 
     const results = await Promise.all(searches);
@@ -101,16 +81,16 @@ export const searchByCategory = async (
     switch (category) {
       case "movie":
         const [tmdbResults, kpResults] = await Promise.all([
-          searchMovies(query).catch(() => []),
-          searchKinopoisk(query).catch(() => []),
+          searchMovies(query),
+          searchKinopoisk(query),
         ]);
         results = [...tmdbResults, ...kpResults];
         break;
       case "game":
-        results = await searchGames(query).catch(() => []);
+        results = await searchGames(query);
         break;
       case "book":
-        results = await searchBooks(query).catch(() => []);
+        results = await searchBooks(query);
         break;
     }
     await setCachedData(cacheKey, results);
@@ -153,7 +133,36 @@ export const getDetails = async (item: Item): Promise<any> => {
     }
     return data;
   } catch (error) {
-    console.error("getDetails failed:", error);
     return null;
+  }
+};
+
+export const getTrending = async (
+  category: "movie" | "game" | "all",
+): Promise<string[]> => {
+  try {
+    if (category === "movie") {
+      return await getTrendingMovies();
+    }
+    if (category === "game") {
+      return await getPopularGames();
+    }
+    if (category === "all") {
+      const [movies, games] = await Promise.all([
+        getTrendingMovies(),
+        getPopularGames(),
+      ]);
+      // Interleave movies and games suggestions
+      const combined = [];
+      for (let i = 0; i < Math.max(movies.length, games.length); i++) {
+        if (movies[i]) combined.push(movies[i]);
+        if (games[i]) combined.push(games[i]);
+      }
+      return combined.slice(0, 8);
+    }
+    return [];
+  } catch (error) {
+    console.error("getTrending Error:", error);
+    return [];
   }
 };

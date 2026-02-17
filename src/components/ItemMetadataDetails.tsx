@@ -6,7 +6,12 @@ import { pressAnimation, DURATIONS, EASINGS } from "@utils/animations";
 interface ItemMetadataDetailsProps {
   extraMetadata: {
     providers?: { name: string; logo: string }[];
-    related?: { id: string; title: string; image?: string; type: string }[];
+    related?: {
+      externalId: string;
+      title: string;
+      image?: string;
+      type: string;
+    }[];
   } | null;
   expandedSections: Record<string, boolean>;
   toggleSection: (id: string) => void;
@@ -151,9 +156,9 @@ export const ItemMetadataDetails: React.FC<ItemMetadataDetailsProps> = ({
                   margin: "0 -0.5rem",
                 }}
               >
-                {extraMetadata.related.map((r) => (
+                {extraMetadata.related.map((r, idx) => (
                   <motion.div
-                    key={r.id}
+                    key={r.externalId || idx}
                     {...pressAnimation}
                     onClick={() => onNavigateToSearch(r.title)}
                     style={{

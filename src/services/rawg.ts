@@ -1,61 +1,81 @@
-import axios from "axios";
-import { db } from "../db/db";
+import { rawgClient } from "./apiClient";
 import type { Item } from "../types";
+import { fetchHLTBStats } from "./hltb";
 
-const RAWG_BASE_URL = "https://api.rawg.io/api";
+const defaultConfig = {
+  settingsKey: "rawg_key",
+  envKey: "VITE_RAWG_API_KEY",
+};
 
 export const searchGames = async (query: string): Promise<Item[]> => {
-  const settingsKey = await db.settings.get("rawg_key");
-  let apiKey = settingsKey?.value || import.meta.env.VITE_RAWG_API_KEY;
+  const data = await rawgClient.get<any>("/games", {
+    ...defaultConfig,
+    params: {
+      search: query,
+      page_size: 20,
+    },
+  });
 
-  if (!apiKey) return [];
+  if (!data?.results) return [];
 
-  try {
-    const response = await axios.get(`${RAWG_BASE_URL}/games`, {
-      params: {
-        key: apiKey,
-        search: query,
-        page_size: 20,
-      },
-    });
-
-    return response.data.results.map((game: any) => ({
-      title: game.name,
-      type: "game",
-      status: "planned",
-      image: game.background_image,
-      description: undefined, // RAWG search results don't usually have full descriptions
-      year: game.released ? new Date(game.released).getFullYear() : undefined,
-      rating: game.rating,
-      source: "rawg",
-      externalId: game.id.toString(),
-      tags: game.genres.map((g: any) => g.name),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
-  } catch (error) {
-    console.error("RAWG Search Error:", error);
-    return [];
-  }
+  return data.results.map((game: any) => ({
+    title: game.name,
+    type: "game",
+    status: "planned",
+    image: game.background_image,
+    description: undefined,
+    year: game.released ? new Date(game.released).getFullYear() : undefined,
+    rating: game.rating,
+    source: "rawg",
+    externalId: game.id.toString(),
+    tags: game.genres.map((g: any) => g.name),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
 };
 
 export const getGameDetails = async (id: string): Promise<any> => {
-  const settingsKey = await db.settings.get("rawg_key");
-  const apiKey = settingsKey?.value || import.meta.env.VITE_RAWG_API_KEY;
-  if (!apiKey) return null;
+  const data = await rawgClient.get<any>(`/games/${id}`, defaultConfig);
+  if (!data) return null;
 
-  try {
-    const response = await axios.get(`${RAWG_BASE_URL}/games/${id}`, {
-      params: { key: apiKey },
-    });
-    const data = response.data;
-    return {
-      description: data.description_raw || data.description,
-      related: [], // RAWG could provide similar games if needed
-      providers: [],
-    };
-  } catch (error) {
-    console.error("RAWG Details Error:", error);
-    return null;
-  }
+  // Fetch suggested games separately
+  const suggestedData = await rawgClient.get<any>(`/games/${id}/suggested`, {
+    ...defaultConfig,
+    params: { page_size: 6 },
+  });
+
+  const related = (suggestedData?.results || []).map((game: any) => ({
+    title: game.name,
+    type: "game",
+    status: "planned",
+    image: game.background_image,
+    year: game.released ? new Date(game.released).getFullYear() : undefined,
+    source: "rawg",
+    externalId: game.id.toString(),
+    tags: game.genres?.map((g: any) => g.name) || [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
+  // Fetch HLTB stats
+  const hltb = await fetchHLTBStats(data.name);
+
+  return {
+    description: data.description_raw || data.description,
+    related,
+    hltb,
+    providers: [],
+  };
+};
+
+export const getPopularGames = async (): Promise<string[]> => {
+  const data = await rawgClient.get<any>("/games", {
+    ...defaultConfig,
+    params: {
+      ordering: "-added",
+      page_size: 6,
+    },
+  });
+
+  return (data?.results || []).map((game: any) => game.name);
 };
