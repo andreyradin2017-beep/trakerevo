@@ -6,11 +6,11 @@ const getStoredKey = async (
   settingsKey: string,
 ): Promise<string | undefined> => {
   const local = localStorage.getItem(settingsKey);
-  if (local && local !== "test-key" && local.trim() !== "") return local;
+  if (local && local !== "test-key" && local.trim() !== "") return local.trim();
 
   try {
     const s = await db.settings.get(settingsKey);
-    if (s?.value) return s.value;
+    if (s?.value && s.value.trim() !== "test-key") return s.value.trim();
   } catch (e) {}
   return undefined;
 };
@@ -34,17 +34,24 @@ export const googleBooksClient = createApiClient(
 
 // --- TMDB Interceptor ---
 tmdbClient.interceptors.request.use(async (config) => {
-  const key =
-    (await getStoredKey("tmdb_key")) || import.meta.env.VITE_TMDB_API_KEY;
+  const stored = await getStoredKey("tmdb_key");
+  const envKey = import.meta.env.VITE_TMDB_API_KEY;
+  const key = (stored || envKey)?.trim();
   if (key) config.params = { ...config.params, api_key: key };
   return config;
 });
 
 // --- RAWG Interceptor ---
 rawgClient.interceptors.request.use(async (config) => {
-  const key =
-    (await getStoredKey("rawg_key")) || import.meta.env.VITE_RAWG_API_KEY;
-  if (key) config.params = { ...config.params, key: key };
+  const stored = await getStoredKey("rawg_key");
+  const envKey = import.meta.env.VITE_RAWG_API_KEY;
+  const key = (stored || envKey)?.trim();
+
+  if (key) {
+    config.params = { ...config.params, key: key };
+  } else {
+    console.warn("[apiClient] RAWG key is missing!");
+  }
   return config;
 });
 
