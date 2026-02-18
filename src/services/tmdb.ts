@@ -38,24 +38,40 @@ export const getMovieDetails = async (
   try {
     const mediaType = type === "movie" ? "movie" : "tv";
 
-    const [detailsRes, videosRes, recRes, providersRes] = await Promise.all([
-      tmdbClient.get<TMDBMovie>(`/${mediaType}/${id}`, {
-        params: { language: "ru-RU" },
-      }),
-      tmdbClient.get<{ results: TMDBVideo[] }>(`/${mediaType}/${id}/videos`),
-      tmdbClient.get<TMDBSearchResponse>(
-        `/${mediaType}/${id}/recommendations`,
-        {
-          params: { language: "ru-RU" },
-        },
-      ),
-      tmdbClient.get<TMDBWatchProviders>(`/${mediaType}/${id}/watch/providers`),
-    ]);
+    // Primary request for details
+    const detailsRes = await tmdbClient.get<TMDBMovie>(`/${mediaType}/${id}`, {
+      params: { language: "ru-RU" },
+    });
 
     const details = detailsRes.data;
     if (!details) return null;
 
-    const trailer = videosRes.data?.results?.find(
+    // Side requests - each handled gracefully
+    const [videosResult, recResult, providersResult] = await Promise.allSettled(
+      [
+        tmdbClient.get<{ results: TMDBVideo[] }>(`/${mediaType}/${id}/videos`),
+        tmdbClient.get<TMDBSearchResponse>(
+          `/${mediaType}/${id}/recommendations`,
+          {
+            params: { language: "ru-RU" },
+          },
+        ),
+        tmdbClient.get<TMDBWatchProviders>(
+          `/${mediaType}/${id}/watch/providers`,
+        ),
+      ],
+    );
+
+    const videosData =
+      videosResult.status === "fulfilled" ? videosResult.value.data : null;
+    const recData =
+      recResult.status === "fulfilled" ? recResult.value.data : null;
+    const providersData =
+      providersResult.status === "fulfilled"
+        ? providersResult.value.data
+        : null;
+
+    const trailer = videosData?.results?.find(
       (v) =>
         (v.type === "Trailer" || v.type === "Teaser") && v.site === "YouTube",
     );
@@ -72,7 +88,7 @@ export const getMovieDetails = async (
       trailer: trailer
         ? `https://www.youtube.com/embed/${trailer.key}`
         : undefined,
-      related: (recRes.data?.results || []).slice(0, 8).map((r) => ({
+      related: (recData?.results || []).slice(0, 8).map((r: any) => ({
         externalId: r.id.toString(),
         title: r.title || r.name || "",
         image: r.poster_path
@@ -84,7 +100,7 @@ export const getMovieDetails = async (
         source: "tmdb" as const,
       })),
       providers:
-        providersRes.data?.results?.RU?.flatrate?.map((p) => ({
+        providersData?.results?.RU?.flatrate?.map((p: any) => ({
           name: p.provider_name,
           logo: getProxiedImageUrl(
             `https://image.tmdb.org/t/p/original${p.logo_path}`,
