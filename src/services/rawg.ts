@@ -41,33 +41,50 @@ export const getGameDetails = async (id: string): Promise<any> => {
     const data = response.data;
     if (!data) return null;
 
-    const suggestedResponse = await rawgClient.get<RAWGSearchResponse>(
-      `/games/${id}/suggested`,
-      {
-        params: { page_size: 6 },
-      },
-    );
-    const suggestedData = suggestedResponse.data;
-
-    const related = (suggestedData?.results || []).map((game) => ({
-      title: game.name,
-      type: "game" as const,
-      status: "planned" as const,
-      image: game.background_image,
-      year: game.released ? new Date(game.released).getFullYear() : undefined,
-      source: "rawg" as const,
-      externalId: game.id.toString(),
-      tags: game.genres?.map((g) => g.name) || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    // Separate call for suggested games to handle potential 401/403 errors gracefully
+    let related: any[] = [];
+    try {
+      const suggestedResponse = await rawgClient.get<RAWGSearchResponse>(
+        `/games/${id}/suggested`,
+        {
+          params: { page_size: 6 },
+        },
+      );
+      if (suggestedResponse.status === 200 && suggestedResponse.data?.results) {
+        related = suggestedResponse.data.results.map((game) => ({
+          title: game.name,
+          type: "game" as const,
+          status: "planned" as const,
+          image: game.background_image,
+          year: game.released
+            ? new Date(game.released).getFullYear()
+            : undefined,
+          source: "rawg" as const,
+          externalId: game.id.toString(),
+          tags: game.genres?.map((g) => g.name) || [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+    } catch (suggestedErr) {
+      console.warn(
+        "RAWG Suggested Games failed (likely API limit/key restriction):",
+        suggestedErr,
+      );
+    }
 
     const hltb = await fetchHLTBStats(data.name);
+
+    // Strip HTML tags from description
+    const cleanDescription = (data.description_raw || data.description || "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .trim();
 
     return {
       title: data.name,
       image: data.background_image,
-      description: data.description_raw || data.description,
+      description: cleanDescription,
       related,
       hltb,
       providers: [],
