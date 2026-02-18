@@ -1,28 +1,31 @@
 import type { Item } from "../types";
+import type { GoogleBooksResponse, GoogleBook } from "../types/api";
 import { googleBooksClient } from "./apiClient";
 
-export const searchBooks = async (query: string): Promise<Item[]> => {
+export const searchBooks = async (query: string): Promise<Item[] | null> => {
   try {
-    const data = await googleBooksClient.get<any>("/volumes", {
-      settingsKey: "google_books_key",
-      envKey: "VITE_GOOGLE_BOOKS_API_KEY",
-      params: { q: query, maxResults: 20, langRestrict: "ru" },
-    });
+    const response = await googleBooksClient.get<GoogleBooksResponse>(
+      "/volumes",
+      {
+        params: { q: query, maxResults: 20, langRestrict: "ru" },
+      },
+    );
 
-    if (!data?.items) return [];
+    const data = response.data;
+    if (!data?.items) return null;
 
-    return data.items.map((book: any) => {
+    return data.items.map((book) => {
       const info = book.volumeInfo;
       return {
         title: info.title,
-        type: "book",
-        status: "planned",
+        type: "book" as const,
+        status: "planned" as const,
         image: info.imageLinks?.thumbnail,
         description: info.description,
         year: info.publishedDate
           ? new Date(info.publishedDate).getFullYear()
           : undefined,
-        source: "google_books",
+        source: "google_books" as const,
         externalId: book.id,
         authors: info.authors || [],
         tags: info.categories || [],
@@ -32,29 +35,26 @@ export const searchBooks = async (query: string): Promise<Item[]> => {
     });
   } catch (error) {
     console.error("Google Books Search Error:", error);
-    return [];
+    return null;
   }
-};
-
-export const searchByAuthor = async (author: string): Promise<Item[]> => {
-  return searchBooks(`inauthor:"${author}"`);
 };
 
 export const getBookDetails = async (id: string): Promise<any> => {
   try {
-    const data = await googleBooksClient.get<any>(`/volumes/${id}`, {
-      settingsKey: "google_books_key",
-      envKey: "VITE_GOOGLE_BOOKS_API_KEY",
-    });
-
+    const response = await googleBooksClient.get<GoogleBook>(`/volumes/${id}`);
+    const data = response.data;
     if (!data) return null;
+
     const info = data.volumeInfo;
     return {
+      title: info.title,
+      image: info.imageLinks?.thumbnail,
       description: info.description,
       authors: info.authors || [],
       genres: info.categories || [],
       related: [],
       providers: [],
+      type: "book",
     };
   } catch (error) {
     console.error("Google Books Details Error:", error);

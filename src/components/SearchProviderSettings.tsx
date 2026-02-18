@@ -17,7 +17,6 @@ interface SearchProviderSettingsProps {
 }
 
 const PROVIDER_LABELS: Record<SearchProviderId, string> = {
-  kinopoisk: "🎬 Кинопоиск",
   tmdb: "🎥 TMDB",
   rawg: "🎮 RAWG (Игры)",
   google_books: "📚 Google Books",

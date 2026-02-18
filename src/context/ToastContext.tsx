@@ -52,6 +52,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div
+        id="toast-container"
         style={{
           position: "fixed",
           top: "1rem", // Show at top
@@ -70,6 +71,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
+              className={`toast-message toast-${toast.type}`}
+              data-type={toast.type}
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}

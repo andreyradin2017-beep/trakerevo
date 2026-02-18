@@ -21,6 +21,7 @@ import { Section } from "@components/Section";
 import { GridCard } from "@components/GridCard";
 import { getDetails } from "@services/api";
 import { bulkAddPlannedItems } from "@services/itemService";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 interface DiscoverSection {
   title: string;
@@ -48,6 +49,8 @@ export const Discover: React.FC = () => {
   const [personalized, setPersonalized] = useState<DiscoverSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGenre, setActiveGenre] = useState("Все");
+  const [parent] = useAutoAnimate();
+  const [personalParent] = useAutoAnimate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -144,7 +147,7 @@ export const Discover: React.FC = () => {
     };
 
     // Remove existing ID if present from enhanceItem to allow auto-increment
-    if ("id" in newItem) delete (newItem as any).id;
+    if ("id" in newItem) delete (newItem as { id?: number }).id;
 
     const id = await db.items.add(newItem);
     if (!silent) {
@@ -157,10 +160,17 @@ export const Discover: React.FC = () => {
 
   const ownedItems = useLiveQuery(() => db.items.toArray());
 
+  // Create a memoized lookup map for performance
+  const ownedMap = React.useMemo(() => {
+    const map = new Map<string, any>();
+    ownedItems?.forEach((item) => {
+      if (item.externalId) map.set(`${item.externalId}|${item.source}`, item);
+    });
+    return map;
+  }, [ownedItems]);
+
   const enhanceItem = (item: Item) => {
-    const owned = ownedItems?.find(
-      (o) => o.externalId === item.externalId && o.source === item.source,
-    );
+    const owned = ownedMap.get(`${item.externalId}|${item.source}`);
     return {
       ...item,
       isOwned: !!owned,
@@ -168,7 +178,8 @@ export const Discover: React.FC = () => {
     };
   };
 
-  const filterItems = (items: Item[]) => {
+  const filterItems = (items: Item[] = []) => {
+    if (!items) return [];
     const enhanced = items.map(enhanceItem);
     if (activeGenre === "Все") return enhanced;
     const searchGenre = activeGenre.toLowerCase();
@@ -305,6 +316,7 @@ export const Discover: React.FC = () => {
               >
                 <div
                   className="no-scrollbar"
+                  ref={personalParent}
                   style={{
                     display: "flex",
                     gap: "0.8rem",
@@ -394,6 +406,7 @@ export const Discover: React.FC = () => {
                 {filtered.length > 0 ? (
                   <div
                     className="no-scrollbar"
+                    ref={parent}
                     style={{
                       display: "flex",
                       gap: "0.8rem",

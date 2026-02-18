@@ -102,6 +102,9 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {},
+  },
   build: {
     rollupOptions: {
       output: {

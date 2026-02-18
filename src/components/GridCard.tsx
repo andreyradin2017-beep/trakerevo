@@ -103,8 +103,6 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
 
   const getSourceInfo = () => {
     switch (item.source) {
-      case "kinopoisk":
-        return { label: "КП", color: "var(--brand-kp)" };
       case "tmdb":
         return { label: "TMDB", color: "var(--brand-tmdb)" };
       case "rawg":
@@ -291,6 +289,36 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             />
           )}
         </div>
+        {item.rating && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "0.5rem",
+              left: "0.5rem",
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(4px)",
+              padding: "0.2rem 0.4rem",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.25rem",
+              border: "1px solid rgba(255, 193, 7, 0.3)",
+              zIndex: 3,
+            }}
+          >
+            <span style={{ color: "#FFC107", fontSize: "0.7rem" }}>★</span>
+            <span
+              style={{
+                color: "white",
+                fontSize: "0.7rem",
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              {item.rating.toFixed(1)}
+            </span>
+          </div>
+        )}
 
         {/* Quick Add Button */}
         {onQuickAdd && !item.isOwned && (
@@ -391,7 +419,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "2px",
+          gap: "1px",
           padding: "0 2px",
         }}
       >
@@ -414,7 +442,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              lineHeight: "1.3",
+              lineHeight: "1.2",
               flex: 1,
             }}
           >
@@ -425,12 +453,12 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             item.currentEpisode && (
               <span
                 style={{
-                  fontSize: "0.55rem",
+                  fontSize: "0.5rem",
                   color: "var(--primary)",
                   fontWeight: 800,
                   whiteSpace: "nowrap",
                   background: "var(--primary-15)",
-                  padding: "0.1rem 0.3rem",
+                  padding: "0.1rem 0.25rem",
                   borderRadius: "4px",
                   textTransform: "uppercase",
                 }}
@@ -439,17 +467,43 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
               </span>
             )}
         </div>
-        {item.year && (
-          <span
-            style={{
-              fontSize: "0.65rem",
-              color: "var(--text-tertiary)",
-              fontWeight: 500,
-            }}
-          >
-            {item.year}
-          </span>
-        )}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            flexWrap: "wrap",
+          }}
+        >
+          {item.year && (
+            <span
+              style={{
+                fontSize: "0.6rem",
+                color: "var(--text-tertiary)",
+                fontWeight: 600,
+              }}
+            >
+              {item.year}
+            </span>
+          )}
+          {item.tags && item.tags.length > 0 && (
+            <span
+              style={{
+                fontSize: "0.6rem",
+                color: "var(--primary)",
+                fontWeight: 500,
+                opacity: 0.8,
+                maxWidth: "70%",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              • {item.tags[0]}
+              {item.tags.length > 1 && `, ${item.tags[1]}`}
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );

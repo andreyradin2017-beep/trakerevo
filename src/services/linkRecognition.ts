@@ -46,7 +46,6 @@ export const recognizeMediaFromUrl = async (
     if (
       url.includes("imdb.com") ||
       url.includes("netflix.com") ||
-      url.includes("kinopoisk.ru") ||
       ogType?.includes("video.movie")
     ) {
       type = "movie";
@@ -63,9 +62,7 @@ export const recognizeMediaFromUrl = async (
     }
 
     return {
-      title: ogTitle
-        .replace(/ - IMDb| - Steam| - Netflix| | Кинопоиск/gi, "")
-        .trim(),
+      title: ogTitle.replace(/ - IMDb| - Steam| - Netflix/gi, "").trim(),
       description: ogDescription?.substring(0, 500),
       image: ogImage || undefined,
       type,

@@ -4,38 +4,31 @@ import { db } from "../db/db";
 
 // Mock providers
 vi.mock("../services/tmdb", () => ({
-  searchMovies: vi
-    .fn()
-    .mockResolvedValue([
-      {
-        title: "Movie 1",
-        source: "tmdb",
-        externalId: "1",
-        tags: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]),
+  searchMovies: vi.fn().mockResolvedValue([
+    {
+      title: "Movie 1",
+      source: "tmdb",
+      externalId: "1",
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ]),
 }));
 vi.mock("../services/rawg", () => ({
-  searchGames: vi
-    .fn()
-    .mockResolvedValue([
-      {
-        title: "Game 1",
-        source: "rawg",
-        externalId: "2",
-        tags: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]),
+  searchGames: vi.fn().mockResolvedValue([
+    {
+      title: "Game 1",
+      source: "rawg",
+      externalId: "2",
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ]),
 }));
 vi.mock("../services/googleBooks", () => ({
   searchBooks: vi.fn().mockResolvedValue([]),
-}));
-vi.mock("../services/kinopoisk", () => ({
-  searchKinopoisk: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock DB
@@ -51,7 +44,6 @@ vi.mock("../db/db", () => ({
         { id: "tmdb", enabled: true },
         { id: "rawg", enabled: true },
         { id: "google_books", enabled: false },
-        { id: "kinopoisk", enabled: false },
       ]),
     },
   },

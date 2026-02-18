@@ -19,6 +19,7 @@ import { SkeletonCard } from "@components/SkeletonCard";
 import { CategorySelector, type Category } from "@components/CategorySelector";
 import { PageHeader } from "@components/PageHeader";
 import { motion } from "framer-motion";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 import { useLibrarySearch } from "@hooks/useItems";
 import { triggerAutoSync } from "@services/dbSync";
@@ -34,11 +35,13 @@ export const Search: React.FC = () => {
   const categoryParam = searchParams.get("category");
 
   const [query, setQuery] = useState("");
-  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [globalResults, setGlobalResults] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [recognizedItem, setRecognizedItem] = useState<Item | null>(null);
   const [searchMode, setSearchMode] = useState<"global" | "library">("global");
   const [trendingSuggestions, setTrendingSuggestions] = useState<string[]>([]);
+  useAutoAnimate();
+  const { showToast } = useToast();
 
   const currentCategory = (categoryParam as Category) || "all";
 
@@ -47,7 +50,9 @@ export const Search: React.FC = () => {
     const fetchTrends = async () => {
       // Only for global mode and when no query
       if (searchMode === "global" && !query) {
-        const trends = await getTrending(currentCategory as any);
+        const trends = await getTrending(
+          currentCategory as "movie" | "game" | "all",
+        );
         setTrendingSuggestions(trends);
       }
     };
@@ -111,16 +116,24 @@ export const Search: React.FC = () => {
       }
     }
     try {
-      // Remote Search (TMDB/etc)
-      let data: any[];
+      setLoading(true);
+      console.log("[Search] handleSearch triggered for query:", trimmedQuery);
+
+      let data: Item[] = [];
       if (currentCategory === "all") {
+        console.log("[Search] Calling searchAll...");
         data = await searchAll(trimmedQuery);
       } else {
+        console.log("[Search] Calling searchByCategory for:", currentCategory);
         data = await searchByCategory(trimmedQuery, currentCategory);
       }
+      console.log("[Search] Data received, length:", data.length);
 
       // Check which results are already in DB
-      const externalIds = data.map((i) => i.externalId).filter(Boolean);
+      const externalIds = data
+        .map((i) => i.externalId)
+        .filter((id): id is string => !!id);
+
       const existingItems = await db.items
         .where("externalId")
         .anyOf(externalIds)
@@ -156,9 +169,18 @@ export const Search: React.FC = () => {
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
-      console.error("Search failed:", error);
+    } catch (error: any) {
+      console.error("[Search] FINAL CATCH Search failed:", error);
       showToast("Ошибка поиска. Проверьте интернет.", "error");
+
+      // If we have partial results even with an error, show them
+      if (error.partialResults && error.partialResults.length > 0) {
+        console.log(
+          "[Search] Displaying partial results:",
+          error.partialResults.length,
+        );
+        setGlobalResults(error.partialResults);
+      }
     } finally {
       setLoading(false);
     }
@@ -195,9 +217,10 @@ export const Search: React.FC = () => {
     inputRef.current?.focus();
   }, []);
 
-  const { showToast } = useToast();
-
-  const handleAdd = async (item: any, skipNavigation = false) => {
+  const handleAdd = async (
+    item: Item & { isOwned?: boolean },
+    skipNavigation = false,
+  ) => {
     if (item.isOwned && item.id) {
       navigate(`/item/${item.id}`);
       return;
@@ -569,7 +592,7 @@ export const Search: React.FC = () => {
             </div>
           </div>
         ) : (
-          (query || loading) && (
+          (query || loading || searchMode === "library") && (
             <div style={{ width: "100%" }}>
               {/* Search Results */}
               <div
@@ -597,7 +620,9 @@ export const Search: React.FC = () => {
                       onClick={() => {
                         const targetId =
                           recognizedItem.id || recognizedItem.externalId;
-                        const url = (recognizedItem as any).isOwned
+                        const url = (
+                          recognizedItem as Item & { isOwned?: boolean }
+                        ).isOwned
                           ? `/item/${targetId}`
                           : `/item/${targetId}?source=${recognizedItem.source}`;
                         navigate(url);
@@ -687,50 +712,56 @@ export const Search: React.FC = () => {
                 </div>
               )}
 
-              {!loading && results.length === 0 && query && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "4rem 1rem",
-                    color: "var(--text-tertiary)",
-                    textAlign: "center",
-                  }}
-                >
-                  <div
+              {!loading &&
+                results.length === 0 &&
+                (query || searchMode === "library") && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     style={{
-                      background: "rgba(255,255,255,0.03)",
-                      padding: "1.5rem",
-                      borderRadius: "50%",
-                      marginBottom: "1rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "4rem 1rem",
+                      color: "var(--text-tertiary)",
+                      textAlign: "center",
                     }}
                   >
-                    <Ghost size={48} strokeWidth={1.5} />
-                  </div>
-                  <p
-                    style={{
-                      margin: "0 0 0.5rem 0",
-                      fontSize: "1.1rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Ничего не найдено
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "0.9rem",
-                      maxWidth: "250px",
-                      opacity: 0.7,
-                    }}
-                  >
-                    Попробуйте изменить запрос или поискать в другой категории
-                  </p>
-                </motion.div>
-              )}
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.03)",
+                        padding: "1.5rem",
+                        borderRadius: "50%",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Ghost size={48} strokeWidth={1.5} />
+                    </div>
+                    <p
+                      style={{
+                        margin: "0 0 0.5rem 0",
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {searchMode === "library" && !query
+                        ? "Библиотека пока пуста"
+                        : "Ничего не найдено"}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: "0.9rem",
+                        maxWidth: "250px",
+                        opacity: 0.7,
+                      }}
+                    >
+                      {searchMode === "library" && !query
+                        ? "Добавьте что-нибудь из глобального поиска, чтобы увидеть это здесь"
+                        : "Попробуйте изменить запрос или поискать в другой категории"}
+                    </p>
+                  </motion.div>
+                )}
             </div>
           )
         )}

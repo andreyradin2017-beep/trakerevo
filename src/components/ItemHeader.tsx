@@ -172,30 +172,17 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
             <span
               style={{
                 fontSize: "0.6rem",
-                background:
-                  source === "yandex"
-                    ? "rgba(252, 63, 29, 0.1)"
-                    : "var(--bg-surface)",
-                border:
-                  source === "yandex"
-                    ? "1px solid rgba(252, 63, 29, 0.3)"
-                    : "1px solid rgba(255,255,255,0.05)",
+                background: "var(--bg-surface)",
+                border: "1px solid rgba(255,255,255,0.05)",
                 padding: "0.15rem 0.5rem",
                 borderRadius: "6px",
                 textTransform: "uppercase",
                 fontWeight: "var(--fw-black)",
-                color:
-                  source === "yandex"
-                    ? "var(--brand-yandex)"
-                    : "var(--text-secondary)",
+                color: "var(--text-secondary)",
                 letterSpacing: "0.5px",
               }}
             >
-              {source === "google_books"
-                ? "BOOKS"
-                : source === "yandex"
-                  ? "ЯНДЕКС"
-                  : source}
+              {source === "google_books" ? "BOOKS" : source}
             </span>
           )}
           <span

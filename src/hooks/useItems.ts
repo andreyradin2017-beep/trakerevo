@@ -16,20 +16,20 @@ export function useRecentItems(
     // Apply sorting
     switch (sortBy) {
       case "dateAdded":
-        sorted = all.sort((a, b) => (b.id || 0) - (a.id || 0));
+        sorted = [...all].sort((a, b) => (b.id || 0) - (a.id || 0));
         break;
       case "rating":
-        sorted = all.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        sorted = [...all].sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "releaseDate":
-        sorted = all.sort((a, b) => {
+        sorted = [...all].sort((a, b) => {
           const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
           const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
           return dateB - dateA; // Newest first
         });
         break;
       case "title":
-        sorted = all.sort((a, b) => a.title.localeCompare(b.title));
+        sorted = [...all].sort((a, b) => a.title.localeCompare(b.title));
         break;
     }
 

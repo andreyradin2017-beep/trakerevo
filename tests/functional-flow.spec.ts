@@ -2,25 +2,6 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Functional Flow: Add and Navigate", () => {
   test.beforeEach(async ({ page }) => {
-    console.log("Setting up test environment...");
-
-    // Log all requests
-    page.on("request", (request) => {
-      if (request.url().includes("api")) {
-        console.log(">> Request:", request.method(), request.url());
-      }
-    });
-
-    page.on("response", (response) => {
-      if (response.url().includes("api")) {
-        console.log("<< Response:", response.status(), response.url());
-      }
-    });
-
-    page.on("console", (msg) => {
-      console.log(`BROWSER [${msg.type()}]: ${msg.text()}`);
-    });
-
     // Disable animations and mock auth
     await page.addInitScript(() => {
       const style = document.createElement("style");

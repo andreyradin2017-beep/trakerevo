@@ -31,7 +31,7 @@ export interface Item {
   tags: string[];
   externalId?: string;
   authors?: string[];
-  source?: "tmdb" | "rawg" | "google_books" | "kinopoisk" | "manual";
+  source?: "tmdb" | "rawg" | "google_books" | "manual";
   supabaseId?: string; // UUID from Supabase
   createdAt: Date;
   updatedAt: Date;
@@ -53,7 +53,7 @@ export interface Settings {
   value: any;
 }
 
-export type SearchProviderId = "tmdb" | "kinopoisk" | "rawg" | "google_books";
+export type SearchProviderId = "tmdb" | "rawg" | "google_books";
 
 export interface SearchProvider {
   id: SearchProviderId;
