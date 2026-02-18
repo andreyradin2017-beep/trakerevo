@@ -9,6 +9,9 @@ import { useAuth } from "./AuthContext";
 import { syncAll } from "../services/dbSync";
 import type { SyncStatus, SyncResult } from "../types/sync";
 import { logger } from "../utils/logger";
+import { db } from "../db/db";
+import { migrateGuestData } from "../services/dbSync";
+import { MigrationModal } from "../components/MigrationModal";
 
 const CONTEXT = "SyncContext";
 
@@ -34,6 +37,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   const [status, setStatus] = useState<SyncStatus>("idle");
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showMigration, setShowMigration] = useState(false);
+  const [hasCheckedMigration, setHasCheckedMigration] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -71,16 +76,55 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user, isOnline]);
 
-  // Initial sync on mount/auth
+  // Migration Check logic
   useEffect(() => {
-    if (user && isOnline) {
-      triggerSync();
+    if (user && !hasCheckedMigration) {
+      const checkLocalData = async () => {
+        // If we have local items/lists without supabaseId, it means they are guest data
+        const guestItems = await db.items.filter((i) => !i.supabaseId).count();
+        const guestLists = await db.lists.filter((l) => !l.supabaseId).count();
+
+        if (guestItems > 0 || guestLists > 0) {
+          setShowMigration(true);
+        } else {
+          // No guest data, just sync normally
+          triggerSync();
+        }
+        setHasCheckedMigration(true);
+      };
+      checkLocalData();
+    } else if (!user) {
+      setHasCheckedMigration(false);
     }
-  }, [user, isOnline, triggerSync]);
+  }, [user, hasCheckedMigration, triggerSync]);
+
+  const handleMigration = async (mode: "merge" | "replace") => {
+    setShowMigration(false);
+    setStatus("syncing");
+    try {
+      if (user) {
+        await migrateGuestData(user.id, mode);
+        setStatus("success");
+        setTimeout(() => setStatus("idle"), 3000);
+      }
+    } catch (error) {
+      logger.error("Migration failed", CONTEXT, error);
+      setStatus("error");
+    }
+  };
 
   return (
     <SyncContext.Provider value={{ status, lastResult, triggerSync, isOnline }}>
       {children}
+      <MigrationModal
+        isOpen={showMigration}
+        onMerge={() => handleMigration("merge")}
+        onReplace={() => handleMigration("replace")}
+        onClose={() => {
+          setShowMigration(false);
+          triggerSync(); // Fallback to normal sync
+        }}
+      />
     </SyncContext.Provider>
   );
 };

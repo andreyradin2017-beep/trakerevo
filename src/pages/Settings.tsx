@@ -131,8 +131,40 @@ export const Settings: React.FC = () => {
       isOpen: true,
       title: "Очистка данных",
       message:
-        "ВНИМАНИЕ: Это удалит ВСЕ элементы и списки. Это действие необратимо! Вы уверены?",
+        "ВНИМАНИЕ: Это удалит ВСЕ элементы и списки. Если вы вошли в аккаунт, данные также удалятся из облака. Вы уверены?",
       onConfirm: async () => {
+        // If user is logged in, mark for deletion in Supabase
+        if (user) {
+          const items = await db.items.toArray();
+          const lists = await db.lists.toArray();
+
+          const deletions: any[] = [];
+
+          items.forEach((item) => {
+            if (item.supabaseId) {
+              deletions.push({
+                id: item.supabaseId,
+                table: "items",
+                timestamp: Date.now(),
+              });
+            }
+          });
+
+          lists.forEach((list) => {
+            if (list.supabaseId) {
+              deletions.push({
+                id: list.supabaseId,
+                table: "lists",
+                timestamp: Date.now(),
+              });
+            }
+          });
+
+          if (deletions.length > 0) {
+            await db.deleted_metadata.bulkPut(deletions);
+          }
+        }
+
         await Promise.all([
           db.items.clear(),
           db.lists.clear(),
@@ -140,6 +172,12 @@ export const Settings: React.FC = () => {
           db.cache.clear(),
           db.search_history.clear(),
         ]);
+
+        if (user) {
+          showToast("Синхронизация удаления...", "info");
+          await syncAll();
+        }
+
         showToast("База данных очищена", "info");
         setTimeout(() => window.location.reload(), 1000);
       },
@@ -471,9 +509,60 @@ export const Settings: React.FC = () => {
               fontSize: "0.85rem",
               cursor: "pointer",
               opacity: 0.8,
+              marginBottom: "0.75rem",
             }}
           >
             Очистить все данные
+          </button>
+
+          <button
+            onClick={async () => {
+              const kinopoiskItems = await db.items
+                .where("source")
+                .equals("kinopoisk")
+                .toArray();
+              if (kinopoiskItems.length === 0) {
+                showToast("Элементов Кинопоиска не найдено", "info");
+                return;
+              }
+
+              setConfirmState({
+                isOpen: true,
+                title: "Удалить данные Кинопоиска",
+                message: `Найдено ${kinopoiskItems.length} элементов. Удалить их?`,
+                onConfirm: async () => {
+                  if (user) {
+                    const deletions = kinopoiskItems
+                      .filter((i) => i.supabaseId)
+                      .map((i) => ({
+                        id: i.supabaseId!,
+                        table: "items" as const,
+                        timestamp: Date.now(),
+                      }));
+                    if (deletions.length > 0) {
+                      await db.deleted_metadata.bulkPut(deletions);
+                    }
+                  }
+                  await db.items.bulkDelete(kinopoiskItems.map((i) => i.id!));
+                  if (user) await syncAll();
+                  showToast("Элементы Кинопоиска удалены", "success");
+                  setConfirmState((prev) => ({ ...prev, isOpen: false }));
+                },
+              });
+            }}
+            style={{
+              width: "100%",
+              padding: "0.85rem",
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "var(--radius-lg)",
+              color: "var(--text-secondary)",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+            }}
+          >
+            Удалить остатки Кинопоиска
           </button>
 
           <input
