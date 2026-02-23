@@ -69,8 +69,9 @@ export const ListPage: React.FC = () => {
   // Filter items by status locally
   const filteredItems = React.useMemo(() => {
     if (!items) return [];
-    if (statusFilter === "all") return items;
-    return items.filter((item) => item.status === statusFilter);
+    const baseItems = items.filter((item) => !item.isArchived);
+    if (statusFilter === "all") return baseItems;
+    return baseItems.filter((item) => item.status === statusFilter);
   }, [items, statusFilter]);
 
   if (!data?.list) {

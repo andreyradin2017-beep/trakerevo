@@ -7,29 +7,9 @@ import type {
   TMDBWatchProviders,
 } from "../types/api";
 import { getProxiedImageUrl } from "../utils/images";
-
-const GENRE_MAP: Record<number, string> = {
-  28: "Экшен",
-  12: "Приключения",
-  16: "Мультфильм",
-  35: "Комедия",
-  80: "Криминал",
-  99: "Документальный",
-  18: "Драма",
-  10751: "Семейный",
-  14: "Фэнтези",
-  36: "История",
-  27: "Ужасы",
-  10402: "Музыка",
-  9648: "Детектив",
-  10749: "Мелодрама",
-  878: "Фантастика",
-  53: "Триллер",
-  10752: "Военный",
-  37: "Вестерн",
-  10759: "Экшен и Приключения",
-  10765: "Sci-Fi и Фэнтези",
-};
+import { logger } from "../utils/logger";
+import { TMDB_GENRE_MAP } from "../utils/genreMaps";
+import { PATTERNS } from "../utils/constants";
 
 export const getMovieDetails = async (
   id: string,
@@ -73,8 +53,21 @@ export const getMovieDetails = async (
 
     const trailer = videosData?.results?.find(
       (v) =>
-        (v.type === "Trailer" || v.type === "Teaser") && v.site === "YouTube",
+        (v.type === "Trailer" || v.type === "Teaser") &&
+        v.site === "YouTube" &&
+        PATTERNS.YOUTUBE_ID.test(v.key),
     );
+
+    // Get seasons/episodes info for TV shows
+    const episodesPerSeason = mediaType === "tv" && (details as any).seasons
+      ? (details as any).seasons
+          .filter((s: any) => s.season_number > 0)
+          .map((s: any) => s.episode_count || 0)
+      : undefined;
+
+    const totalEpisodes = episodesPerSeason
+      ? episodesPerSeason.reduce((sum: number, count: number) => sum + count, 0)
+      : undefined;
 
     return {
       title: details.title || details.name,
@@ -113,14 +106,23 @@ export const getMovieDetails = async (
           ? new Date(details.first_air_date).getFullYear()
           : undefined,
       rating: details.vote_average,
+      // TV Show specific data
+      totalEpisodes,
+      episodesPerSeason,
+      numberOfSeasons: (details as any).number_of_seasons,
     };
   } catch (error) {
-    console.error("TMDB Details Error:", error);
+    logger.error("TMDB Details Error", "tmdb", error);
     return null;
   }
 };
 
 export const searchMovies = async (query: string): Promise<Item[] | null> => {
+  // Prevent search with empty/undefined query
+  if (!query || query.trim() === "") {
+    return null;
+  }
+
   try {
     const response = await tmdbClient.get<TMDBSearchResponse>("/search/multi", {
       params: {
@@ -156,14 +158,14 @@ export const searchMovies = async (query: string): Promise<Item[] | null> => {
         source: "tmdb" as const,
         externalId: result.id.toString(),
         tags: (result.genre_ids || [])
-          .map((id) => GENRE_MAP[id])
+          .map((id) => TMDB_GENRE_MAP[id])
           .filter(Boolean),
         rating: result.vote_average,
         createdAt: new Date(),
         updatedAt: new Date(),
       }));
   } catch (error) {
-    console.error("TMDB Search Error:", error);
+    logger.error("TMDB Search Error", "tmdb", error);
     return null;
   }
 };
@@ -183,7 +185,7 @@ export const getTrendingMovies = async (
       .map((r: TMDBMovie) => r.title || r.name || "")
       .filter(Boolean);
   } catch (error) {
-    console.error("TMDB Trending Error:", error);
+    logger.error("TMDB Trending Error", "tmdb", error);
     return [];
   }
 };

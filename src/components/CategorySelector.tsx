@@ -1,9 +1,9 @@
 import React from "react";
-import { Layers, Film, Gamepad2, BookOpen } from "lucide-react";
+import { Film, Gamepad2, BookOpen } from "lucide-react";
 import { selectionChanged } from "@/utils/haptics";
 import { motion } from "framer-motion";
 
-export type Category = "all" | "movie" | "game" | "book";
+export type Category = "movie" | "game" | "book";
 
 interface CategorySelectorProps {
   activeCategory: Category;
@@ -19,7 +19,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   style,
 }) => {
   const categories: { id: Category; icon: any; label: string }[] = [
-    { id: "all", icon: Layers, label: "Все" },
     { id: "movie", icon: Film, label: "Кино" },
     { id: "game", icon: Gamepad2, label: "Игры" },
     { id: "book", icon: BookOpen, label: "Книги" },

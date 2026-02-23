@@ -2,13 +2,20 @@ import { rawgClient } from "./apiClient";
 import type { Item } from "../types";
 import type { RAWGSearchResponse, RAWGGame } from "../types/api";
 import { fetchHLTBStats } from "./hltb";
+import { logger } from "../utils/logger";
 
 export const searchGames = async (query: string): Promise<Item[] | null> => {
+  // Prevent search with empty/undefined query
+  if (!query || query.trim() === "") {
+    return null;
+  }
+
   try {
     const response = await rawgClient.get<RAWGSearchResponse>("/games", {
       params: {
         search: query,
         page_size: 20,
+        language: "ru",
       },
     });
 
@@ -26,23 +33,38 @@ export const searchGames = async (query: string): Promise<Item[] | null> => {
       source: "rawg" as const,
       externalId: game.id.toString(),
       tags: game.genres.map((g) => g.name),
+      platforms: game.platforms?.map((p) => p.platform.name) || [],
+      metacriticScore: game.metacritic,
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
   } catch (error) {
-    console.error("RAWG Search Error:", error);
+    logger.error("RAWG Search Error", "rawg", error);
     return null;
   }
 };
 
 export const getGameDetails = async (id: string): Promise<any> => {
   try {
-    const response = await rawgClient.get<RAWGGame>(`/games/${id}`);
+    const response = await rawgClient.get<RAWGGame>(`/games/${id}`, {
+      params: {
+        language: "ru",
+      },
+    });
     const data = response.data;
     if (!data) return null;
 
-    // Recommendations/Suggested games are disabled for RAWG to prevent 401 errors with free keys
-    const related: any[] = [];
+    // Fetch related games with graceful 401 handling
+    let related: any[] = [];
+    try {
+      const relatedRes = await rawgClient.get(`/games/${id}/additions`);
+      related = relatedRes.data?.results?.slice(0, 8) || [];
+    } catch (err: any) {
+      // Ignore 401/403 errors for free API keys
+      if (err.response?.status !== 401 && err.response?.status !== 403) {
+        logger.warn("RAWG related games fetch failed", "rawg", err);
+      }
+    }
 
     const hltb = await fetchHLTBStats(data.name);
 
@@ -60,9 +82,16 @@ export const getGameDetails = async (id: string): Promise<any> => {
       hltb,
       providers: [],
       type: "game",
+      platforms: data.platforms?.map((p) => p.platform.name) || [],
+      developers: data.developers?.map((d) => d.name) || [],
+      publishers: data.publishers?.map((p) => p.name) || [],
+      metacriticScore: data.metacritic,
+      esrbRating: data.esrb_rating?.name,
+      playtime: data.playtime,
+      website: data.website,
     };
   } catch (error) {
-    console.error("RAWG Details Error:", error);
+    logger.error("RAWG Details Error", "rawg", error);
     return null;
   }
 };
@@ -73,12 +102,13 @@ export const getPopularGames = async (): Promise<string[]> => {
       params: {
         ordering: "-added",
         page_size: 6,
+        language: "ru",
       },
     });
     const data = response.data;
     return (data?.results || []).map((game) => game.name);
   } catch (error) {
-    console.error("RAWG Popular Error:", error);
+    logger.error("RAWG Popular Error", "rawg", error);
     return [];
   }
 };

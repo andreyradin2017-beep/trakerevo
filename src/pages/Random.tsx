@@ -14,7 +14,7 @@ export const Random: React.FC = () => {
   const navigate = useNavigate();
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<Item | null>(null);
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const [activeCategory, setActiveCategory] = useState<Category>("movie");
   const [displayItem, setDisplayItem] = useState<Item | null>(null);
 
   const plannedItems = useLiveQuery(() =>
@@ -23,7 +23,6 @@ export const Random: React.FC = () => {
 
   const filteredItems = useMemo(() => {
     if (!plannedItems) return [];
-    if (activeCategory === "all") return plannedItems;
     return plannedItems.filter((item) => item.type === activeCategory);
   }, [plannedItems, activeCategory]);
 

@@ -11,11 +11,12 @@ interface ItemMetadataDetailsProps {
       title: string;
       image?: string;
       type: string;
+      source?: string;
     }[];
   } | null;
   expandedSections: Record<string, boolean>;
   toggleSection: (id: string) => void;
-  onNavigateToSearch: (title: string) => void;
+  onNavigateToSearch: (title: string, source?: string, type?: string) => void;
 }
 
 const SectionHeader: React.FC<{
@@ -156,11 +157,19 @@ export const ItemMetadataDetails: React.FC<ItemMetadataDetailsProps> = ({
                   margin: "0 -0.5rem",
                 }}
               >
-                {extraMetadata.related.map((r, idx) => (
+                {extraMetadata.related
+                  .filter((r) => r.title && r.title.trim() !== "" && r.image)
+                  .map((r, idx) => (
                   <motion.div
                     key={r.externalId || idx}
                     {...pressAnimation}
-                    onClick={() => onNavigateToSearch(r.title)}
+                    onClick={() =>
+                      onNavigateToSearch(
+                        r.title,
+                        r.source,
+                        r.type === "show" ? "tv" : "movie",
+                      )
+                    }
                     style={{
                       minWidth: "110px",
                       width: "110px",

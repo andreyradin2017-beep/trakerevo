@@ -20,6 +20,26 @@ export default defineConfig({
       "@types": fileURLToPath(new URL("./src/types/index.ts", import.meta.url)),
     },
   },
+  optimizeDeps: {
+    exclude: ["api"],
+  },
+  server: {
+    proxy: {
+      // Proxy for old tmdb-image URLs (used before wsrv.nl migration)
+      "/api/tmdb-image": {
+        target: "https://image.tmdb.org/t/p",
+        changeOrigin: true,
+        rewrite: (path) => {
+          const url = new URL(path, "http://localhost:5173");
+          const imagepath = url.searchParams.get("path");
+          return imagepath || path;
+        },
+      },
+    },
+    watch: {
+      ignored: ["**/api/**"],
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -81,16 +101,13 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ url }) =>
-              url.origin === "https://media.rawg.io" ||
-              url.origin === "https://wsrv.nl" ||
-              url.href.includes("googleusercontent.com") ||
-              url.pathname.startsWith("/tmdb-image"),
-            handler: "StaleWhileRevalidate",
+            // Cache external images (RAWG, TMDB via wsrv.nl, Google)
+            urlPattern: /^https:\/\/(media\.rawg\.io|wsrv\.nl|.*\.googleusercontent\.com)\/.*/i,
+            handler: "CacheFirst",
             options: {
               cacheName: "external-images-cache",
               expiration: {
-                maxEntries: 200,
+                maxEntries: 300,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
               cacheableResponse: {
@@ -102,9 +119,6 @@ export default defineConfig({
       },
     }),
   ],
-  server: {
-    proxy: {},
-  },
   build: {
     rollupOptions: {
       output: {

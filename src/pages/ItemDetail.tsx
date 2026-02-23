@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { db } from "@db/db";
 import type { Item } from "@types";
 
@@ -22,8 +22,26 @@ import { Plus } from "lucide-react";
 export const ItemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Get the search query from URL params to restore it on back navigation
+  const fromSearch = searchParams.get("fromSearch");
+  const sourceParam = searchParams.get("source");
+
+  // Handle back navigation - restore search with query if available
+  const handleBack = () => {
+    if (fromSearch) {
+      const params = new URLSearchParams();
+      params.set("q", fromSearch);
+      if (sourceParam) params.set("source", sourceParam);
+      params.set("category", item?.type === "show" || item?.type === "movie" ? "movie" : item?.type || "movie");
+      navigate(`/search?${params.toString()}`, { replace: true });
+    } else {
+      navigate(-1);
+    }
+  };
 
   // Edit states
   const [status, setStatus] = useState<Item["status"]>("planned");
@@ -52,6 +70,13 @@ export const ItemDetail: React.FC = () => {
     }[];
     hltb?: { main: string; extra: string; completionist: string };
     authors?: string[];
+    platforms?: string[];
+    developers?: string[];
+    publishers?: string[];
+    metacriticScore?: number;
+    esrbRating?: string;
+    playtime?: number;
+    website?: string;
   } | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
@@ -69,7 +94,7 @@ export const ItemDetail: React.FC = () => {
 
   const lists = useLiveQuery(() => db.lists.toArray());
   const queryParams = new URLSearchParams(window.location.search);
-  const sourceParam = queryParams.get("source");
+  const urlSourceParam = queryParams.get("source");
 
   useEffect(() => {
     if (id) {
@@ -80,10 +105,10 @@ export const ItemDetail: React.FC = () => {
           let found: Item | undefined;
 
           // 1. If source is specified, it's definitely an externalId lookup
-          if (sourceParam && id) {
+          if (urlSourceParam && id) {
             found = await db.items
               .where("[externalId+source]")
-              .equals([id, sourceParam])
+              .equals([id, urlSourceParam])
               .first();
           }
 
@@ -126,17 +151,17 @@ export const ItemDetail: React.FC = () => {
                   console.error("Failed to load external details:", error);
                 });
             }
-          } else if (sourceParam && id) {
+          } else if (urlSourceParam && id) {
             // Preview Mode: Item not in DB, but we have external ID and source
             // We fetch details to show the page
-            getDetails({ externalId: id, source: sourceParam } as any)
+            getDetails({ externalId: id, source: urlSourceParam } as any)
               .then((data: any) => {
                 if (data) {
                   setExtraMetadata(data);
                   setItem({
-                    title: data.title || "Загрузка...",
+                    title: data.title || id,
                     type: data.type || "movie",
-                    source: sourceParam as any,
+                    source: urlSourceParam as any,
                     externalId: id,
                     image: data.image,
                     description: data.description,
@@ -182,7 +207,7 @@ export const ItemDetail: React.FC = () => {
     notificationOccurred("success");
     showToast("Изменения сохранены", "success");
     triggerAutoSync();
-    navigate(-1);
+    handleBack();
   };
 
   const toggleArchive = async () => {
@@ -211,7 +236,7 @@ export const ItemDetail: React.FC = () => {
     notificationOccurred("success");
     showToast("Элемент удален", "info");
     triggerAutoSync();
-    navigate(-1);
+    handleBack();
   };
 
   const handleQuickAddRecord = async () => {
@@ -221,6 +246,9 @@ export const ItemDetail: React.FC = () => {
       status: "planned",
       createdAt: new Date(),
       updatedAt: new Date(),
+      // Auto-fill seasons/episodes for TV shows
+      episodesPerSeason: (extraMetadata as any)?.episodesPerSeason,
+      totalProgress: (extraMetadata as any)?.totalEpisodes,
     };
     if ("id" in newItem) delete (newItem as any).id;
     const newId = await db.items.add(newItem);
@@ -285,7 +313,7 @@ export const ItemDetail: React.FC = () => {
       <PageHeader
         title="Детали"
         showBack
-        onBack={() => navigate(-1)}
+        onBack={handleBack}
         showSyncStatus={false}
         style={{
           paddingTop: "var(--space-md)",
@@ -313,6 +341,7 @@ export const ItemDetail: React.FC = () => {
             source={item.source}
             genres={extraMetadata?.genres || item.tags}
             authors={extraMetadata?.authors || item.authors}
+            platforms={extraMetadata?.platforms || item.platforms}
             onShowTrailer={() => setShowTrailer(true)}
             onAuthorClick={(author) => {
               navigate(`/search?q=${encodeURIComponent(author)}&category=book`);
@@ -345,6 +374,8 @@ export const ItemDetail: React.FC = () => {
               currentEpisode={currentEpisode}
               progress={progress}
               totalProgress={totalProgress}
+              episodesPerSeason={item.episodesPerSeason}
+              numberOfSeasons={(extraMetadata as any)?.numberOfSeasons}
               onStatusChange={setStatus}
               onArchiveToggle={toggleArchive}
               onSeasonChange={setCurrentSeason}
@@ -409,9 +440,12 @@ export const ItemDetail: React.FC = () => {
               extraMetadata={extraMetadata}
               expandedSections={expandedSections}
               toggleSection={toggleSection}
-              onNavigateToSearch={(title) =>
-                navigate(`/search?q=${encodeURIComponent(title)}`)
-              }
+              onNavigateToSearch={(title, source, type) => {
+                const params = new URLSearchParams({ q: title });
+                if (source) params.set("source", source);
+                if (type) params.set("type", type);
+                navigate(`/search?${params.toString()}`);
+              }}
             />
           </BentoTile>
         ) : null}

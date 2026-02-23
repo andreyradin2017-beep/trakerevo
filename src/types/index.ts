@@ -1,5 +1,5 @@
 export type ItemType = "movie" | "show" | "game" | "book" | "other";
-export type ItemStatus = "planned" | "in_progress" | "completed" | "dropped";
+export type ItemStatus = "planned" | "in_progress" | "completed";
 
 export interface Item {
   id?: number;
@@ -26,12 +26,19 @@ export interface Item {
   watchProviders?: { name: string; logo: string; url?: string }[];
   releaseDate?: Date; // Release date for upcoming content
   relatedExternalIds?: string[];
+  platforms?: string[]; // Gaming platforms (PC, PlayStation, Xbox)
+  developers?: string[];
+  publishers?: string[];
+  metacriticScore?: number;
+  esrbRating?: string;
+  playtime?: number; // Hours
+  website?: string;
 
   notes?: string;
   tags: string[];
   externalId?: string;
   authors?: string[];
-  source?: "tmdb" | "rawg" | "google_books" | "manual";
+  source?: "tmdb" | "kinopoisk" | "rawg" | "google_books" | "manual";
   supabaseId?: string; // UUID from Supabase
   createdAt: Date;
   updatedAt: Date;
@@ -53,7 +60,7 @@ export interface Settings {
   value: any;
 }
 
-export type SearchProviderId = "tmdb" | "rawg" | "google_books";
+export type SearchProviderId = "tmdb" | "kinopoisk" | "rawg" | "google_books";
 
 export interface SearchProvider {
   id: SearchProviderId;

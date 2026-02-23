@@ -2,6 +2,7 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp?: {
+        version?: string;
         HapticFeedback?: {
           impactOccurred: (style: string) => void;
           notificationOccurred: (type: string) => void;
@@ -14,14 +15,26 @@ declare global {
 
 const getTG = () => window.Telegram?.WebApp;
 
+// Check if HapticFeedback is actually supported (requires TG version 7.0+)
+const isHapticSupported = () => {
+  const TG = getTG();
+  if (!TG?.HapticFeedback) return false;
+  
+  // HapticFeedback was introduced in TG 7.0
+  const version = TG.version || "0";
+  const majorVersion = parseInt(version.split(".")[0] || "0", 10);
+  return majorVersion >= 7;
+};
+
 type HapticStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
 type NotificationType = "error" | "success" | "warning";
 
 export const vibrate = (style: HapticStyle = "light") => {
   const TG = getTG();
-  // 1. Try Telegram Haptics first (best experience on TG)
-  if (TG?.HapticFeedback) {
-    TG.HapticFeedback.impactOccurred(style);
+  
+  // 1. Try Telegram HapticFeedback if supported (best experience on TG)
+  if (isHapticSupported()) {
+    TG!.HapticFeedback!.impactOccurred(style);
     return;
   }
 
@@ -49,8 +62,9 @@ export const vibrate = (style: HapticStyle = "light") => {
 
 export const notificationOccurred = (type: NotificationType) => {
   const TG = getTG();
-  if (TG?.HapticFeedback) {
-    TG.HapticFeedback.notificationOccurred(type);
+  
+  if (isHapticSupported()) {
+    TG!.HapticFeedback!.notificationOccurred(type);
     return;
   }
 
@@ -71,8 +85,9 @@ export const notificationOccurred = (type: NotificationType) => {
 
 export const selectionChanged = () => {
   const TG = getTG();
-  if (TG?.HapticFeedback) {
-    TG.HapticFeedback.selectionChanged();
+  
+  if (isHapticSupported()) {
+    TG!.HapticFeedback!.selectionChanged();
     return;
   }
 

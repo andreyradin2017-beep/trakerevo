@@ -2,6 +2,8 @@ import { db } from "../db/db";
 import type { Item } from "../types";
 import { getProxiedImageUrl } from "../utils/images";
 import { tmdbClient, rawgClient } from "./apiClient";
+import { logger } from "../utils/logger";
+import { TMDB_GENRE_MAP } from "../utils/genreMaps";
 
 interface DiscoverData {
   trending: Item[];
@@ -9,29 +11,6 @@ interface DiscoverData {
   newGames: Item[];
   upcomingGames: Item[];
 }
-
-const GENRE_MAP: Record<number, string> = {
-  28: "Экшен",
-  12: "Приключения",
-  16: "Мультфильм",
-  35: "Комедия",
-  80: "Криминал",
-  99: "Документальный",
-  18: "Драма",
-  10751: "Семейный",
-  14: "Фэнтези",
-  36: "История",
-  27: "Ужасы",
-  10402: "Музыка",
-  9648: "Детектив",
-  10749: "Мелодрама",
-  878: "Фантастика",
-  53: "Триллер",
-  10752: "Военный",
-  37: "Вестерн",
-  10759: "Экшен и Приключения",
-  10765: "Sci-Fi и Фэнтези",
-};
 
 const RAWG_GENRE_MAP: Record<string, string> = {
   Action: "Экшен",
@@ -116,7 +95,7 @@ export const getDiscoverData = async (): Promise<DiscoverData> => {
         externalId: item.id.toString(),
         source: "tmdb" as const,
         tags:
-          item.genre_ids?.map((id: number) => GENRE_MAP[id]).filter(Boolean) ||
+          item.genre_ids?.map((id: number) => TMDB_GENRE_MAP[id]).filter(Boolean) ||
           [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -151,7 +130,7 @@ export const getDiscoverData = async (): Promise<DiscoverData> => {
     await db.cache.put({ key: cacheKey, data, timestamp: Date.now() });
     return data;
   } catch (error) {
-    console.error("Discover data fetch failed:", error);
+    logger.error("Discover data fetch failed", "discover", error);
     return { trending: [], upcoming: [], newGames: [], upcomingGames: [] };
   }
 };

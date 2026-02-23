@@ -49,8 +49,6 @@ export const CompactListItem: React.FC<CompactListItemProps> = ({
         return "var(--success)";
       case "in_progress":
         return "var(--primary)";
-      case "dropped":
-        return "var(--error)";
       default:
         return "var(--text-tertiary)";
     }

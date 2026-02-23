@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { Item } from "../types";
+import { logger } from "../utils/logger";
 
 /**
  * Recognizes media information from a URL using Open Graph metadata.
@@ -72,7 +73,7 @@ export const recognizeMediaFromUrl = async (
       updatedAt: new Date(),
     };
   } catch (error) {
-    console.error("Link recognition failed:", error);
+    logger.error("Link recognition failed", "linkRecognition", error);
     return null;
   }
 };

@@ -10,7 +10,11 @@ import {
   Plus,
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { searchAll, searchByCategory, getTrending } from "@services/api";
+import { getTrending } from "@services/api";
+import { searchKinopoisk } from "@services/kinopoisk";
+import { searchMovies } from "@services/tmdb";
+import { searchGames } from "@services/rawg";
+import { searchBooks } from "@services/googleBooks";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { Item } from "@types";
 import { db } from "@db/db";
@@ -28,13 +32,15 @@ import { PullToRefresh } from "@components/PullToRefresh";
 import { vibrate } from "@utils/haptics";
 import { bulkAddPlannedItems } from "@services/itemService";
 import { recognizeMediaFromUrl } from "@services/linkRecognition";
+import { logger } from "@utils/logger";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const categoryParam = searchParams.get("category");
 
   const [query, setQuery] = useState("");
+  const [lastQuery, setLastQuery] = useState(""); // Track last non-empty query
+  const [lastCategory, setLastCategory] = useState<Category>("movie"); // Track last category
   const [globalResults, setGlobalResults] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [recognizedItem, setRecognizedItem] = useState<Item | null>(null);
@@ -43,30 +49,36 @@ export const Search: React.FC = () => {
   useAutoAnimate();
   const { showToast } = useToast();
 
-  const currentCategory = (categoryParam as Category) || "all";
+  const currentCategory = (searchParams.get("category") as Category) || "movie";
 
   // Fetch trending on mount or category change
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchTrends = async () => {
       // Only for global mode and when no query
       if (searchMode === "global" && !query) {
         const trends = await getTrending(
           currentCategory as "movie" | "game" | "all",
         );
-        setTrendingSuggestions(trends);
+        if (!cancelled) {
+          setTrendingSuggestions(trends);
+        }
       }
     };
+    
     fetchTrends();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [currentCategory, searchMode, query]);
 
   // Hook handles all library search logic reactively
   const libraryResults = useLibrarySearch(query, currentCategory);
 
-  // Filter global results by category
-  const filteredGlobalResults =
-    currentCategory === "all"
-      ? globalResults
-      : globalResults.filter((item) => item.type === currentCategory);
+  // No filtering needed - search is already category-specific
+  const filteredGlobalResults = globalResults;
 
   // Unified results based on active mode
   const results =
@@ -99,6 +111,12 @@ export const Search: React.FC = () => {
       return;
     }
 
+    // Clear source param when doing a new manual search
+    if (searchParams.get("source")) {
+      searchParams.delete("source");
+      setSearchParams(searchParams, { replace: true });
+    }
+
     setLoading(true);
     setRecognizedItem(null);
 
@@ -117,17 +135,39 @@ export const Search: React.FC = () => {
     }
     try {
       setLoading(true);
-      console.log("[Search] handleSearch triggered for query:", trimmedQuery);
+      logger.debug("[Search] handleSearch triggered", "Search");
 
+      const sourceParam = searchParams.get("source");
       let data: Item[] = [];
-      if (currentCategory === "all") {
-        console.log("[Search] Calling searchAll...");
-        data = await searchAll(trimmedQuery);
+
+      // Search by specific source if provided
+      if (sourceParam) {
+        logger.debug("[Search] Searching by source: " + sourceParam, "Search");
+        if (sourceParam === "kinopoisk") {
+          data = (await searchKinopoisk(trimmedQuery)) || [];
+        } else if (sourceParam === "tmdb") {
+          data = (await searchMovies(trimmedQuery)) || [];
+        } else if (sourceParam === "rawg") {
+          data = (await searchGames(trimmedQuery)) || [];
+        } else if (sourceParam === "google_books") {
+          data = (await searchBooks(trimmedQuery)) || [];
+        }
       } else {
-        console.log("[Search] Calling searchByCategory for:", currentCategory);
-        data = await searchByCategory(trimmedQuery, currentCategory);
+        // Fallback to category search
+        if (currentCategory === "movie") {
+          const [tmdbResults, kinopoiskResults] = await Promise.all([
+            searchMovies(trimmedQuery),
+            searchKinopoisk(trimmedQuery),
+          ]);
+          data = [...(tmdbResults || []), ...(kinopoiskResults || [])];
+        } else if (currentCategory === "game") {
+          data = (await searchGames(trimmedQuery)) || [];
+        } else if (currentCategory === "book") {
+          data = (await searchBooks(trimmedQuery)) || [];
+        }
       }
-      console.log("[Search] Data received, length:", data.length);
+
+      logger.debug("[Search] Results count: " + data.length, "Search");
 
       // Check which results are already in DB
       const externalIds = data
@@ -170,15 +210,12 @@ export const Search: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error("[Search] FINAL CATCH Search failed:", error);
+      logger.error("[Search] Search failed", "Search", error);
       showToast("Ошибка поиска. Проверьте интернет.", "error");
 
       // If we have partial results even with an error, show them
       if (error.partialResults && error.partialResults.length > 0) {
-        console.log(
-          "[Search] Displaying partial results:",
-          error.partialResults.length,
-        );
+        logger.warn("[Search] Displaying partial results: " + error.partialResults.length, "Search");
         setGlobalResults(error.partialResults);
       }
     } finally {
@@ -186,30 +223,152 @@ export const Search: React.FC = () => {
     }
   };
 
-  // Auto-search when URL contains 'q' parameter
+  // Auto-search when URL contains 'q' parameter (only on initial load)
   useEffect(() => {
     const queryParam = searchParams.get("q");
+    const sourceParam = searchParams.get("source");
+
+    // Don't override searchMode if user has already switched to library mode
+    if (searchMode === "library") return;
+    
     if (queryParam && queryParam.trim()) {
       setQuery(queryParam);
       setSearchMode("global");
       handleSearch(queryParam);
+    } else if (sourceParam && queryParam) {
+      // If source is specified, search even if query was already set
+      setQuery(queryParam);
+      setSearchMode("global");
+      handleSearch(queryParam);
     }
-  }, []);
+  }, []); // Only run on mount, not on every searchParams change
 
   // Live Search (Debounced)
   useEffect(() => {
     if (searchMode === "library") return;
+    
+    // Update lastQuery and lastCategory when query/category changes
+    if (query.trim()) {
+      setLastQuery(query.trim());
+    }
+    setLastCategory(currentCategory);
+    
     if (!query.trim()) {
       setGlobalResults([]);
       return;
     }
 
     const timer = setTimeout(() => {
-      handleSearch(query);
-    }, 500); // 500ms delay for live search
+      // Re-run search with current category
+      const trimmedQuery = query.trim().toLowerCase();
+      const sourceParam = searchParams.get("source");
+      let data: Item[] = [];
+
+      const performSearch = async () => {
+        setLoading(true);
+        try {
+          if (sourceParam) {
+            if (sourceParam === "kinopoisk") {
+              data = (await searchKinopoisk(trimmedQuery)) || [];
+            } else if (sourceParam === "tmdb") {
+              data = (await searchMovies(trimmedQuery)) || [];
+            } else if (sourceParam === "rawg") {
+              data = (await searchGames(trimmedQuery)) || [];
+            } else if (sourceParam === "google_books") {
+              data = (await searchBooks(trimmedQuery)) || [];
+            }
+          } else {
+            if (currentCategory === "movie") {
+              const [tmdbResults, kinopoiskResults] = await Promise.all([
+                searchMovies(trimmedQuery),
+                searchKinopoisk(trimmedQuery),
+              ]);
+              // Deduplicate by externalId
+              const seen = new Set<string>();
+              data = [
+                ...(tmdbResults || []).filter((item) => {
+                  const key = item.externalId || "";
+                  if (seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                }),
+                ...(kinopoiskResults || []).filter((item) => {
+                  const key = item.externalId || "";
+                  if (seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                }),
+              ];
+            } else if (currentCategory === "game") {
+              data = (await searchGames(trimmedQuery)) || [];
+            } else if (currentCategory === "book") {
+              data = (await searchBooks(trimmedQuery)) || [];
+            }
+          }
+
+          // Check which results are already in DB
+          const externalIds = data
+            .map((i) => i.externalId)
+            .filter((id): id is string => !!id);
+
+          const existingItems = await db.items
+            .where("externalId")
+            .anyOf(externalIds)
+            .toArray();
+
+          const existingMap = new Map();
+          existingItems.forEach((item) => {
+            if (item.externalId)
+              existingMap.set(item.externalId + item.source, item);
+          });
+
+          const processedResults = data.map((item) => {
+            const existing = existingMap.get(
+              (item.externalId || "") + (item.source || ""),
+            );
+            return existing ? { ...item, ...existing, isOwned: true } : item;
+          });
+
+          // Final deduplication by unique key
+          const seenKeys = new Set<string>();
+          const deduplicatedResults = processedResults.filter((item) => {
+            const key = `${item.source || 'local'}-${item.externalId || item.id}`;
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+          });
+
+          // Also exclude recognizedItem from results to avoid duplicates
+          const finalResults = recognizedItem && recognizedItem.externalId
+            ? deduplicatedResults.filter(
+                (item) => item.externalId !== recognizedItem.externalId || item.source !== recognizedItem.source
+              )
+            : deduplicatedResults;
+
+          setGlobalResults(finalResults);
+        } catch (error: any) {
+          console.error("[Search] Search error:", error);
+          setGlobalResults([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      performSearch();
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [query, searchMode, currentCategory]);
+
+  // Handle category change - re-run search with last query when switching categories
+  useEffect(() => {
+    if (searchMode === "library") return;
+    if (!lastQuery.trim()) return;
+    if (lastCategory === currentCategory) return; // Same category, no need to re-search
+    
+    // Only trigger search if we have a previous query and category changed
+    setQuery(lastQuery);
+  }, [currentCategory, lastCategory]);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -300,11 +459,7 @@ export const Search: React.FC = () => {
             <CategorySelector
               activeCategory={currentCategory}
               onCategoryChange={(cat) => {
-                if (cat === "all") {
-                  searchParams.delete("category");
-                } else {
-                  searchParams.set("category", cat);
-                }
+                searchParams.set("category", cat);
                 setSearchParams(searchParams);
               }}
               style={{ flex: 1, marginBottom: 0 }}
@@ -615,6 +770,7 @@ export const Search: React.FC = () => {
                       Найдено по ссылке
                     </label>
                     <GridCard
+                      key={`recognized-${recognizedItem.source || 'local'}-${recognizedItem.externalId || recognizedItem.id || 'unknown'}`}
                       item={recognizedItem}
                       index={0}
                       onClick={() => {
@@ -646,9 +802,12 @@ export const Search: React.FC = () => {
                   ? [1, 2, 3, 4, 5, 6].map((_, idx) => (
                       <SkeletonCard key={`skeleton-${idx}`} />
                     ))
-                  : results.map((item, idx) => (
+                  : results.map((item, idx) => {
+                      // Create unique key using source + externalId + index for guaranteed uniqueness
+                      const uniqueKey = `${item.source || 'local'}-${item.externalId || item.id || `item`}-${idx}`;
+                      return (
                       <GridCard
-                        key={`${item.source}-${item.externalId || item.id || idx}`}
+                        key={uniqueKey}
                         item={item as Item}
                         index={idx}
                         enableMotion={results.length === 0}
@@ -656,12 +815,13 @@ export const Search: React.FC = () => {
                           const targetId = item.id || item.externalId;
                           const url = (item as any).isOwned
                             ? `/item/${targetId}`
-                            : `/item/${targetId}?source=${item.source}`;
+                            : `/item/${targetId}?source=${item.source}&fromSearch=${encodeURIComponent(query)}`;
                           navigate(url);
                         }}
                         onQuickAdd={() => handleAdd(item, true)}
                       />
-                    ))}
+                    );
+                    })}
               </div>
 
               {searchMode === "global" && results.length > 0 && !loading && (

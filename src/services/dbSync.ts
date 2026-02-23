@@ -7,6 +7,38 @@ import { logger } from "../utils/logger";
 
 const CONTEXT = "dbSync";
 
+// Migrate local items with 'dropped' status to 'planned'
+export const migrateDroppedStatus = async (): Promise<void> => {
+  try {
+    const droppedItems = await db.items.filter((item) => item.status === ("dropped" as any)).toArray();
+    if (droppedItems.length > 0) {
+      const updates = droppedItems.map((item) =>
+        db.items.update(item.id!, { status: "planned", updatedAt: new Date() })
+      );
+      await Promise.all(updates);
+      logger.info(`Migrated ${droppedItems.length} items from 'dropped' to 'planned'`, CONTEXT);
+    }
+  } catch (error) {
+    logger.error("Failed to migrate dropped status", CONTEXT, error);
+  }
+};
+
+// Cleanup old cache entries (older than 30 days)
+export const cleanupOldCache = async (): Promise<number> => {
+  const CACHE_TTL = Number(import.meta.env.VITE_CACHE_TTL) || 30 * 24 * 60 * 60 * 1000;
+  const allCache = await db.cache.toArray();
+  const oldKeys = allCache
+    .filter((entry) => Date.now() - entry.timestamp > CACHE_TTL)
+    .map((entry) => entry.key);
+
+  if (oldKeys.length > 0) {
+    await db.cache.bulkDelete(oldKeys);
+    logger.info(`Cleaned up ${oldKeys.length} old cache entries`, CONTEXT);
+  }
+
+  return oldKeys.length;
+};
+
 // Helper to map Local List -> Remote List
 const toRemoteList = (list: List, userId: string): RemoteList => {
   return {
@@ -40,7 +72,13 @@ const toLocalList = (remote: RemoteList): List => {
 const toRemoteItem = async (
   item: Item,
   userId: string,
-): Promise<RemoteItem> => {
+): Promise<RemoteItem | null> => {
+  // Skip items with missing required fields
+  if (!item.type || !item.title) {
+    logger.warn(`Skipping item with missing required fields: ${JSON.stringify(item)}`, CONTEXT);
+    return null;
+  }
+
   let listUuid: string | undefined = undefined;
   if (item.listId) {
     const list = await db.lists.get(item.listId);
@@ -49,12 +87,15 @@ const toRemoteItem = async (
     }
   }
 
+  // Convert 'dropped' status to 'planned' (dropped was removed from the app)
+  const status = (item.status as any) === "dropped" ? "planned" : item.status;
+
   return {
     id: item.supabaseId,
     user_id: userId,
     title: item.title,
     type: item.type,
-    status: item.status,
+    status: status,
     image: item.image,
     description: item.description,
     year: item.year,
@@ -92,12 +133,15 @@ const toLocalItem = async (remote: RemoteItem): Promise<Item> => {
     }
   }
 
+  // Convert 'dropped' status to 'planned' (dropped was removed from the app)
+  const status = remote.status === "dropped" ? "planned" : remote.status;
+
   return {
     id: remote.local_id || undefined,
     supabaseId: remote.id,
     title: remote.title,
     type: remote.type as Item["type"],
-    status: remote.status as Item["status"],
+    status: status as Item["status"],
     image: remote.image,
     description: remote.description,
     year: remote.year,
@@ -217,6 +261,12 @@ export const syncItems = async (userId: string): Promise<number> => {
 
   for (const item of localItems) {
     const payload = await toRemoteItem(item, userId);
+
+    // Skip invalid items
+    if (!payload) {
+      logger.warn(`Skipping sync for invalid item: ${item.id}`, CONTEXT);
+      continue;
+    }
 
     if (!item.supabaseId) {
       const { data, error } = await supabase
@@ -373,8 +423,45 @@ export const migrateGuestData = async (
   userId: string,
   mode: "merge" | "replace",
 ) => {
+  // First, fix any items with missing types BEFORE syncing
+  const allLocalItems = await db.items.toArray();
+  const fixPromises: Promise<any>[] = [];
+
+  for (const item of allLocalItems) {
+    let needsFix = false;
+    const updates: Partial<Item> = {};
+
+    // Fix missing type
+    if (!item.type && item.source) {
+      if (item.source === "rawg") {
+        updates.type = "game";
+        needsFix = true;
+      } else if (item.source === "google_books") {
+        updates.type = "book";
+        needsFix = true;
+      } else if (item.source === "tmdb" || item.source === "kinopoisk") {
+        updates.type = "movie";
+        needsFix = true;
+      }
+    }
+
+    // Fix dropped status (legacy status that was removed)
+    if ((item.status as any) === "dropped") {
+      updates.status = "planned";
+      needsFix = true;
+    }
+
+    if (needsFix) {
+      updates.updatedAt = new Date();
+      fixPromises.push(db.items.update(item.id!, updates));
+    }
+  }
+
+  // @ts-ignore - Dexie PromiseExtended compatibility
+  void Promise.all(fixPromises).then(() => {}).catch(() => {});
+  logger.info(`Fixed ${fixPromises.length} items with missing types or dropped status`, CONTEXT);
+
   if (mode === "replace") {
-    // Simply clear and pull from remote
     await Promise.all([
       db.items.clear(),
       db.lists.clear(),
@@ -393,16 +480,12 @@ export const migrateGuestData = async (
     .eq("user_id", userId);
 
   for (const local of localLists) {
-    // If it has supabaseId, it's already "owned" or synced
     if (local.supabaseId) continue;
 
-    // Check if a remote list with the same name exists
     const match = remoteLists?.find((r) => r.name === local.name);
     if (match) {
-      // Link local to remote
       await db.lists.update(local.id!, { supabaseId: match.id });
     } else {
-      // Create new remote list
       const { data, error } = await supabase
         .from("lists")
         .insert(toRemoteList(local, userId))
@@ -415,26 +498,34 @@ export const migrateGuestData = async (
   }
 
   // 2. Sync Items with deduplication
-  const localItems = await db.items.toArray();
   const { data: remoteItems } = await supabase
     .from("items")
     .select("*")
     .eq("user_id", userId);
 
-  for (const local of localItems) {
-    if (local.supabaseId) continue;
+  let syncedCount = 0;
+  let skippedCount = 0;
 
-    // Deduplicate by externalId + source
+  for (const local of allLocalItems) {
+    if (local.supabaseId) {
+      syncedCount++;
+      continue;
+    }
+
     const match = remoteItems?.find(
       (r) => r.external_id === local.externalId && r.source === local.source,
     );
 
     if (match) {
-      // Link to existing
       await db.items.update(local.id!, { supabaseId: match.id });
+      syncedCount++;
     } else {
-      // Push new
       const payload = await toRemoteItem(local, userId);
+      if (!payload) {
+        logger.warn(`Skipping push for invalid item ${local.id}: missing type or title`, CONTEXT);
+        skippedCount++;
+        continue;
+      }
       const { data, error } = await supabase
         .from("items")
         .insert(payload)
@@ -442,11 +533,16 @@ export const migrateGuestData = async (
         .single();
       if (!error && data) {
         await db.items.update(local.id!, { supabaseId: data.id });
+        syncedCount++;
+      } else {
+        logger.error(`Failed to sync item ${local.id}: ${error?.message}`, CONTEXT, error);
+        skippedCount++;
       }
     }
   }
 
-  // Final catch-up sync
+  logger.info(`Synced: ${syncedCount}, Skipped: ${skippedCount}`, CONTEXT);
+
   return syncAll();
 };
 
@@ -458,7 +554,7 @@ export const triggerAutoSync = () => {
 
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(async () => {
-    console.log("Triggering auto-sync...");
+    logger.info("Triggering auto-sync...", "dbSync");
     await syncAll();
   }, 5000); // 5 second debounce
 };

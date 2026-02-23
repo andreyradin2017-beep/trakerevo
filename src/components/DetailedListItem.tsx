@@ -57,8 +57,6 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
         return "Готово";
       case "in_progress":
         return "В процессе";
-      case "dropped":
-        return "Брошено";
       case "planned":
         return "В планах";
       default:
@@ -72,8 +70,6 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
         return "var(--success)";
       case "in_progress":
         return "var(--primary)";
-      case "dropped":
-        return "var(--error)";
       default:
         return "var(--text-tertiary)";
     }
@@ -110,7 +106,7 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
       >
         {proxiedImage ? (
           <img
-            src={item.image}
+            src={proxiedImage}
             alt={item.title}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />

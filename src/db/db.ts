@@ -19,7 +19,7 @@ db.version(11).stores({
     "++id, type, status, isArchived, *tags, listId, createdAt, externalId, source, [externalId+source], supabaseId",
   lists: "++id, name, supabaseId",
   settings: "key",
-  cache: "key",
+  cache: "key, timestamp",
   search_history: "query, timestamp",
   deleted_metadata: "id, table, timestamp",
   search_providers: "id, enabled, priority",

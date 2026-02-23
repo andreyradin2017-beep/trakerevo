@@ -21,30 +21,33 @@ export const Swipeable: React.FC<SwipeableProps> = ({
   const x = useMotionValue(0);
 
   // Background colors and icons based on swipe direction
+  // Left swipe (negative) -> Archive (warning)
+  // Right swipe (positive) -> Delete (error)
   const backgroundColor = useTransform(
     x,
     [-threshold, 0, threshold],
-    ["var(--error)", "rgba(0,0,0,0)", "var(--warning)"],
+    ["var(--warning)", "rgba(0,0,0,0)", "var(--error)"],
   );
 
-  const iconOpacityDelete = useTransform(
-    x,
-    [-threshold, -threshold / 2],
-    [1, 0],
-  );
   const iconOpacityArchive = useTransform(
     x,
-    [threshold / 2, threshold],
+    [-threshold / 2, -10],
+    [1, 0],
+  );
+  const iconOpacityDelete = useTransform(
+    x,
+    [10, threshold / 2],
     [0, 1],
   );
 
-  const handleDragEnd = (_: any, info: any) => {
-    if (info.offset.x < -threshold && onDelete) {
-      vibrate("medium");
-      onDelete();
-    } else if (info.offset.x > threshold && onArchive) {
+  const handleDragEnd = (_: any) => {
+    const currentX = x.get();
+    if (currentX < -threshold && onArchive) {
       vibrate("medium");
       onArchive();
+    } else if (currentX > threshold && onDelete) {
+      vibrate("medium");
+      onDelete();
     }
 
     animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
@@ -72,11 +75,11 @@ export const Swipeable: React.FC<SwipeableProps> = ({
           zIndex: 0,
         }}
       >
-        <motion.div style={{ opacity: iconOpacityArchive }}>
-          <Archive size={20} color="white" />
-        </motion.div>
         <motion.div style={{ opacity: iconOpacityDelete }}>
           <Trash2 size={20} color="white" />
+        </motion.div>
+        <motion.div style={{ opacity: iconOpacityArchive }}>
+          <Archive size={20} color="white" />
         </motion.div>
       </motion.div>
 
@@ -84,8 +87,8 @@ export const Swipeable: React.FC<SwipeableProps> = ({
       <motion.div
         drag={disabled ? false : "x"}
         dragConstraints={{
-          left: onDelete ? -150 : 0,
-          right: onArchive ? 150 : 0,
+          left: onArchive ? -150 : 0,
+          right: onDelete ? 150 : 0,
         }}
         dragElastic={0.2}
         onDragEnd={handleDragEnd}

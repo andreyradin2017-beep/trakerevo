@@ -105,6 +105,8 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     switch (item.source) {
       case "tmdb":
         return { label: "TMDB", color: "var(--brand-tmdb)" };
+      case "kinopoisk":
+        return { label: "КП", color: "#F5C518" };
       case "rawg":
         return { label: "RAWG", color: "var(--brand-rawg)" };
       case "google_books":
@@ -373,7 +375,6 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             completed: "var(--success)",
             in_progress: "var(--primary)",
             planned: "rgba(255,255,255,0.15)",
-            dropped: "var(--error)",
           };
           const barColor =
             statusBarColors[item.status] || "rgba(255,255,255,0.1)";

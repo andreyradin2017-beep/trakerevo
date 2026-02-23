@@ -8,14 +8,14 @@ export const getProxiedImageUrl = (
     return url;
   }
 
+  // Handle old /tmdb-image proxy URLs (convert to direct TMDB URL)
+  if (url.startsWith("/tmdb-image/")) {
+    url = url.replace("/tmdb-image", "https://image.tmdb.org/t/p");
+  }
+
   // Use wsrv.nl to proxy images (bypasses TMDB blocks in RU and handles CORS)
-  // This works both locally and in production without needing our own API route
   if (url.includes("image.tmdb.org")) {
-    // In production (Vercel), use our own rewrite to avoid 3rd party blocks
-    if (import.meta.env.PROD) {
-      return url.replace("https://image.tmdb.org/t/p", "/tmdb-image");
-    }
-    // Locally use wsrv.nl
+    // Always use wsrv.nl for simplicity and to avoid CORS issues
     return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
   }
 

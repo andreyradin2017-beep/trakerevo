@@ -3,8 +3,15 @@ import type { Item } from "../types";
 import { searchMovies, getMovieDetails, getTrendingMovies } from "./tmdb";
 import { searchGames, getGameDetails, getPopularGames } from "./rawg";
 import { searchBooks, getBookDetails } from "./googleBooks";
+import {
+  searchKinopoisk,
+  getKinopoiskDetails,
+  getKinopoiskTop,
+} from "./kinopoisk";
+import { logger } from "../utils/logger";
 
-const CACHE_TTL = 24 * 60 * 60 * 1000;
+// Cache TTL from environment or default to 30 days (2592000000 ms)
+const CACHE_TTL = Number(import.meta.env.VITE_CACHE_TTL) || 30 * 24 * 60 * 60 * 1000;
 
 const getCachedData = async (key: string): Promise<any | null> => {
   const cached = await db.cache.get(key);
@@ -20,8 +27,17 @@ const setCachedData = async (key: string, data: any) => {
   await db.cache.put({ key, data, timestamp: Date.now() });
 };
 
-export const searchAll = async (query: string): Promise<Item[]> => {
-  const cacheKey = `search_all_${query}`;
+export const searchAll = async (
+  query: string,
+  options?: { includeBooks?: boolean },
+): Promise<Item[]> => {
+  // Prevent search with empty/undefined query
+  if (!query || query.trim() === "") {
+    return [];
+  }
+
+  const includeBooks = options?.includeBooks ?? true;
+  const cacheKey = `search_all_${query}_books${includeBooks}`;
   const cached = await getCachedData(cacheKey);
   if (cached) return cached;
 
@@ -33,9 +49,11 @@ export const searchAll = async (query: string): Promise<Item[]> => {
   const searchTasks: { id: string; promise: Promise<any> }[] = [];
   if (enabledProviders.some((p) => p.id === "tmdb"))
     searchTasks.push({ id: "tmdb", promise: searchMovies(query) });
+  if (enabledProviders.some((p) => p.id === "kinopoisk"))
+    searchTasks.push({ id: "kinopoisk", promise: searchKinopoisk(query) });
   if (enabledProviders.some((p) => p.id === "rawg"))
     searchTasks.push({ id: "rawg", promise: searchGames(query) });
-  if (enabledProviders.some((p) => p.id === "google_books"))
+  if (includeBooks && enabledProviders.some((p) => p.id === "google_books"))
     searchTasks.push({ id: "google_books", promise: searchBooks(query) });
 
   const settledTasks = await Promise.allSettled(
@@ -63,6 +81,11 @@ export const searchByCategory = async (
   query: string,
   category: "movie" | "game" | "book",
 ): Promise<Item[]> => {
+  // Prevent search with empty/undefined query
+  if (!query || query.trim() === "") {
+    return [];
+  }
+
   const cacheKey = `search_${category}_${query}`;
   const cached = await getCachedData(cacheKey);
   if (cached) return cached;
@@ -70,14 +93,18 @@ export const searchByCategory = async (
   let results: Item[] = [];
   try {
     if (category === "movie") {
-      results = (await searchMovies(query)) || [];
+      const [tmdbResults, kinopoiskResults] = await Promise.all([
+        searchMovies(query),
+        searchKinopoisk(query),
+      ]);
+      results = [...(tmdbResults || []), ...(kinopoiskResults || [])];
     } else if (category === "game") {
       results = (await searchGames(query)) || [];
     } else if (category === "book") {
       results = (await searchBooks(query)) || [];
     }
   } catch (e) {
-    console.error(`Search category ${category} failed:`, e);
+    logger.error(`Search category ${category} failed`, "api", e);
   }
 
   if (results.length > 0) {
@@ -95,12 +122,14 @@ export const getDetails = async (item: Item): Promise<any> => {
   try {
     if (item.source === "tmdb")
       data = await getMovieDetails(item.externalId!, item.type as any);
+    else if (item.source === "kinopoisk")
+      data = await getKinopoiskDetails(item.externalId!);
     else if (item.source === "rawg")
       data = await getGameDetails(item.externalId!);
     else if (item.source === "google_books")
       data = await getBookDetails(item.externalId!);
   } catch (e) {
-    console.error(`Get details failed for ${item.source}:`, e);
+    logger.error(`Get details failed for ${item.source}`, "api", e);
   }
 
   if (data) await setCachedData(cacheKey, data);
@@ -111,7 +140,17 @@ export const getTrending = async (
   category: "movie" | "game" | "all",
 ): Promise<string[]> => {
   try {
-    if (category === "movie") return await getTrendingMovies();
+    if (category === "movie") {
+      // Combine TMDB trending with Kinopoisk top
+      const [tmdbRes, kinopoiskTopRes] = await Promise.allSettled([
+        getTrendingMovies(),
+        getKinopoiskTop("ALL", 1),
+      ]);
+      const kinopoiskTop = kinopoiskTopRes.status === "fulfilled" ? kinopoiskTopRes.value : [];
+      const kinopoiskTitles = kinopoiskTop.map((f) => f.title);
+      const tmdbTrending = tmdbRes.status === "fulfilled" ? tmdbRes.value : [];
+      return [...tmdbTrending, ...kinopoiskTitles].slice(0, 10);
+    }
     if (category === "game") return await getPopularGames();
 
     const [m, g] = await Promise.allSettled([
@@ -128,7 +167,7 @@ export const getTrending = async (
     }
     return combined.slice(0, 8);
   } catch (e) {
-    console.error("Get trending failed:", e);
+    logger.error("Get trending failed", "api", e);
     return [];
   }
 };

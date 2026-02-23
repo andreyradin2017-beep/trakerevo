@@ -56,7 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       db.cache.clear(),
       db.search_history.clear(),
       db.deleted_metadata.clear(),
+      db.search_providers.clear(),
     ]);
+    // Clear migration flag
+    localStorage.removeItem("migration_checked");
     // Force reload to reset application state
     window.location.href = "/";
   };

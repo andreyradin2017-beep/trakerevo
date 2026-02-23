@@ -1,8 +1,14 @@
 import type { Item } from "../types";
 import type { GoogleBooksResponse, GoogleBook } from "../types/api";
 import { googleBooksClient } from "./apiClient";
+import { logger } from "../utils/logger";
 
 export const searchBooks = async (query: string): Promise<Item[] | null> => {
+  // Prevent search with empty/undefined query
+  if (!query || query.trim() === "") {
+    return null;
+  }
+
   try {
     const response = await googleBooksClient.get<GoogleBooksResponse>(
       "/volumes",
@@ -34,7 +40,8 @@ export const searchBooks = async (query: string): Promise<Item[] | null> => {
       };
     });
   } catch (error) {
-    console.error("Google Books Search Error:", error);
+    // Silently handle network errors - Google Books API may be unavailable
+    console.warn("[Google Books] Search unavailable:", (error as Error).message);
     return null;
   }
 };
@@ -57,7 +64,7 @@ export const getBookDetails = async (id: string): Promise<any> => {
       type: "book",
     };
   } catch (error) {
-    console.error("Google Books Details Error:", error);
+    logger.error("Google Books Details Error", "googleBooks", error);
     return null;
   }
 };

@@ -24,14 +24,7 @@ import {
   QuickActionMenu,
 } from "../components/Dialogs";
 import { type StatusFilterType } from "../components/StatusFilter";
-import {
-  PlayCircle,
-  XCircle,
-  Check,
-  Clock,
-  Trash2,
-  Archive as ArchiveIcon,
-} from "lucide-react";
+import { PlayCircle, Check, Clock, Archive as ArchiveIcon, Trash2 } from "lucide-react";
 import { UpcomingCarousel } from "../components/UpcomingCarousel";
 import type { ItemStatus } from "../types";
 import { Section } from "@components/Section";
@@ -132,9 +125,9 @@ const RecentItemsList: React.FC<{
   }, [items, statusFilter]);
 
   // Determine if we should show onboarding
-  // Only if no items at all (not just filtered) and we are in 'all' view
+  // Only if no items at all (not just filtered) and we are in default view
   const showOnboarding =
-    items && items.length === 0 && category === "all" && statusFilter === "all";
+    items && items.length === 0 && statusFilter === "all";
 
   if (showOnboarding) {
     return (
@@ -168,31 +161,28 @@ const RecentItemsList: React.FC<{
         gap: "0.75rem",
       }}
     >
-      {category === "all" && statusFilter === "all" && items.length > 0 && (
+      {statusFilter === "all" && items.length > 0 && (
         <GridCard isAddCard onClick={() => navigate("/search")} />
       )}
 
-      {filteredItems?.map((item: Item, index: number) => {
-        const effectiveIndex = category === "all" ? index + 1 : index;
-        return (
-          <motion.div
-            key={item.id}
-            layout
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            custom={effectiveIndex}
-          >
-            <GridCard
-              item={item}
-              index={effectiveIndex}
-              onClick={() => onReference(item)}
-              onLongPress={() => onLongPress(item)}
-              enableMotion={false}
-            />
-          </motion.div>
-        );
-      })}
+      {filteredItems?.map((item: Item, index: number) => (
+        <motion.div
+          key={item.id}
+          layout
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          custom={index + 1}
+        >
+          <GridCard
+            item={item}
+            index={index + 1}
+            onClick={() => onReference(item)}
+            onLongPress={() => onLongPress(item)}
+            enableMotion={false}
+          />
+        </motion.div>
+      ))}
 
       {/* Show empty state only if we have items but filter hides them OR if we are in a category with no items */}
       {filteredItems?.length === 0 && !showOnboarding && (
@@ -219,7 +209,7 @@ const RecentItemsList: React.FC<{
 };
 
 export const Home: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const [activeCategory, setActiveCategory] = useState<Category>("movie");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const navigate = useNavigate();
@@ -368,7 +358,7 @@ export const Home: React.FC = () => {
 
           <div style={{ marginBottom: "2rem" }}>
             <Section
-              title={activeCategory === "all" ? "Недавнее" : "Результаты"}
+              title="Недавнее"
               icon={Sparkles}
               plain
             >
@@ -426,12 +416,6 @@ export const Home: React.FC = () => {
                 icon: <Clock size={18} />,
                 color: "var(--text-secondary)",
                 onClick: () => handleUpdateStatus(quickMenu.item!, "planned"),
-              },
-              {
-                label: "Бросить",
-                icon: <XCircle size={18} />,
-                color: "var(--error)",
-                onClick: () => handleUpdateStatus(quickMenu.item!, "dropped"),
               },
               {
                 label: quickMenu.item.isArchived

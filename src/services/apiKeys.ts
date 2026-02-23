@@ -1,4 +1,5 @@
 import { db } from "../db/db";
+import { logger } from "../utils/logger";
 
 export const getApiKey = async (
   settingsKey?: string,
@@ -15,7 +16,7 @@ export const getApiKey = async (
       const settings = await db.settings.get(settingsKey);
       if (settings?.value) return settings.value;
     } catch (e) {
-      console.error("[keyManager] Error fetching setting:", settingsKey, e);
+      logger.error(`Error fetching setting: ${settingsKey}`, "apiKeys", e);
     }
   }
 

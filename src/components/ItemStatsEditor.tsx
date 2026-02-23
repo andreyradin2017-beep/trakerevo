@@ -14,6 +14,8 @@ interface ItemStatsEditorProps {
   currentEpisode: number;
   progress: number;
   totalProgress: number;
+  episodesPerSeason?: number[]; // Auto-filled from API
+  numberOfSeasons?: number; // Total seasons from API
   onStatusChange: (status: Item["status"]) => void;
   onArchiveToggle: () => void;
   onSeasonChange: (val: number) => void;
@@ -30,6 +32,8 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
   currentEpisode,
   progress,
   totalProgress,
+  episodesPerSeason,
+  numberOfSeasons,
   onStatusChange,
   onArchiveToggle,
   onSeasonChange,
@@ -58,14 +62,12 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
           planned: "Буду играть",
           in_progress: "Играю",
           completed: "Пройдено",
-          dropped: "Брошено",
         };
       case "book":
         return {
           planned: "Буду читать",
           in_progress: "Читаю",
           completed: "Прочитано",
-          dropped: "Брошено",
         };
       case "movie":
       case "show":
@@ -74,7 +76,6 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
           planned: "Буду смотреть",
           in_progress: "Смотрю",
           completed: "Просмотрено",
-          dropped: "Брошено",
         };
     }
   };
@@ -168,7 +169,6 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
               <option value="planned">{statusLabels.planned}</option>
               <option value="in_progress">{statusLabels.in_progress}</option>
               <option value="completed">{statusLabels.completed}</option>
-              <option value="dropped">{statusLabels.dropped}</option>
             </select>
           </div>
         </div>
@@ -287,18 +287,35 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                   }}
                 >
                   {currentSeason}
+                  {numberOfSeasons && (
+                    <span style={{ fontSize: "0.9rem", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "4px" }}>
+                      /{numberOfSeasons}
+                    </span>
+                  )}
                 </span>
                 <motion.button
                   {...pressAnimation}
-                  onClick={() => onSeasonChange(currentSeason + 1)}
+                  onClick={() => {
+                    const maxSeasons = numberOfSeasons || episodesPerSeason?.length || 999;
+                    if (currentSeason < maxSeasons) {
+                      onSeasonChange(currentSeason + 1);
+                    }
+                  }}
                   style={{
                     width: "30px",
                     height: "30px",
                     borderRadius: "8px",
                     border: "none",
-                    backgroundColor: "rgba(255,255,255,0.1)",
-                    color: "white",
+                    backgroundColor: numberOfSeasons && currentSeason >= numberOfSeasons
+                      ? "rgba(255,255,255,0.05)"
+                      : "rgba(255,255,255,0.1)",
+                    color: numberOfSeasons && currentSeason >= numberOfSeasons
+                      ? "rgba(255,255,255,0.2)"
+                      : "white",
                     fontWeight: 800,
+                    cursor: numberOfSeasons && currentSeason >= numberOfSeasons
+                      ? "not-allowed"
+                      : "pointer",
                   }}
                 >
                   +
@@ -358,18 +375,48 @@ export const ItemStatsEditor: React.FC<ItemStatsEditorProps> = ({
                   }}
                 >
                   {currentEpisode}
+                  {episodesPerSeason && episodesPerSeason[currentSeason - 1] && (
+                    <span
+                      style={{
+                        fontSize: "0.9rem",
+                        fontWeight: 500,
+                        color: "var(--text-tertiary)",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      /{episodesPerSeason[currentSeason - 1]}
+                    </span>
+                  )}
                 </span>
                 <motion.button
                   {...pressAnimation}
-                  onClick={() => onEpisodeChange(currentEpisode + 1)}
+                  onClick={() => {
+                    const maxEpisode = episodesPerSeason?.[currentSeason - 1];
+                    if (!maxEpisode || currentEpisode < maxEpisode) {
+                      onEpisodeChange(currentEpisode + 1);
+                    }
+                  }}
                   style={{
                     width: "30px",
                     height: "30px",
                     borderRadius: "8px",
                     border: "none",
-                    backgroundColor: "rgba(255,255,255,0.1)",
-                    color: "white",
+                    backgroundColor:
+                      episodesPerSeason?.[currentSeason - 1] &&
+                      currentEpisode >= episodesPerSeason[currentSeason - 1]
+                        ? "rgba(255,255,255,0.05)"
+                        : "rgba(255,255,255,0.1)",
+                    color:
+                      episodesPerSeason?.[currentSeason - 1] &&
+                      currentEpisode >= episodesPerSeason[currentSeason - 1]
+                        ? "rgba(255,255,255,0.2)"
+                        : "white",
                     fontWeight: 800,
+                    cursor:
+                      episodesPerSeason?.[currentSeason - 1] &&
+                      currentEpisode >= episodesPerSeason[currentSeason - 1]
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
                   +

@@ -126,62 +126,97 @@ export const Settings: React.FC = () => {
     });
   };
 
-  const clearDatabase = async () => {
-    setConfirmState({
-      isOpen: true,
-      title: "Очистка данных",
-      message:
-        "ВНИМАНИЕ: Это удалит ВСЕ элементы и списки. Если вы вошли в аккаунт, данные также удалятся из облака. Вы уверены?",
-      onConfirm: async () => {
-        // If user is logged in, mark for deletion in Supabase
-        if (user) {
-          const items = await db.items.toArray();
-          const lists = await db.lists.toArray();
+  const clearDatabase = async (mode: "local" | "full") => {
+    if (mode === "full") {
+      setConfirmState({
+        isOpen: true,
+        title: "⚠️ ПОЛНОЕ УДАЛЕНИЕ",
+        message:
+          "Это удалит ВСЕ данные из локальной базы И ИЗ ОБЛАКА (Supabase). Восстановление будет невозможно! Вы уверены?",
+        onConfirm: async () => {
+          try {
+            // Mark all items for deletion in Supabase
+            if (user) {
+              const items = await db.items.toArray();
+              const lists = await db.lists.toArray();
 
-          const deletions: any[] = [];
+              const deletions: any[] = [];
 
-          items.forEach((item) => {
-            if (item.supabaseId) {
-              deletions.push({
-                id: item.supabaseId,
-                table: "items",
-                timestamp: Date.now(),
+              items.forEach((item) => {
+                if (item.supabaseId) {
+                  deletions.push({
+                    id: item.supabaseId,
+                    table: "items",
+                    timestamp: Date.now(),
+                  });
+                }
               });
-            }
-          });
 
-          lists.forEach((list) => {
-            if (list.supabaseId) {
-              deletions.push({
-                id: list.supabaseId,
-                table: "lists",
-                timestamp: Date.now(),
+              lists.forEach((list) => {
+                if (list.supabaseId) {
+                  deletions.push({
+                    id: list.supabaseId,
+                    table: "lists",
+                    timestamp: Date.now(),
+                  });
+                }
               });
-            }
-          });
 
-          if (deletions.length > 0) {
-            await db.deleted_metadata.bulkPut(deletions);
+              if (deletions.length > 0) {
+                await db.deleted_metadata.bulkPut(deletions);
+              }
+            }
+
+            // Close Dexie connection
+            await db.close();
+
+            // Delete IndexedDB
+            await new Promise<void>((resolve, reject) => {
+              const request = window.indexedDB.deleteDatabase("TrakerEvoDB");
+              request.onsuccess = () => resolve();
+              request.onerror = () => reject(request.error);
+              request.onblocked = () => resolve();
+            });
+
+            // Sync deletions to Supabase
+            if (user) {
+              showToast("Удаление из облака...", "info");
+              await syncAll();
+            }
+
+            showToast("Все данные удалены", "success");
+            setTimeout(() => window.location.reload(), 500);
+          } catch (error) {
+            console.error("Full delete error:", error);
+            showToast("Ошибка: " + (error as Error).message, "error");
           }
-        }
-
-        await Promise.all([
-          db.items.clear(),
-          db.lists.clear(),
-          db.settings.clear(),
-          db.cache.clear(),
-          db.search_history.clear(),
-        ]);
-
-        if (user) {
-          showToast("Синхронизация удаления...", "info");
-          await syncAll();
-        }
-
-        showToast("База данных очищена", "info");
-        setTimeout(() => window.location.reload(), 1000);
-      },
-    });
+        },
+      });
+    } else {
+      // Local only
+      setConfirmState({
+        isOpen: true,
+        title: "Очистка локальных данных",
+        message:
+          "Это удалит только локальную базу. Данные в облаке (Supabase) сохранятся и загрузятся при синхронизации.",
+        onConfirm: async () => {
+          try {
+            await db.close();
+            await new Promise<void>((resolve, reject) => {
+              const request = window.indexedDB.deleteDatabase("TrakerEvoDB");
+              request.onsuccess = () => resolve();
+              request.onerror = () => reject(request.error);
+              request.onblocked = () => resolve();
+            });
+            showToast("Локальная база очищена", "success");
+            setTimeout(() => window.location.reload(), 500);
+          } catch (error) {
+            console.error("Local delete error:", error);
+            showToast("Ошибка: " + (error as Error).message, "error");
+          }
+        },
+      });
+    }
   };
 
   return (
@@ -496,74 +531,47 @@ export const Settings: React.FC = () => {
             </motion.button>
           </div>
 
-          <button
-            onClick={clearDatabase}
+          <div
             style={{
-              width: "100%",
-              padding: "0.85rem",
-              background: "rgba(239, 68, 68, 0.05)",
-              border: "1px solid rgba(239, 68, 68, 0.1)",
-              borderRadius: "var(--radius-lg)",
-              color: "var(--error)",
-              fontWeight: 600,
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              opacity: 0.8,
+              display: "flex",
+              gap: "0.5rem",
               marginBottom: "0.75rem",
             }}
           >
-            Очистить все данные
-          </button>
-
-          <button
-            onClick={async () => {
-              const kinopoiskItems = await db.items
-                .where("source")
-                .equals("kinopoisk")
-                .toArray();
-              if (kinopoiskItems.length === 0) {
-                showToast("Элементов Кинопоиска не найдено", "info");
-                return;
-              }
-
-              setConfirmState({
-                isOpen: true,
-                title: "Удалить данные Кинопоиска",
-                message: `Найдено ${kinopoiskItems.length} элементов. Удалить их?`,
-                onConfirm: async () => {
-                  if (user) {
-                    const deletions = kinopoiskItems
-                      .filter((i) => i.supabaseId)
-                      .map((i) => ({
-                        id: i.supabaseId!,
-                        table: "items" as const,
-                        timestamp: Date.now(),
-                      }));
-                    if (deletions.length > 0) {
-                      await db.deleted_metadata.bulkPut(deletions);
-                    }
-                  }
-                  await db.items.bulkDelete(kinopoiskItems.map((i) => i.id!));
-                  if (user) await syncAll();
-                  showToast("Элементы Кинопоиска удалены", "success");
-                  setConfirmState((prev) => ({ ...prev, isOpen: false }));
-                },
-              });
-            }}
-            style={{
-              width: "100%",
-              padding: "0.85rem",
-              background: "rgba(255, 255, 255, 0.03)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "var(--radius-lg)",
-              color: "var(--text-secondary)",
-              fontWeight: 600,
-              fontSize: "0.85rem",
-              cursor: "pointer",
-            }}
-          >
-            Удалить остатки Кинопоиска
-          </button>
+            <button
+              onClick={() => clearDatabase("local")}
+              style={{
+                flex: 1,
+                padding: "0.85rem",
+                background: "rgba(239, 68, 68, 0.05)",
+                border: "1px solid rgba(239, 68, 68, 0.1)",
+                borderRadius: "var(--radius-lg)",
+                color: "var(--error)",
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                opacity: 0.8,
+              }}
+            >
+              🗑️ Только локально
+            </button>
+            <button
+              onClick={() => clearDatabase("full")}
+              style={{
+                flex: 1,
+                padding: "0.85rem",
+                background: "rgba(239, 68, 68, 0.15)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                borderRadius: "var(--radius-lg)",
+                color: "var(--error)",
+                fontWeight: 700,
+                fontSize: "0.75rem",
+                cursor: "pointer",
+              }}
+            >
+              🔥 Полное удаление
+            </button>
+          </div>
 
           <input
             type="file"

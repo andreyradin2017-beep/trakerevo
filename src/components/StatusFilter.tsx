@@ -20,7 +20,6 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
     { id: "planned", label: "Планы" },
     { id: "in_progress", label: "В процессе" },
     { id: "completed", label: "Готово" },
-    { id: "dropped", label: "Брошено" },
   ];
 
   return (

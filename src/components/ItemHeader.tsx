@@ -12,6 +12,7 @@ interface ItemHeaderProps {
   source?: string;
   genres?: string[];
   authors?: string[];
+  platforms?: string[];
   onShowTrailer: () => void;
   onAuthorClick?: (author: string) => void;
 }
@@ -25,6 +26,7 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
   source,
   genres,
   authors,
+  platforms,
   onShowTrailer,
   onAuthorClick,
 }) => {
@@ -240,6 +242,46 @@ export const ItemHeader: React.FC<ItemHeaderProps> = ({
                 {g}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Platforms */}
+        {platforms && platforms.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.4rem",
+              flexWrap: "wrap",
+              marginTop: "0.5rem",
+            }}
+          >
+            {platforms.slice(0, 5).map((platform, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: "0.65rem",
+                  color: "var(--primary)",
+                  background: "rgba(139, 92, 246, 0.1)",
+                  padding: "0.2rem 0.5rem",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(139, 92, 246, 0.2)",
+                  fontWeight: 600,
+                }}
+              >
+                {platform}
+              </span>
+            ))}
+            {platforms.length > 5 && (
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  color: "var(--text-tertiary)",
+                  fontWeight: 500,
+                }}
+              >
+                +{platforms.length - 5}
+              </span>
+            )}
           </div>
         )}
       </div>
