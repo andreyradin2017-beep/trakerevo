@@ -51,11 +51,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     return result;
   });
 
-  // Also check last sync timestamp
-  const [lastSyncTime, setLastSyncTime] = useState(() => {
-    const saved = localStorage.getItem("last_sync_timestamp");
-    return saved ? Number(saved) : 0;
-  });
+
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -84,7 +80,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         // Save sync timestamp
         const now = Date.now();
         localStorage.setItem("last_sync_timestamp", now.toString());
-        setLastSyncTime(now);
         logger.info(`[SYNC] Sync completed successfully at ${new Date(now).toISOString()}`, CONTEXT);
       }
       
@@ -224,7 +219,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           // Save sync timestamp
           const now = Date.now();
           localStorage.setItem("last_sync_timestamp", now.toString());
-          setLastSyncTime(now);
           localStorage.setItem("migration_checked", "true");
           setHasCheckedMigration(true);
         } else {

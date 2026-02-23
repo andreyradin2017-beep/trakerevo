@@ -135,13 +135,13 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
       type: details.type === "TV_SERIES" ? "show" : "movie",
       year:
         details.year && details.year !== "null"
-          ? parseInt(details.year)
+          ? parseInt(String(details.year))
           : undefined,
       rating:
         details.rating && details.rating !== "null"
-          ? parseFloat(details.rating)
+          ? parseFloat(String(details.rating))
           : details.ratingKinopoisk
-            ? parseFloat(details.ratingKinopoisk)
+            ? parseFloat(String(details.ratingKinopoisk))
             : undefined,
       duration: details.duration || details.filmLength,
       slogan: details.slogan,
