@@ -7,19 +7,26 @@ import { Suspense, lazy } from "react";
 /**
  * Wraps lazy() with automatic page reload on chunk load failure.
  * After a new Vercel deploy, old cached chunk hashes are invalid.
- * On first failure, we reload once (guarded by sessionStorage to prevent loops).
+ * Uses a per-URL sessionStorage key so each stale chunk can trigger
+ * its own reload without blocking other chunks.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ): React.LazyExoticComponent<T> {
   return lazy(() =>
-    factory().catch((err) => {
-      const key = "chunk_reload_attempted";
+    factory().catch((err: unknown) => {
+      // Extract URL from error message to key per-chunk, preventing loops
+      const msg = err instanceof Error ? err.message : String(err);
+      const urlMatch = msg.match(/https?:\/\/[^\s]+/);
+      const key = urlMatch
+        ? `chunk_reload_${urlMatch[0]}`
+        : "chunk_reload_unknown";
+
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, "1");
         window.location.reload();
-        // Return a never-resolving promise so React doesn't render a broken UI
+        // Return a never-resolving promise so React doesn't render broken UI
         return new Promise<never>(() => {});
       }
       throw err;
