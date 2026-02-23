@@ -4,31 +4,54 @@ import { ErrorBoundary } from "@components/ErrorBoundary";
 import { PageLoader } from "@components/PageLoader";
 import { Suspense, lazy } from "react";
 
+/**
+ * Wraps lazy() with automatic page reload on chunk load failure.
+ * After a new Vercel deploy, old cached chunk hashes are invalid.
+ * On first failure, we reload once (guarded by sessionStorage to prevent loops).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+): React.LazyExoticComponent<T> {
+  return lazy(() =>
+    factory().catch((err) => {
+      const key = "chunk_reload_attempted";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+        // Return a never-resolving promise so React doesn't render a broken UI
+        return new Promise<never>(() => {});
+      }
+      throw err;
+    }),
+  );
+}
+
 // Lazy load pages
-const Home = lazy(() =>
+const Home = lazyWithRetry(() =>
   import("@pages/Home").then((module) => ({ default: module.Home })),
 );
-const Search = lazy(() =>
+const Search = lazyWithRetry(() =>
   import("@pages/Search").then((module) => ({ default: module.Search })),
 );
-const ItemDetail = lazy(() =>
+const ItemDetail = lazyWithRetry(() =>
   import("@pages/ItemDetail").then((module) => ({
     default: module.ItemDetail,
   })),
 );
-const ListPage = lazy(() =>
+const ListPage = lazyWithRetry(() =>
   import("@pages/ListPage").then((module) => ({ default: module.ListPage })),
 );
-const Random = lazy(() =>
+const Random = lazyWithRetry(() =>
   import("@pages/Random").then((module) => ({ default: module.Random })),
 );
-const Settings = lazy(() =>
+const Settings = lazyWithRetry(() =>
   import("@pages/Settings").then((module) => ({ default: module.Settings })),
 );
-const Archive = lazy(() =>
+const Archive = lazyWithRetry(() =>
   import("@pages/Archive").then((module) => ({ default: module.Archive })),
 );
-const Discover = lazy(() =>
+const Discover = lazyWithRetry(() =>
   import("@pages/Discover").then((module) => ({ default: module.Discover })),
 );
 
