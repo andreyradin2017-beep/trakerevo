@@ -76,6 +76,11 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
 import App from "@/App";
 
 export const router = createBrowserRouter([
+  // Auth callback is a top-level route, completely independent from App/SplashScreen
+  {
+    path: "/auth/callback",
+    element: <SuspenseWrapper><AuthCallback /></SuspenseWrapper>,
+  },
   {
     path: "/",
     element: <App />,
@@ -166,7 +171,6 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      { path: "auth/callback", element: <SuspenseWrapper><AuthCallback /></SuspenseWrapper> },
     ],
   },
 ]);
