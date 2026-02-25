@@ -40,11 +40,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Hash is valid!
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({ error: "Supabase configuration error" });
+      console.error("Missing Supabase config:", { hasUrl: !!supabaseUrl, hasKey: !!supabaseServiceKey });
+      return res.status(500).json({ error: "Supabase configuration error on server" });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
