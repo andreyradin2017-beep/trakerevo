@@ -541,7 +541,7 @@ export const Settings: React.FC = () => {
           >
             <Info size={14} />
             <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-              TrakerEvo v1.2.0 Stable (RU Books)
+              TrakerEvo v1.3.0 Stable (RU Books)
             </span>
           </div>
           <p style={{ fontSize: "0.65rem", margin: 0 }}>
