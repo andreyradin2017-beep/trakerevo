@@ -36,6 +36,7 @@ export const TelegramLogin: React.FC<TelegramLoginProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log("Initializing Telegram Login with bot:", botName);
     window.onTelegramAuth = (user: TelegramUser) => {
       onAuth(user);
     };
