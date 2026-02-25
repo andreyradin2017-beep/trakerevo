@@ -36,14 +36,17 @@ export const TelegramLogin: React.FC<TelegramLoginProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log("Initializing Telegram Login with bot:", botName);
+    // Ensure bot name doesn't have @ prefix
+    const cleanBotName = botName.replace("@", "");
+    console.log("Initializing Telegram Login with bot:", cleanBotName);
+    
     window.onTelegramAuth = (user: TelegramUser) => {
       onAuth(user);
     };
 
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute("data-telegram-login", botName);
+    script.setAttribute("data-telegram-login", cleanBotName);
     script.setAttribute("data-size", buttonSize);
     if (cornerRadius !== undefined) {
       script.setAttribute("data-radius", cornerRadius.toString());
@@ -53,6 +56,7 @@ export const TelegramLogin: React.FC<TelegramLoginProps> = ({
     }
     script.setAttribute("data-userpic", usePic.toString());
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    // Use request-access="write" only if needed, otherwise leave as is
     script.async = true;
 
     if (containerRef.current) {
