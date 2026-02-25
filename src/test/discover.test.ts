@@ -1,18 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getDiscoverData } from "../services/discover";
 import { db } from "../db/db";
-import axios from "axios";
+import { tmdbClient, rawgClient } from "../services/apiClient";
 
-vi.mock("axios", () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
+vi.mock("../services/apiClient", () => ({
+  tmdbClient: { get: vi.fn() },
+  rawgClient: { get: vi.fn() },
 }));
-
-const mockedAxios = vi.mocked(axios, true);
 
 // Mock DB
 vi.mock("../db/db", () => ({
@@ -47,44 +41,38 @@ describe("DiscoverService", () => {
     const data = await getDiscoverData();
 
     expect(data).toEqual(mockData);
-    expect(axios.get).not.toHaveBeenCalled();
+    expect(tmdbClient.get).not.toHaveBeenCalled();
+    expect(rawgClient.get).not.toHaveBeenCalled();
   });
 
   it("should fetch and transform data from TMDB and RAWG if cache is empty", async () => {
     (db.cache.get as any).mockResolvedValue(null);
 
-    // Mock response for TMDB and RAWG
-    mockedAxios.get.mockImplementation((url: string) => {
-      if (url.includes("themoviedb.org")) {
-        return Promise.resolve({
-          data: {
-            results: [
-              {
-                id: 1,
-                title: "Movie 1",
-                media_type: "movie",
-                poster_path: "/path.jpg",
-              },
-            ],
+    vi.mocked(tmdbClient.get).mockResolvedValue({
+      data: {
+        results: [
+          {
+            id: 1,
+            title: "Movie 1",
+            media_type: "movie",
+            poster_path: "/path.jpg",
           },
-        });
-      }
-      if (url.includes("rawg.io")) {
-        return Promise.resolve({
-          data: {
-            results: [
-              {
-                id: 101,
-                name: "Game 1",
-                background_image: "game.jpg",
-                released: "2024-01-01",
-              },
-            ],
+        ],
+      },
+    } as any);
+
+    vi.mocked(rawgClient.get).mockResolvedValue({
+      data: {
+        results: [
+          {
+            id: 101,
+            name: "Game 1",
+            background_image: "game.jpg",
+            released: "2024-01-01",
           },
-        });
-      }
-      return Promise.reject(new Error(`Unknown URL: ${url}`));
-    });
+        ],
+      },
+    } as any);
 
     const data = await getDiscoverData();
 

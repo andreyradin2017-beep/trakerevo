@@ -3,20 +3,26 @@ export const getProxiedImageUrl = (
 ): string | undefined => {
   if (!url) return url;
 
-  // Avoid double proxying if the URL is already using wsrv.nl
-  if (url.includes("wsrv.nl")) {
+  // Avoid double proxying
+  if (url.includes("i0.wp.com") || url.includes("weserv.nl") || url.includes("wsrv.nl")) {
     return url;
   }
 
-  // Handle old /tmdb-image proxy URLs (convert to direct TMDB URL)
-  if (url.startsWith("/tmdb-image/")) {
-    url = url.replace("/tmdb-image", "https://image.tmdb.org/t/p");
-  }
+  // List of domains that often face connection resets or should be proxied
+  const proxyDomains = [
+    "image.tmdb.org",
+    "yt3.ggpht.com",
+    "googleusercontent.com",
+    "st.kp.yandex.net",
+    "avatars.mds.yandex.net"
+  ];
 
-  // Use wsrv.nl to proxy images (bypasses TMDB blocks in RU and handles CORS)
-  if (url.includes("image.tmdb.org")) {
-    // Always use wsrv.nl for simplicity and to avoid CORS issues
-    return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+  const shouldProxy = proxyDomains.some(domain => url.includes(domain));
+
+  if (shouldProxy) {
+    // Strip protocol from the URL for WP Photon format
+    const cleanUrl = url.replace(/^https?:\/\//, "");
+    return `https://i0.wp.com/${cleanUrl}`;
   }
 
   return url;

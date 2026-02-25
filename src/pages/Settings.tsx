@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@components/Dialogs";
 import { SearchProviderSettings } from "@components/SearchProviderSettings";
 import { useUserStats } from "@hooks/useStats";
 import { StatsBarChart } from "@components/StatsBarChart";
+import { Section } from "@components/Section";
 
 export const Settings: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -367,39 +368,18 @@ export const Settings: React.FC = () => {
 
         {/* Favorite Genres Section */}
         {userStats && userStats.topGenres.length > 0 && (
-          <div
-            style={{
-              background: "var(--bg-surface)",
-              border: "var(--border-glass)",
-              borderRadius: "var(--radius-lg)",
-              padding: "1rem",
-            }}
+          <Section
+            title="ЛЮБИМЫЕ ЖАНРЫ"
+            icon={<BarChart3 size={14} />}
+            collapsible={true}
+            defaultCollapsed={true}
+            style={{ marginBottom: "0.25rem" }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom: "1rem",
-              }}
-            >
-              <BarChart3 size={16} color="var(--primary)" />
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "0.9rem",
-                  fontWeight: 700,
-                  color: "var(--text-primary)",
-                }}
-              >
-                Любимые жанры
-              </h3>
-            </div>
             <StatsBarChart
               data={userStats.topGenres}
               maxCount={userStats.topGenres[0]?.count || 1}
             />
-          </div>
+          </Section>
         )}
 
         {/* Account Sync Button (Only if logged in) */}
@@ -449,31 +429,19 @@ export const Settings: React.FC = () => {
         />
 
         {/* Database Actions Section */}
-        <div
-          className="glass-card"
-          style={{
-            padding: "1.25rem",
-          }}
+        <Section
+          title="УПРАВЛЕНИЕ ДАННЫМИ"
+          icon={<Database size={14} />}
+          collapsible={true}
+          defaultCollapsed={true}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "1.25rem",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>
-              Управление данными
-            </h3>
-          </div>
-
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "0.75rem",
               marginBottom: "1rem",
+              marginTop: "0.5rem",
             }}
           >
             <motion.button
@@ -580,7 +548,7 @@ export const Settings: React.FC = () => {
             accept=".json"
             style={{ display: "none" }}
           />
-        </div>
+        </Section>
 
         {/* App Info */}
         <div style={{ textAlign: "center", opacity: 0.5, marginTop: "1rem" }}>
@@ -595,7 +563,7 @@ export const Settings: React.FC = () => {
           >
             <Info size={14} />
             <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-              TrakerEvo v1.2.2 (Обновление качества)
+              TrakerEvo v1.2.0 (RU Books)
             </span>
           </div>
           <p style={{ fontSize: "0.65rem", margin: 0 }}>

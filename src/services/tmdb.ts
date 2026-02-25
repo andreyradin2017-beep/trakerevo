@@ -16,29 +16,49 @@ export const getMovieDetails = async (
   type: "movie" | "tv" | "show",
 ): Promise<any> => {
   try {
-    const mediaType = type === "movie" ? "movie" : "tv";
+    let resolvedMediaType = type === "movie" ? "movie" : "tv";
+    let detailsRes;
 
-    // Primary request for details
-    const detailsRes = await tmdbClient.get<TMDBMovie>(`/${mediaType}/${id}`, {
-      params: { language: "ru-RU" },
-    });
+    try {
+      detailsRes = await tmdbClient.get<TMDBMovie>(`/${resolvedMediaType}/${id}`, {
+        params: { language: "ru-RU" },
+      });
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        const fallbackType = resolvedMediaType === "tv" ? "movie" : "tv";
+        try {
+          detailsRes = await tmdbClient.get<TMDBMovie>(`/${fallbackType}/${id}`, {
+            params: { language: "ru-RU" },
+          });
+          resolvedMediaType = fallbackType as any;
+        } catch (fallbackErr: any) {
+          // If fallback also 404s, throw the original 404 error
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
 
-    const details = detailsRes.data;
+    const details = detailsRes?.data;
     if (!details) return null;
 
     // Side requests - each handled gracefully
-    const [videosResult, recResult, providersResult] = await Promise.allSettled(
+    const [videosResult, recResult, providersResult, creditsResult] = await Promise.allSettled(
       [
-        tmdbClient.get<{ results: TMDBVideo[] }>(`/${mediaType}/${id}/videos`),
+        tmdbClient.get<{ results: TMDBVideo[] }>(`/${resolvedMediaType}/${id}/videos`),
         tmdbClient.get<TMDBSearchResponse>(
-          `/${mediaType}/${id}/recommendations`,
+          `/${resolvedMediaType}/${id}/recommendations`,
           {
             params: { language: "ru-RU" },
           },
         ),
         tmdbClient.get<TMDBWatchProviders>(
-          `/${mediaType}/${id}/watch/providers`,
+          `/${resolvedMediaType}/${id}/watch/providers`,
         ),
+        tmdbClient.get<any>(`/${resolvedMediaType}/${id}/credits`, {
+          params: { language: "ru-RU" },
+        }),
       ],
     );
 
@@ -50,6 +70,10 @@ export const getMovieDetails = async (
       providersResult.status === "fulfilled"
         ? providersResult.value.data
         : null;
+    const creditsData =
+      creditsResult.status === "fulfilled"
+        ? creditsResult.value.data
+        : null;
 
     const trailer = videosData?.results?.find(
       (v) =>
@@ -59,7 +83,7 @@ export const getMovieDetails = async (
     );
 
     // Get seasons/episodes info for TV shows
-    const episodesPerSeason = mediaType === "tv" && (details as any).seasons
+    const episodesPerSeason = resolvedMediaType === "tv" && (details as any).seasons
       ? (details as any).seasons
           .filter((s: any) => s.season_number > 0)
           .map((s: any) => s.episode_count || 0)
@@ -68,6 +92,18 @@ export const getMovieDetails = async (
     const totalEpisodes = episodesPerSeason
       ? episodesPerSeason.reduce((sum: number, count: number) => sum + count, 0)
       : undefined;
+
+    // Combine flatrate, rent, buy providers and deduplicate
+    const ruProviders = providersData?.results?.RU;
+    const allProviders: any[] = [];
+    if (ruProviders) {
+      if (ruProviders.flatrate) allProviders.push(...ruProviders.flatrate);
+      if (ruProviders.rent) allProviders.push(...ruProviders.rent);
+      if (ruProviders.buy) allProviders.push(...ruProviders.buy);
+    }
+    const uniqueProviders = Array.from(
+      new Map(allProviders.map(p => [p.provider_name, p])).values()
+    );
 
     return {
       title: details.title || details.name,
@@ -89,23 +125,30 @@ export const getMovieDetails = async (
               `https://image.tmdb.org/t/p/w342${r.poster_path}`,
             )
           : undefined,
-        type: r.media_type === "tv" ? "show" : "movie",
+        type: (r.media_type || (resolvedMediaType === "tv" ? "tv" : "movie")) === "tv" ? "show" : "movie",
         source: "tmdb" as const,
       })),
       providers:
-        providersData?.results?.RU?.flatrate?.map((p: any) => ({
+        uniqueProviders.map((p: any) => ({
           name: p.provider_name,
           logo: getProxiedImageUrl(
             `https://image.tmdb.org/t/p/original${p.logo_path}`,
           ),
+          url: ruProviders?.link, // TMDB Watch Link
         })) || [],
-      type: mediaType === "tv" ? "show" : "movie",
+      type: resolvedMediaType === "tv" ? "show" : "movie",
       year: details.release_date
         ? new Date(details.release_date).getFullYear()
         : details.first_air_date
           ? new Date(details.first_air_date).getFullYear()
           : undefined,
       rating: details.vote_average,
+      // TMDB Credits
+      cast: (creditsData?.cast || []).slice(0, 15).map((c: any) => ({
+        name: c.name,
+        character: c.character,
+        image: c.profile_path ? getProxiedImageUrl(`https://image.tmdb.org/t/p/w185${c.profile_path}`) : undefined,
+      })),
       // TV Show specific data
       totalEpisodes,
       episodesPerSeason,

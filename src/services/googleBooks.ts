@@ -53,15 +53,32 @@ export const getBookDetails = async (id: string): Promise<any> => {
     if (!data) return null;
 
     const info = data.volumeInfo;
+    let related: Item[] = [];
+
+    // Fetch author's other books for recommendations
+    if (info.authors && info.authors.length > 0) {
+      try {
+        const authorQuery = `inauthor:"${info.authors[0]}"`;
+        const authorBooks = await searchBooks(authorQuery);
+        if (authorBooks) {
+          // Filter out the current book
+          related = authorBooks.filter((b) => b.externalId !== id).slice(0, 10);
+        }
+      } catch (err) {
+        console.warn("Error fetching related books from Google Books", err);
+      }
+    }
+
     return {
       title: info.title,
       image: info.imageLinks?.thumbnail,
       description: info.description,
       authors: info.authors || [],
       genres: info.categories || [],
-      related: [],
+      related,
       providers: [],
       type: "book",
+
     };
   } catch (error) {
     logger.error("Google Books Details Error", "googleBooks", error);

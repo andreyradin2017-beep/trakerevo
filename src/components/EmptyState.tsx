@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Ghost } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   message?: string;
@@ -21,103 +22,32 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "3rem 1.5rem",
-        textAlign: "center",
-        color: "var(--text-secondary)",
-        minHeight: "260px",
-        position: "relative",
-        overflow: "hidden",
-      }}
+      className="flex flex-col items-center justify-center py-12 px-6 text-center text-zinc-400 min-h-[260px] relative overflow-hidden"
     >
       {/* Background Glow */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "120px",
-          height: "120px",
-          background: "var(--primary-glow)",
-          filter: "blur(60px)",
-          opacity: 0.2,
-          zIndex: 0,
-        }}
-      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-500/20 blur-[80px] -z-10" />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          background: "rgba(255,255,255,0.03)",
-          padding: "1.75rem",
-          borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", // Organic shape
-          marginBottom: "1.5rem",
-          border: "1px solid rgba(255,255,255,0.05)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--primary)",
-        }}
-      >
-        {icon || <Ghost size={40} strokeWidth={1.5} />}
+      <div className="relative z-10 bg-white/5 p-7 rounded-[30%_70%_70%_30%/30%_30%_70%_70%] mb-6 border border-white/5 flex items-center justify-center text-primary shadow-xl">
+        {icon || <Ghost size={48} strokeWidth={1.5} />}
       </div>
 
-      <p
-        style={{
-          position: "relative",
-          zIndex: 1,
-          fontSize: "1.1rem",
-          fontWeight: 600,
-          color: "var(--text-primary)",
-          marginBottom: "0.5rem",
-        }}
-      >
+      <p className="relative z-10 text-lg font-bold text-zinc-100 mb-2">
         {message}
       </p>
-      <p
-        style={{
-          position: "relative",
-          zIndex: 1,
-          fontSize: "0.9rem",
-          opacity: 0.6,
-          maxWidth: "240px",
-          lineHeight: "1.5",
-          marginBottom: action ? "1.5rem" : 0,
-        }}
-      >
+
+      <p className="relative z-10 text-base font-medium text-zinc-400 max-w-[260px] leading-relaxed mb-8">
         {action
           ? "Здесь будет отображаться ваш контент, начните с добавления первого элемента"
           : "Попробуйте изменить параметры поиска или фильтры"}
       </p>
 
       {action && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <Button
           onClick={action.onClick}
-          style={{
-            background: "var(--primary)",
-            color: "var(--text-primary)",
-            border: "none",
-            padding: "0.75rem 1.5rem",
-            borderRadius: "var(--radius-full)",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
+          className="relative z-10 rounded-full font-bold px-8 py-6 h-auto text-base bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-black shadow-[0_0_20px_rgba(251,191,36,0.3)] border-none transition-all hover:scale-105 active:scale-95"
         >
           {action.label}
-        </motion.button>
+        </Button>
       )}
     </motion.div>
   );

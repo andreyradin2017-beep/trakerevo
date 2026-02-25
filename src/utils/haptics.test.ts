@@ -12,6 +12,7 @@ describe("haptics utility", () => {
     // Mock Telegram WebApp object
     (window as any).Telegram = {
       WebApp: {
+        version: "8.0",
         HapticFeedback: {
           impactOccurred: impactMock,
           notificationOccurred: notificationMock,

@@ -30,6 +30,7 @@ dist-ssr
 
 # Agent directories
 .agent/
+.agents/
 
 # Production / Vercel
 .vercel

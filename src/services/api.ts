@@ -8,6 +8,7 @@ import {
   getKinopoiskDetails,
   getKinopoiskTop,
 } from "./kinopoisk";
+import { searchLitres, getLitresDetails } from "./litres";
 import { logger } from "../utils/logger";
 
 // Cache TTL from environment or default to 30 days (2592000000 ms)
@@ -55,6 +56,8 @@ export const searchAll = async (
     searchTasks.push({ id: "rawg", promise: searchGames(query) });
   if (includeBooks && enabledProviders.some((p) => p.id === "google_books"))
     searchTasks.push({ id: "google_books", promise: searchBooks(query) });
+  if (includeBooks && enabledProviders.some((p) => p.id === "litres"))
+    searchTasks.push({ id: "litres", promise: searchLitres(query) });
 
   const settledTasks = await Promise.allSettled(
     searchTasks.map(async (task) => {
@@ -90,18 +93,30 @@ export const searchByCategory = async (
   const cached = await getCachedData(cacheKey);
   if (cached) return cached;
 
+  // Load enabled providers from DB
+  const { db } = await import("../db/db");
+  const providers = await db.search_providers.toArray();
+  const isEnabled = (id: string) => {
+    const p = providers.find(pr => pr.id === id);
+    return p ? p.enabled : true; // default to enabled if not in DB yet
+  };
+
   let results: Item[] = [];
   try {
     if (category === "movie") {
-      const [tmdbResults, kinopoiskResults] = await Promise.all([
-        searchMovies(query),
-        searchKinopoisk(query),
-      ]);
-      results = [...(tmdbResults || []), ...(kinopoiskResults || [])];
+      const calls: (Promise<Item[] | null> | Promise<Item[]>)[] = [];
+      if (isEnabled("tmdb")) calls.push(searchMovies(query));
+      if (isEnabled("kinopoisk")) calls.push(searchKinopoisk(query));
+      const all = await Promise.all(calls);
+      results = all.filter(Boolean).flat() as Item[];
     } else if (category === "game") {
-      results = (await searchGames(query)) || [];
+      if (isEnabled("rawg")) results = (await searchGames(query)) || [];
     } else if (category === "book") {
-      results = (await searchBooks(query)) || [];
+      const calls: (Promise<Item[] | null> | Promise<Item[]>)[] = [];
+      if (isEnabled("google_books")) calls.push(searchBooks(query));
+      if (isEnabled("litres")) calls.push(searchLitres(query));
+      const all = await Promise.all(calls);
+      results = all.filter(Boolean).flat() as Item[];
     }
   } catch (e) {
     logger.error(`Search category ${category} failed`, "api", e);
@@ -128,6 +143,8 @@ export const getDetails = async (item: Item): Promise<any> => {
       data = await getGameDetails(item.externalId!);
     else if (item.source === "google_books")
       data = await getBookDetails(item.externalId!);
+    else if (item.source === "litres")
+      data = await getLitresDetails(item.externalId!);
   } catch (e) {
     logger.error(`Get details failed for ${item.source}`, "api", e);
   }

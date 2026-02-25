@@ -8,16 +8,21 @@ import { BentoTile } from "@components/BentoTile";
 import { ItemHeader } from "@components/ItemHeader";
 import { ItemStatsEditor } from "@components/ItemStatsEditor";
 import { ItemMetadataDetails } from "@components/ItemMetadataDetails";
-import { PageHeader } from "@components/PageHeader";
 import { HLTBTile } from "@components/HLTBTile";
 import { DetailDescription } from "@components/DetailDescription";
 import { ItemNotesAndList } from "@components/ItemNotesAndList";
+import { BookActions } from "@components/BookActions";
+import { CastScroll } from "@components/CastScroll";
+import { ScreenshotsCarousel } from "@components/ScreenshotsCarousel";
+import { StreamingProviders } from "@components/StreamingProviders";
+import { AuthorBooksRow } from "@components/AuthorBooksRow";
 import { getDetails } from "@services/api";
 import { useToast } from "@context/ToastContext";
 import { notificationOccurred } from "@utils/haptics";
 import { triggerAutoSync } from "@services/dbSync";
-import { AnimatePresence } from "framer-motion";
-import { Plus } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Plus, ChevronLeft, Film, Gamepad2, BookOpen, Activity, Heart, Eye } from "lucide-react";
+import { getProxiedImageUrl } from "@utils/images";
 
 export const ItemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,17 +79,16 @@ export const ItemDetail: React.FC = () => {
     developers?: string[];
     publishers?: string[];
     metacriticScore?: number;
-    esrbRating?: string;
     playtime?: number;
     website?: string;
+    cast?: { name: string; character?: string; image?: string }[];
+    screenshots?: string[];
   } | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
-  // Collapsible states
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
-    providers: false,
     related: true,
   });
 
@@ -132,7 +136,9 @@ export const ItemDetail: React.FC = () => {
 
           if (found) {
             setItem(found);
-            setStatus(found.status);
+            // If archived, status MUST be completed
+            const initialStatus = found.isArchived ? "completed" : found.status;
+            setStatus(initialStatus);
             setNotes(found.notes || "");
             setProgress(found.progress || 0);
             setTotalProgress(found.totalProgress || 0);
@@ -154,28 +160,33 @@ export const ItemDetail: React.FC = () => {
           } else if (urlSourceParam && id) {
             // Preview Mode: Item not in DB, but we have external ID and source
             // We fetch details to show the page
-            getDetails({ externalId: id, source: urlSourceParam } as any)
-              .then((data: any) => {
-                if (data) {
-                  setExtraMetadata(data);
-                  setItem({
-                    title: data.title || id,
-                    type: data.type || "movie",
-                    source: urlSourceParam as any,
-                    externalId: id,
-                    image: data.image,
-                    description: data.description,
-                    year: data.year,
-                    tags: data.genres || [],
-                    status: "planned",
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  } as Item);
-                }
-              })
-              .catch((err) => {
-                console.error("Failed to load preview details:", err);
-              });
+            try {
+              const data = await getDetails({ externalId: id, source: urlSourceParam } as any);
+              if (data) {
+                setExtraMetadata(data);
+                // Determine type by source if not explicit in data
+                const bookSources = ["litres", "bookmate", "google_books"];
+                const resolvedType = data.type
+                  || (bookSources.includes(urlSourceParam!) ? "book" : "movie");
+                setItem({
+                  title: data.title || id,
+                  type: resolvedType,
+                  source: urlSourceParam as any,
+                  externalId: id,
+                  image: data.image || data.posterUrl,
+                  description: data.description,
+                  year: data.year,
+                  tags: data.genres || [],
+                  authors: data.authors || (data.author ? [data.author] : []),
+                  rating: data.rating,
+                  status: "planned",
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                } as Item);
+              }
+            } catch (err) {
+              console.error("Failed to load preview details:", err);
+            }
           }
           setLoading(false);
         } catch (err) {
@@ -190,18 +201,32 @@ export const ItemDetail: React.FC = () => {
 
   const { showToast } = useToast();
 
+  // Wrap setStatus to handle archive sync
+  const handleStatusChange = (newStatus: Item["status"]) => {
+    setStatus(newStatus);
+    if (newStatus === "completed") {
+      setIsArchived(true);
+    } else if (newStatus === "planned" || newStatus === "in_progress") {
+      setIsArchived(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!item?.id) return;
 
+    // Final sync before save
+    const finalArchived = isArchived || status === "completed";
+    const finalStatus = finalArchived ? "completed" : status;
+
     await db.items.update(item.id, {
-      status,
+      status: finalStatus,
       notes,
       progress,
       totalProgress,
       listId: selectedListId,
       currentSeason,
       currentEpisode,
-      isArchived,
+      isArchived: finalArchived,
       updatedAt: new Date(),
     });
     notificationOccurred("success");
@@ -218,6 +243,25 @@ export const ItemDetail: React.FC = () => {
       isArchived: nextState,
       updatedAt: new Date(),
     });
+    triggerAutoSync();
+  };
+
+  const handleUpdateStatus = async (currentItem: Item, newStatus: Item["status"]) => {
+    if (!currentItem.id) return;
+    
+    // Update local state first
+    handleStatusChange(newStatus);
+    
+    const archived = newStatus === "completed";
+    
+    await db.items.update(currentItem.id, { 
+      status: newStatus, 
+      isArchived: archived,
+      updatedAt: new Date() 
+    });
+    
+    notificationOccurred("success");
+    showToast(newStatus === "completed" ? "Завершено и архивировано" : "Вернулось в работу", "success");
     triggerAutoSync();
   };
 
@@ -239,11 +283,12 @@ export const ItemDetail: React.FC = () => {
     handleBack();
   };
 
-  const handleQuickAddRecord = async () => {
+  const handleQuickAddRecord = async (initialStatus: Item["status"] = "planned") => {
     if (!item) return;
     const newItem: Item = {
       ...item,
-      status: "planned",
+      status: initialStatus,
+      isArchived: initialStatus === "completed",
       createdAt: new Date(),
       updatedAt: new Date(),
       // Auto-fill seasons/episodes for TV shows
@@ -310,31 +355,39 @@ export const ItemDetail: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <PageHeader
-        title="Детали"
-        showBack
-        onBack={handleBack}
-        showSyncStatus={false}
-        style={{
-          paddingTop: "var(--space-md)",
-          marginBottom: "var(--space-md)",
-        }}
-      />
+      {/* Floating Header Actions */}
+      <div className="fixed top-0 left-0 right-0 z-50 p-4 pt-safe flex items-center justify-between pointer-events-none">
+        <button
+          onClick={handleBack}
+          className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full text-white pointer-events-auto hover:bg-black/60 transition-colors shadow-lg border border-white/10"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "0.75rem",
-          maxWidth: "800px",
-          margin: "0 auto",
-          paddingBottom: "120px",
-        }}
-      >
-        <BentoTile colSpan={2} style={{ padding: 0 }} delay={0.1}>
+      {/* Hero Image */}
+      <div className="relative w-[calc(100%+2rem)] -mx-4 -mt-4 h-[60vh] max-h-[600px] min-h-[400px] bg-black">
+        {item.image ? (
+          <img
+            src={getProxiedImageUrl(item.image)}
+            alt={item.title}
+            className="w-full h-full object-cover opacity-80"
+            style={{ maskImage: "linear-gradient(to bottom, black 50%, rgba(0,0,0,0) 100%)", WebkitMaskImage: "linear-gradient(to bottom, black 50%, rgba(0,0,0,0) 100%)" }}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600/50 pb-20">
+            {item.type === "movie" || item.type === "show" ? <Film size={64} /> :
+             item.type === "game" ? <Gamepad2 size={64} /> :
+             item.type === "book" ? <BookOpen size={64} /> :
+             <Activity size={64} />}
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+      </div>
+
+      <div className="relative z-10 -mt-32 pb-32 max-w-3xl mx-auto flex flex-col gap-3">
           <ItemHeader
             title={item.title}
-            image={item.image}
             type={item.type}
             year={item.year}
             hasTrailer={!!extraMetadata?.trailer}
@@ -346,8 +399,38 @@ export const ItemDetail: React.FC = () => {
             onAuthorClick={(author) => {
               navigate(`/search?q=${encodeURIComponent(author)}&category=book`);
             }}
+            actionButtons={
+              <>
+                <motion.button 
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    if (!item.id) handleQuickAddRecord("planned");
+                    else handleUpdateStatus(item, "planned");
+                  }}
+                  className="w-[50px] h-[50px] rounded-full border border-white/20 bg-black/40 backdrop-blur-md flex items-center justify-center text-white transition-colors duration-300 hover:bg-white/10"
+                >
+                  <Heart 
+                    size={20} 
+                    fill={item.status === "planned" ? "currentColor" : "none"} 
+                    className={item.status === "planned" ? "text-yellow-400" : ""} 
+                  />
+                </motion.button>
+                <motion.button 
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    if (!item.id) handleQuickAddRecord("in_progress");
+                    else handleUpdateStatus(item, "in_progress");
+                  }}
+                  className="w-[50px] h-[50px] rounded-full border border-white/20 bg-black/40 backdrop-blur-md flex items-center justify-center text-white transition-colors duration-300 hover:bg-white/10"
+                >
+                  <Eye 
+                    size={20} 
+                    className={item.status === "in_progress" ? "text-primary" : ""} 
+                  />
+                </motion.button>
+              </>
+            }
           />
-        </BentoTile>
 
         {/* Row 1.5: Description */}
         {(item.description || extraMetadata?.description) && (
@@ -357,9 +440,39 @@ export const ItemDetail: React.FC = () => {
           />
         )}
 
-        {/* Game completion time (HLTB) */}
-        {item.type === "game" && extraMetadata?.hltb && (
-          <HLTBTile hltb={extraMetadata.hltb} delay={0.18} />
+        {/* Streaming Providers */}
+        {extraMetadata?.providers && extraMetadata.providers.length > 0 && (
+          <BentoTile colSpan={2} delay={0.16}>
+            <StreamingProviders providers={extraMetadata.providers} />
+          </BentoTile>
+        )}
+
+        {/* Screenshots (Games) */}
+        {item.type === "game" && extraMetadata?.screenshots && extraMetadata.screenshots.length > 0 && (
+          <BentoTile colSpan={2} delay={0.17}>
+            <ScreenshotsCarousel screenshots={extraMetadata.screenshots} />
+          </BentoTile>
+        )}
+
+        {/* Game completion time */}
+        {item.type === "game" && (extraMetadata?.hltb || (extraMetadata as any)?.playtime) && (
+          <HLTBTile
+            hltb={extraMetadata?.hltb}
+            playtime={(extraMetadata as any)?.playtime}
+            delay={0.18}
+          />
+        )}
+
+        {/* Cast (Movies/Shows) */}
+        {(item.type === "movie" || item.type === "show") && extraMetadata?.cast && extraMetadata.cast.length > 0 && (
+          <BentoTile colSpan={2} delay={0.19}>
+            <CastScroll 
+              cast={extraMetadata.cast} 
+              onActorClick={(name) => {
+                navigate(`/search?q=${encodeURIComponent(name)}&category=${item.type}`);
+              }}
+            />
+          </BentoTile>
         )}
 
         {/* Row 2: Status Tracking or Add Button */}
@@ -376,7 +489,7 @@ export const ItemDetail: React.FC = () => {
               totalProgress={totalProgress}
               episodesPerSeason={item.episodesPerSeason}
               numberOfSeasons={(extraMetadata as any)?.numberOfSeasons}
-              onStatusChange={setStatus}
+              onStatusChange={handleStatusChange}
               onArchiveToggle={toggleArchive}
               onSeasonChange={setCurrentSeason}
               onEpisodeChange={setCurrentEpisode}
@@ -398,7 +511,7 @@ export const ItemDetail: React.FC = () => {
                 Этот элемент еще не добавлен в вашу библиотеку
               </p>
               <button
-                onClick={handleQuickAddRecord}
+                onClick={() => handleQuickAddRecord("planned")}
                 className="flex-center"
                 style={{
                   width: "100%",
@@ -433,8 +546,31 @@ export const ItemDetail: React.FC = () => {
           />
         ) : null}
 
+        {/* Row 3.5: Book Actions (LitRes / Yandex links) */}
+        {item.type === "book" && (
+          <BentoTile colSpan={2} delay={0.4}>
+            <BookActions 
+              source={item.source || "manual"} 
+              externalId={item.externalId || ""} 
+              title={item.title}
+            />
+          </BentoTile>
+        )}
+
+        {/* Row 3.6: Author's Other Books */}
+        {item.type === "book" && (item.authors?.[0] || extraMetadata?.authors?.[0]) && (
+          <BentoTile colSpan={2} delay={0.45}>
+            <AuthorBooksRow 
+              authorName={item.authors?.[0] || extraMetadata?.authors?.[0] || ""}
+              onBookClick={(book) => {
+                navigate(`/item/${book.externalId}?source=${book.source}`);
+              }}
+            />
+          </BentoTile>
+        )}
+
         {/* Row 4: External Metadata */}
-        {extraMetadata?.providers?.length || extraMetadata?.related?.length ? (
+        {extraMetadata?.related && extraMetadata.related.length > 0 ? (
           <BentoTile colSpan={2} delay={0.5} style={{ padding: "0.5rem 0" }}>
             <ItemMetadataDetails
               extraMetadata={extraMetadata}

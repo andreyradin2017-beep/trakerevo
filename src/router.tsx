@@ -49,6 +49,9 @@ const ItemDetail = lazyWithRetry(() =>
 const ListPage = lazyWithRetry(() =>
   import("@pages/ListPage").then((module) => ({ default: module.ListPage })),
 );
+const ListIndex = lazyWithRetry(() =>
+  import("@pages/ListIndex").then((module) => ({ default: module.ListIndex })),
+);
 const Random = lazyWithRetry(() =>
   import("@pages/Random").then((module) => ({ default: module.Random })),
 );
@@ -95,6 +98,14 @@ export const router = createBrowserRouter([
             element: (
               <SuspenseWrapper>
                 <Search />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "list",
+            element: (
+              <SuspenseWrapper>
+                <ListIndex />
               </SuspenseWrapper>
             ),
           },

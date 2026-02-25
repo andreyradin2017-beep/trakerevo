@@ -1,98 +1,65 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Archive, Sparkles, Dices, User } from "lucide-react";
+import { Home, LayoutGrid, Settings, Plus, List } from "lucide-react";
 import { selectionChanged } from "../utils/haptics";
+import { cn } from "@/lib/utils";
 
 export const BottomNav: React.FC = () => {
   const navItems = [
-    { path: "/", icon: <Home size={20} />, label: "Главная" },
-    { path: "/discover", icon: <Sparkles size={20} />, label: "Открытия" },
-    { path: "/random", icon: <Dices size={20} />, label: "Рандом" },
-    { path: "/archive", icon: <Archive size={20} />, label: "Архив" },
-    { path: "/settings", icon: <User size={20} />, label: "Профиль" },
+    { path: "/", icon: <Home className="w-[22px] h-[22px]" />, label: "Главная" },
+    { path: "/discover", icon: <LayoutGrid className="w-[22px] h-[22px]" />, label: "Категории" },
+    { path: "/search", icon: <Plus className="w-[28px] h-[28px]" />, label: "Поиск", isSpecial: true },
+    { path: "/list", icon: <List className="w-[22px] h-[22px]" />, label: "Списки" },
+    { path: "/settings", icon: <Settings className="w-[22px] h-[22px]" />, label: "Настройки" },
   ];
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        bottom: "1.5rem",
-        left: "1rem",
-        right: "1rem",
-        height: "64px",
-        background: "rgba(15, 15, 18, 0.75)",
-        backdropFilter: "blur(24px) saturate(180%)",
-        WebkitBackdropFilter: "blur(24px) saturate(180%)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        borderRadius: "var(--radius-xl)",
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-        zIndex: 1000,
-        boxShadow: "0 10px 40px -10px rgba(0,0,0,0.7)",
-      }}
-    >
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm h-[72px] bg-[#1A1A1A]/95 backdrop-blur-2xl rounded-[2rem] flex justify-around items-center z-[1000] shadow-2xl px-2">
       {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
           onClick={() => selectionChanged()}
-          style={({ isActive }) => ({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "2px",
-            color: isActive ? "var(--primary)" : "var(--text-tertiary)",
-            textDecoration: "none",
-            flex: 1,
-            height: "100%",
-            position: "relative",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          })}
+          className={({ isActive }) =>
+            cn(
+              "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-300",
+              item.isSpecial ? "-translate-y-4" : "",
+              isActive && !item.isSpecial ? "text-primary" : "text-zinc-500 hover:text-zinc-400"
+            )
+          }
         >
           {({ isActive }) => (
-            <>
-              {isActive && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "44px",
-                    height: "44px",
-                    background: "rgba(139, 92, 246, 0.1)",
-                    borderRadius: "14px",
-                    zIndex: -1,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: isActive ? "scale(1.15) translateY(-1px)" : "none",
-                  transition: "transform 0.2s ease-out",
-                }}
-              >
+            item.isSpecial ? (
+              <div className={cn(
+                "w-[56px] h-[56px] rounded-full flex items-center justify-center text-black mb-1 transition-transform",
+                isActive 
+                  ? "bg-white shadow-[0_4px_20px_rgba(255,255,255,0.4)] scale-110" 
+                  : "bg-yellow-400 shadow-[0_4px_20px_rgba(250,204,21,0.5)] hover:scale-105 active:scale-95"
+              )}>
                 {item.icon}
               </div>
-              <span
-                style={{
-                  fontSize: "0.55rem",
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  opacity: isActive ? 1 : 0.5,
-                  transition: "opacity 0.3s",
-                  fontFamily: "var(--font-main)",
-                }}
-              >
-                {item.label}
-              </span>
-            </>
+            ) : (
+              <>
+                <div
+                  className={cn(
+                    "flex items-center justify-center transition-transform duration-300",
+                    isActive ? "scale-110 -translate-y-0.5 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" : ""
+                  )}
+                >
+                  {/* Clone element to fill when active if it's Heart, etc */}
+                  {React.cloneElement(item.icon as React.ReactElement, {})}
+
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium tracking-wide transition-all duration-300",
+                    isActive ? "opacity-100 text-primary" : "opacity-70"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </>
+            )
           )}
         </NavLink>
       ))}

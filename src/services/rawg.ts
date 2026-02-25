@@ -54,15 +54,37 @@ export const getGameDetails = async (id: string): Promise<any> => {
     const data = response.data;
     if (!data) return null;
 
-    // Fetch related games with graceful 401 handling
     let related: any[] = [];
     try {
       const relatedRes = await rawgClient.get(`/games/${id}/additions`);
-      related = relatedRes.data?.results?.slice(0, 8) || [];
+      const rawRelated = relatedRes.data?.results || [];
+      related = rawRelated.map((g: any) => ({
+        title: g.name,
+        type: "game",
+        status: "planned",
+        image: g.background_image,
+        year: g.released ? new Date(g.released).getFullYear() : undefined,
+        rating: g.rating,
+        source: "rawg" as const,
+        externalId: g.id.toString(),
+        tags: g.genres?.map((gen: any) => gen.name) || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })).slice(0, 8);
     } catch (err: any) {
       // Ignore 401/403 errors for free API keys
       if (err.response?.status !== 401 && err.response?.status !== 403) {
         logger.warn("RAWG related games fetch failed", "rawg", err);
+      }
+    }
+
+    let screenshots: string[] = [];
+    try {
+      const screensRes = await rawgClient.get(`/games/${id}/screenshots`);
+      screenshots = screensRes.data?.results?.map((s: any) => s.image) || [];
+    } catch (err: any) {
+      if (err.response?.status !== 401 && err.response?.status !== 403) {
+        logger.warn("RAWG screenshots fetch failed", "rawg", err);
       }
     }
 
@@ -89,6 +111,7 @@ export const getGameDetails = async (id: string): Promise<any> => {
       esrbRating: data.esrb_rating?.name,
       playtime: data.playtime,
       website: data.website,
+      screenshots,
     };
   } catch (error) {
     logger.error("RAWG Details Error", "rawg", error);

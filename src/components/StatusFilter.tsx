@@ -43,7 +43,7 @@ export const StatusFilter: React.FC<StatusFilterProps> = ({
             onClick={() => onStatusChange(status.id)}
             className={isActive ? "btn" : "btn-secondary"}
             style={{
-              padding: "0.35rem 0.85rem",
+              padding: "var(--space-xs) 0.8rem",
               borderRadius: "var(--radius-full)",
               background: isActive ? "var(--primary-15)" : "var(--bg-surface)",
               border: isActive

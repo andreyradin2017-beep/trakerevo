@@ -55,9 +55,16 @@ export const createApiClient = (
     async (error: AxiosError) => {
       const retryableStatuses = [429, 500, 502, 503];
       if (error.response?.status && retryableStatuses.includes(error.response.status)) {
-        return retryWithBackoff(error).then(() =>
-          client.request(error.config!),
-        );
+        try {
+          await retryWithBackoff(error);
+          return await client.request(error.config!);
+        } catch (retryError) {
+           // If we've exhausted retries on a 429, return an empty/default response to avoid unhandled promise rejections crashing UI
+           if (error.response?.status === 429 && error.config?.url?.includes("googleapis")) {
+             return { data: { items: [], results: [] }, status: 200, statusText: "OK (Rate Limited Fallback)", headers: {}, config: error.config! };
+           }
+           throw retryError;
+        }
       }
       throw error;
     },
@@ -66,14 +73,14 @@ export const createApiClient = (
   return client;
 };
 
-export const tmdbClient = createApiClient("https://api.themoviedb.org/3");
-export const rawgClient = createApiClient("https://api.rawg.io/api");
+export const tmdbClient = createApiClient("/api/tmdb");
+
+export const rawgClient = createApiClient("/api/rawg");
 export const googleBooksClient = createApiClient(
   "https://www.googleapis.com/books/v1",
 );
-export const kinopoiskClient = createApiClient(
-  "https://kinopoiskapiunofficial.tech/api",
-);
+export const kinopoiskClient = createApiClient("/api/kinopoisk");
+
 
 // --- TMDB Interceptor ---
 tmdbClient.interceptors.request.use(async (config) => {

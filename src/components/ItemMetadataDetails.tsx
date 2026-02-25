@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, ChevronUp, Play, ExternalLink } from "lucide-react";
-import { pressAnimation, DURATIONS, EASINGS } from "@utils/animations";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { pressAnimation } from "@utils/animations";
 
 interface ItemMetadataDetailsProps {
   extraMetadata: {
@@ -74,68 +74,6 @@ export const ItemMetadataDetails: React.FC<ItemMetadataDetailsProps> = ({
         padding: "0 1.25rem",
       }}
     >
-      {extraMetadata?.providers && extraMetadata.providers.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <SectionHeader
-            title="Где посмотреть"
-            id="providers"
-            icon={<Play size={14} />}
-            expanded={!!expandedSections.providers}
-            onToggle={toggleSection}
-          />
-          {expandedSections.providers && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: DURATIONS.standard,
-                ease: EASINGS.out,
-              }}
-              style={{ overflow: "hidden" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.75rem",
-                  flexWrap: "wrap",
-                  padding: "0.75rem 0",
-                }}
-              >
-                {extraMetadata.providers.map((p, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      background: "rgba(255,255,255,0.03)",
-                      padding: "0.4rem 0.6rem",
-                      borderRadius: "8px",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <img
-                      src={p.logo}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "4px",
-                      }}
-                    />
-                    <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                      {p.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </div>
-      )}
-
       {extraMetadata?.related && extraMetadata.related.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column" }}>
           <SectionHeader

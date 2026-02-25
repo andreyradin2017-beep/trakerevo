@@ -25,7 +25,10 @@ export interface TMDBVideo {
 export interface TMDBWatchProviders {
   results: {
     [key: string]: {
+      link?: string;
       flatrate?: { provider_name: string; logo_path: string }[];
+      rent?: { provider_name: string; logo_path: string }[];
+      buy?: { provider_name: string; logo_path: string }[];
     };
   };
 }

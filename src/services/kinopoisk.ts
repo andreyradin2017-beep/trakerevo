@@ -81,8 +81,8 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
     const details = response.data;
     if (!details) return null;
 
-    // Fetch trailers, similars and seasons in parallel with error suppression
-    const [trailersRes, similarsRes, seasonsRes] = await Promise.all([
+    // Fetch trailers, similars, seasons and staff in parallel with error suppression
+    const [trailersRes, similarsRes, seasonsRes, staffRes] = await Promise.all([
       kinopoiskClient.get<{ items: KinopoiskTrailer[] }>(
         `/v2.2/films/${id}/videos`,
         { validateStatus: (status) => status < 500 }, // Don't throw on 4xx
@@ -98,11 +98,17 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
             { validateStatus: (status) => status < 500 },
           ).then((r) => (r.status === 200 ? r : null)).catch(() => null)
         : Promise.resolve(null),
+      // Fetch staff
+      kinopoiskClient.get<any[]>(
+        `/v1/staff?filmId=${id}`,
+        { validateStatus: (status) => status < 500 },
+      ).then((r) => (r.status === 200 ? r : null)).catch(() => null),
     ]);
 
     const trailersData = trailersRes?.data || null;
     const similarsData = similarsRes?.data || null;
     const seasonsData = seasonsRes?.data || null;
+    const staffData = staffRes?.data || null;
 
     const trailer = trailersData?.items?.find(
       (t) => t.site === "YOUTUBE" && t.type === "TRAILER",
@@ -132,7 +138,7 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
       genres:
         details.genres?.map((g: any) => KINOPOISK_GENRE_MAP[g.genre?.toLowerCase()] || g.genre) || [],
       countries: details.countries?.map((c: any) => c.country) || [],
-      type: details.type === "TV_SERIES" ? "show" : "movie",
+      type: (details.type === "TV_SERIES" || details.type === "TV_SHOW" || details.type === "MINI_SERIES") ? "show" : "movie",
       year:
         details.year && details.year !== "null"
           ? parseInt(String(details.year))
@@ -149,6 +155,13 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
       trailer: trailer
         ? `https://www.youtube.com/embed/${trailer.url.split("/").pop()}`
         : undefined,
+      providers: [
+        {
+          name: "Кинопоиск",
+          logo: "https://www.google.com/s2/favicons?domain=kinopoisk.ru&sz=128",
+          url: `https://www.kinopoisk.ru/film/${id}/`,
+        }
+      ],
       related:
         similarsData?.items
           ?.filter((s: KinopoiskSimilarFilm) => s.nameRu || s.nameEn)
@@ -160,9 +173,17 @@ export const getKinopoiskDetails = async (id: string): Promise<any> => {
               s.posterUrl && !s.posterUrl.includes("no-poster")
                 ? getProxiedImageUrl(s.posterUrl)
                 : undefined,
-            type: "movie",
+            type: (details.type === "TV_SERIES" || details.type === "TV_SHOW" || details.type === "MINI_SERIES") ? "show" : "movie",
             source: "kinopoisk" as const,
           })) || [],
+      cast: (staffData || [])
+        .filter((s: any) => s.professionKey === "ACTOR")
+        .slice(0, 15)
+        .map((s: any) => ({
+          name: s.nameRu || s.nameEn || "",
+          character: s.description || "",
+          image: s.posterUrl ? getProxiedImageUrl(s.posterUrl) : undefined,
+        })),
       // TV Show specific data
       totalEpisodes,
       episodesPerSeason,

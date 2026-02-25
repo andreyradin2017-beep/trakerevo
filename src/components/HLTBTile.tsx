@@ -3,20 +3,15 @@ import { Timer } from "lucide-react";
 import { BentoTile } from "./BentoTile";
 
 interface HLTBTileProps {
-  hltb: {
-    main: string;
-    extra: string;
-    completionist: string;
-  };
+  /** Legacy HLTB data (disabled, kept for type compatibility) */
+  hltb?: { main: string; extra: string; completionist: string } | null;
+  /** Average playtime in hours from RAWG */
+  playtime?: number;
   delay?: number;
 }
 
-export const HLTBTile: React.FC<HLTBTileProps> = ({ hltb, delay = 0.18 }) => {
-  const stats = [
-    { label: "Сюжет", value: hltb.main },
-    { label: "+ Допы", value: hltb.extra },
-    { label: "100%", value: hltb.completionist },
-  ];
+export const HLTBTile: React.FC<HLTBTileProps> = ({ playtime, delay = 0.18 }) => {
+  if (!playtime) return null;
 
   return (
     <BentoTile colSpan={2} delay={delay} style={{ padding: "1rem" }}>
@@ -30,49 +25,37 @@ export const HLTBTile: React.FC<HLTBTileProps> = ({ hltb, delay = 0.18 }) => {
       >
         <Timer size={14} color="var(--primary)" />
         <label className="section-label" style={{ margin: 0 }}>
-          Время прохождения (HowLongToBeat)
+          Среднее время прохождения
         </label>
       </div>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "0.5rem",
+          background: "rgba(255,255,255,0.03)",
+          padding: "0.85rem 1rem",
+          borderRadius: "12px",
+          textAlign: "center",
         }}
       >
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="flex-column flex-center"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              padding: "0.75rem",
-              borderRadius: "12px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.65rem",
-                color: "var(--text-tertiary)",
-                marginBottom: "0.25rem",
-                textTransform: "uppercase",
-                fontWeight: 700,
-              }}
-            >
-              {stat.label}
-            </div>
-            <div
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: 800,
-                color: "var(--text-primary)",
-              }}
-            >
-              {stat.value}
-            </div>
-          </div>
-        ))}
+        <div
+          style={{
+            fontSize: "0.6rem",
+            color: "var(--text-tertiary)",
+            marginBottom: "0.25rem",
+            textTransform: "uppercase",
+            fontWeight: 700,
+          }}
+        >
+          По данным игрового сообщества
+        </div>
+        <div
+          style={{
+            fontSize: "1.4rem",
+            fontWeight: 800,
+            color: "var(--text-primary)",
+          }}
+        >
+          ~{playtime}ч
+        </div>
       </div>
     </BentoTile>
   );

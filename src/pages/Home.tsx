@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "@db/db";
-import { Plus, User } from "lucide-react";
+import { Plus } from "lucide-react";
 import { GridCard } from "@components/GridCard";
 import { cardVariants } from "@utils/animations";
 import { Skeleton } from "@components/Skeleton";
@@ -15,7 +15,6 @@ import { motion } from "framer-motion";
 import { CategorySelector, type Category } from "@components/CategorySelector";
 import { FilterToolbar } from "@components/FilterToolbar";
 import { type SortOption } from "@components/SortSelector";
-import { PageHeader } from "@components/PageHeader";
 import type { Item } from "@types";
 import { triggerAutoSync } from "@services/dbSync";
 import {
@@ -25,7 +24,7 @@ import {
 } from "../components/Dialogs";
 import { type StatusFilterType } from "../components/StatusFilter";
 import { PlayCircle, Check, Clock, Archive as ArchiveIcon, Trash2 } from "lucide-react";
-import { UpcomingCarousel } from "../components/UpcomingCarousel";
+import { Hero } from "../components/Hero";
 import type { ItemStatus } from "../types";
 import { Section } from "@components/Section";
 import { Sparkles, FolderHeart } from "lucide-react";
@@ -213,7 +212,7 @@ export const Home: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { } = useAuth();
 
   // Dialog States
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
@@ -274,49 +273,16 @@ export const Home: React.FC = () => {
         }}
       >
         <div style={{ paddingBottom: "6rem" }}>
-          <PageHeader
-            title="Главная"
-            showSyncStatus={true}
-            leftElement={
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="btn-icon"
-                onClick={() => navigate("/settings")}
+              <Hero />
+
+              <div
                 style={{
-                  background: "rgba(255,255,255,0.03)",
-                  overflow: "hidden",
-                  padding: 0,
-                }}
-              >
-                {user?.user_metadata?.avatar_url ? (
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt="Profile"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <User size={18} />
-                )}
-              </motion.button>
-            }
-          />
-
-          <UpcomingCarousel />
-
-          <div
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              background: "var(--bg-app)", // or rgba for blur
-              padding: "0.5rem 0",
-              margin: "0 -1rem", // Negative margin to stretch full width
-              paddingLeft: "1rem", // Compensate padding
-              paddingRight: "1rem",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 80,
+                  background: "transparent",
+                  padding: "0.5rem 0",
+                  margin: "0",
             }}
           >
             {/* Backdrop blur effect overlay */}
@@ -327,7 +293,7 @@ export const Home: React.FC = () => {
                 backdropFilter: "blur(20px) saturate(160%)",
                 background: "rgba(9, 9, 11, 0.8)", // Clean bg-app with opacity
                 zIndex: -1,
-                borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                 maskImage:
                   "linear-gradient(to bottom, black 95%, transparent 100%)",
                 WebkitMaskImage:

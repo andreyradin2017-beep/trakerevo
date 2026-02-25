@@ -35,6 +35,30 @@ export default defineConfig({
           return imagepath || path;
         },
       },
+      // Proxy for LitRes API (CORS bypass)
+      "/api/litres": {
+        target: "https://api.litres.ru",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/litres/, "/foundation/api"),
+      },
+      // Proxy for RAWG API (CORS bypass)
+      "/api/rawg": {
+        target: "https://api.rawg.io/api",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/rawg/, ""),
+      },
+      // Proxy for Kinopoisk API (CORS bypass)
+      "/api/kinopoisk": {
+        target: "https://kinopoiskapiunofficial.tech/api",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/kinopoisk/, ""),
+      },
+      // Proxy for TMDB API (CORS bypass)
+      "/api/tmdb": {
+        target: "https://api.themoviedb.org/3",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/tmdb/, ""),
+      },
     },
     watch: {
       ignored: ["**/api/**"],

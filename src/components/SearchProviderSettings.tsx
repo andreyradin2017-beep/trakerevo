@@ -21,7 +21,8 @@ const PROVIDER_LABELS: Record<SearchProviderId, string> = {
   kinopoisk: "🎬 Кинопоиск",
   rawg: "🎮 RAWG (Игры)",
   google_books: "📚 Google Books",
-};
+  litres: "📙 ЛитРес (Книги)",
+} as any;
 
 export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
   showToast,
@@ -36,7 +37,7 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
     if (!provider) return;
 
     // Check if this is the last enabled provider
-    const enabledCount = providers.filter((p) => p.enabled).length;
+    const enabledCount = providers.filter((p) => p.enabled && (p.id as string) !== 'bookmate').length;
 
     if (provider.enabled && enabledCount === 1) {
       // Prevent disabling the last provider
@@ -67,7 +68,8 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
     return null;
   }
 
-  const enabledCount = providers.filter((p) => p.enabled).length;
+  const filteredProviders = providers.filter(p => (p.id as string) !== 'bookmate');
+  const enabledCount = filteredProviders.filter((p) => p.enabled).length;
 
   return (
     <Section
@@ -75,7 +77,7 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
       icon={<Search size={14} />}
       collapsible={true}
       defaultCollapsed={true}
-      badge={`${enabledCount}/${providers.length}`}
+      badge={`${enabledCount}/${filteredProviders.length}`}
       style={{ marginBottom: "0.25rem" }}
     >
       <p
@@ -87,13 +89,14 @@ export const SearchProviderSettings: React.FC<SearchProviderSettingsProps> = ({
         }}
       >
         Выберите, где искать фильмы, игры и книги. Включено: {enabledCount} из{" "}
-        {providers.length}
+        {filteredProviders.length}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        {providers
+        {filteredProviders
           .sort((a, b) => a.priority - b.priority)
           .map((provider) => (
+
             <motion.div
               key={provider.id}
               whileTap={{ scale: 0.98 }}

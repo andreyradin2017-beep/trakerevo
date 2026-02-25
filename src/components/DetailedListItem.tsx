@@ -10,6 +10,8 @@ import {
 import { motion } from "framer-motion";
 import { getProxiedImageUrl } from "../utils/images";
 import type { Item } from "../types";
+import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface DetailedListItemProps {
   item: Item;
@@ -22,8 +24,6 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
   onClick,
   style,
 }) => {
-  const proxiedImage = getProxiedImageUrl(item.image);
-
   const getTypeColor = () => {
     switch (item.type) {
       case "movie":
@@ -33,21 +33,21 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
       case "book":
         return "var(--type-book)";
       default:
-        return "var(--type-other)";
+        return "var(--text-tertiary)";
     }
   };
 
   const getTypeIcon = (size = 12) => {
-    const color = getTypeColor();
+    const typeColor = getTypeColor();
     switch (item.type) {
       case "movie":
-        return <Film size={size} color={color} />;
+        return <Film size={size} style={{ color: typeColor }} />;
       case "game":
-        return <Gamepad2 size={size} color={color} />;
+        return <Gamepad2 size={size} style={{ color: typeColor }} />;
       case "book":
-        return <BookOpen size={size} color={color} />;
+        return <BookOpen size={size} style={{ color: typeColor }} />;
       default:
-        return <Activity size={size} color={color} />;
+        return <Activity size={size} style={{ color: typeColor }} />;
     }
   };
 
@@ -67,13 +67,17 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
   const getStatusColor = () => {
     switch (item.status) {
       case "completed":
-        return "var(--success)";
+        return "text-emerald-500 bg-emerald-500/10";
       case "in_progress":
-        return "var(--primary)";
+        return "text-primary bg-primary/10";
+      case "planned":
       default:
-        return "var(--text-tertiary)";
+        return "text-zinc-400 bg-zinc-400/10";
     }
   };
+
+  const proxiedImage = getProxiedImageUrl(item.image);
+  const typeColor = getTypeColor();
 
   return (
     <motion.div
@@ -82,192 +86,89 @@ export const DetailedListItem: React.FC<DetailedListItemProps> = ({
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="card-base flex-center"
-      style={{
-        gap: "1rem",
-        padding: "0.75rem",
-        cursor: "pointer",
-        marginBottom: "0.25rem",
-        ...style,
-      }}
+      style={style}
     >
-      {/* Thumbnail */}
-      <div
-        className="flex-center"
-        style={{
-          width: "70px",
-          height: "105px",
-          flexShrink: 0,
-          borderRadius: "var(--radius-sm)",
-          overflow: "hidden",
-          background: "var(--bg-surface-hover)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        }}
-      >
-        {proxiedImage ? (
-          <img
-            src={proxiedImage}
-            alt={item.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: 0.3,
-            }}
-          >
-            {getTypeIcon(24)}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div
-        className="flex-column"
-        style={{
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
-        <div
-          className="flex-between"
-          style={{
-            alignItems: "flex-start",
-            gap: "0.5rem",
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "1rem",
-              fontWeight: "var(--fw-black)",
-              color: "var(--text-primary)",
-              fontFamily: "var(--font-main)",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {item.title}
-          </h3>
-          {item.rating && (
-            <div
-              className="flex-center"
-              style={{
-                gap: "2px",
-                color: "var(--warning)",
-              }}
-            >
-              <Star size={12} fill="currentColor" />
-              <span style={{ fontSize: "0.8rem", fontWeight: 700 }}>
-                {item.rating}
-              </span>
+      <Card className="flex items-stretch gap-4 p-3 mb-2 cursor-pointer bg-zinc-950/50 hover:bg-zinc-900 border-white/5 transition-colors overflow-hidden relative group">
+        {/* Thumbnail (2:3 aspect ratio) */}
+        <div className="relative w-[30%] shrink-0 rounded-md overflow-hidden bg-zinc-900 shadow-md aspect-[2/3]">
+          {proxiedImage ? (
+            <img
+              src={proxiedImage}
+              alt={item.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center opacity-30">
+              {getTypeIcon(24)}
             </div>
           )}
         </div>
 
-        <div
-          className="flex-center"
-          style={{
-            gap: "0.5rem",
-            marginTop: "0.3rem",
-            justifyContent: "flex-start",
-          }}
-        >
-          <span
-            className="section-label flex-center"
-            style={{
-              fontSize: "0.6rem",
-              gap: "0.3rem",
-            }}
-          >
-            {getTypeIcon(10)}
-            {item.year || "N/A"}
-          </span>
-          <span
-            style={{
-              fontSize: "0.6rem",
-              fontWeight: 700,
-              color: getStatusColor(),
-              textTransform: "uppercase",
-              padding: "0.1rem 0.4rem",
-              background: `${getStatusColor()}15`,
-              borderRadius: "4px",
-            }}
-          >
-            {getStatusLabel()}
-          </span>
+        {/* Content */}
+        <div className="flex flex-col flex-1 min-w-0 py-1">
+          <div className="flex justify-between items-start gap-2">
+            <h3 className="m-0 text-base font-bold text-zinc-100 font-main line-clamp-2">
+              {item.title}
+            </h3>
+            {item.rating && (
+              <div className="flex items-center gap-0.5 text-amber-500 shrink-0">
+                <Star size={12} fill="currentColor" />
+                <span className="text-sm font-bold">{item.rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-1">
+            <span className="flex items-center gap-1.5 text-[0.65rem] font-semibold text-zinc-400">
+              {getTypeIcon(10)}
+              {item.year || "N/A"}
+            </span>
+            <span
+              className={cn(
+                "text-[0.6rem] font-bold uppercase px-1.5 py-0.5 rounded-md",
+                getStatusColor()
+              )}
+            >
+              {getStatusLabel()}
+            </span>
+          </div>
+
+          {item.description ? (
+            <p className="text-xs text-zinc-500 mt-2 line-clamp-2 leading-relaxed">
+              {item.description}
+            </p>
+          ) : (
+            <div className="flex-1" />
+          )}
+
+          {/* Progress */}
+          {item.status === "in_progress" && (
+            <div className="mt-auto pt-2">
+              <div className="flex justify-between items-center text-[0.65rem] mb-1">
+                <span className="text-zinc-500">Прогресс</span>
+                <span style={{ color: typeColor }} className="font-bold">
+                  {item.progress || 0} / {item.totalProgress || "?"}
+                </span>
+              </div>
+              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${Math.min(((item.progress || 0) / (item.totalProgress || 1)) * 100, 100)}%`,
+                  }}
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: typeColor, width: `${Math.min(((item.progress || 0) / (item.totalProgress || 1)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {item.description ? (
-          <p
-            style={{
-              fontSize: "0.75rem",
-              color: "var(--text-tertiary)",
-              margin: "0.5rem 0",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              lineHeight: "1.4",
-            }}
-          >
-            {item.description}
-          </p>
-        ) : (
-          <div style={{ flex: 1 }} />
-        )}
-
-        {/* Progress */}
-        {item.status === "in_progress" && (
-          <div style={{ marginTop: "auto", paddingTop: "0.5rem" }}>
-            <div
-              className="flex-between"
-              style={{
-                fontSize: "0.65rem",
-                marginBottom: "3px",
-              }}
-            >
-              <span style={{ color: "var(--text-tertiary)" }}>Прогресс</span>
-              <span style={{ fontWeight: 700, color: getTypeColor() }}>
-                {item.progress || 0} / {item.totalProgress || "?"}
-              </span>
-            </div>
-            <div
-              style={{
-                height: "4px",
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: "2px",
-                overflow: "hidden",
-              }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{
-                  width: `${Math.min(((item.progress || 0) / (item.totalProgress || 1)) * 100, 100)}%`,
-                }}
-                style={{
-                  height: "100%",
-                  background: getTypeColor(),
-                  borderRadius: "2px",
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <ChevronRight
-        size={16}
-        color="var(--text-tertiary)"
-        style={{ alignSelf: "center", opacity: 0.3 }}
-      />
+        <ChevronRight
+          size={16}
+          className="self-center text-zinc-500 opacity-30 group-hover:opacity-100 transition-opacity shrink-0"
+        />
+      </Card>
     </motion.div>
   );
 };

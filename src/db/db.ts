@@ -14,7 +14,7 @@ const db = new Dexie("TrakerEvoDB") as Dexie & {
   search_providers: EntityTable<SearchProvider, "id">;
 };
 
-db.version(11).stores({
+db.version(12).stores({
   items:
     "++id, type, status, isArchived, *tags, listId, createdAt, externalId, source, [externalId+source], supabaseId",
   lists: "++id, name, supabaseId",

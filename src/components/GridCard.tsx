@@ -8,6 +8,7 @@ import { CountdownBadge } from "@components/CountdownBadge";
 import { LazyImage } from "@components/LazyImage";
 import { cardVariants } from "@utils/animations";
 import { getDetails } from "@services/api";
+import { cn } from "@/lib/utils";
 
 interface GridCardProps {
   item?: Item & { isOwned?: boolean };
@@ -66,7 +67,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           aspectRatio: "2/3",
           borderStyle: "dashed",
           borderWidth: "1px",
-          borderColor: "rgba(255,255,255,0.2)",
+          borderColor: "rgba(255,255,255,0.08)",
           cursor: "pointer",
           color: "var(--text-tertiary)",
         }}
@@ -96,6 +97,9 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
 
   const getStatusInfo = () => {
     if (item.isOwned) {
+      if (item.status === "in_progress") return { label: "В процессе", color: "var(--info)", pulse: true };
+      if (item.status === "completed") return { label: "Завершено", color: "var(--success)", pulse: false };
+      if (item.status === "planned") return { label: "В планах", color: "var(--warning)", pulse: false };
       return { label: "В коллекции", color: "var(--success)", pulse: false };
     }
     return null;
@@ -111,8 +115,11 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
         return { label: "RAWG", color: "var(--brand-rawg)" };
       case "google_books":
         return { label: "BOOKS", color: "var(--brand-google-books)" };
+      case "litres":
+        return { label: "LITRES", color: "#FF6B00" };
       default:
         return null;
+
     }
   };
 
@@ -160,18 +167,11 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
     >
       {/* Image Container */}
       <div
-        className="card-base"
-        style={{
-          width: "100%",
-          aspectRatio: "2/3",
-          boxShadow: "var(--shadow-lg)",
-          position: "relative",
-          overflow: "hidden",
-          border: statusInfo?.pulse
-            ? "1px solid rgba(var(--primary-rgb), 0.3)"
-            : "1px solid rgba(255,255,255,0.05)",
-          marginBottom: "0.6rem",
-        }}
+        className={cn(
+          "relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-xl mb-2.5 transition-all duration-300",
+          statusInfo?.pulse ? "border border-primary/30" : "border border-white/10",
+          "bg-zinc-900 group-hover:shadow-2xl"
+        )}
       >
         {/* Image or Placeholder */}
         {item.image ? (
@@ -200,7 +200,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
                     alignItems: "center",
                     justifyContent: "center",
                     color: "var(--text-tertiary)",
-                    backgroundColor: "rgba(255,255,255,0.02)",
+                    backgroundColor: "var(--bg-surface)",
                     zIndex: 0,
                   }}
                 >
@@ -218,7 +218,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
               alignItems: "center",
               justifyContent: "center",
               color: "var(--text-tertiary)",
-              backgroundColor: "rgba(255,255,255,0.02)",
+              backgroundColor: "var(--bg-surface)",
             }}
           >
             {getTypeIcon()}
@@ -229,10 +229,10 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           className="flex-column"
           style={{
             position: "absolute",
-            top: "0.4rem",
-            left: "0.4rem",
-            gap: "0.3rem",
-            zIndex: 2,
+            top: "var(--space-sm)",
+            left: "var(--space-sm)",
+            gap: "var(--space-xs)",
+            zIndex: 20,
           }}
         >
           {statusInfo && (
@@ -268,15 +268,15 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           {sourceInfo && (
             <div
               style={{
-                padding: "0.15rem var(--space-xs)",
-                background: "rgba(0,0,0,0.8)",
+                padding: "var(--space-xs) var(--space-xs)",
+                background: "rgba(0,0,0,0.75)",
                 backdropFilter: "blur(8px)",
                 borderRadius: "var(--radius-sm)",
                 fontSize: "0.55rem",
                 fontWeight: 900,
                 color: sourceInfo.color,
                 width: "fit-content",
-                border: `1px solid ${sourceInfo.color}44`,
+                border: `1px solid ${sourceInfo.color}66`,
               }}
             >
               {sourceInfo.label}
@@ -295,17 +295,17 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           <div
             style={{
               position: "absolute",
-              bottom: "0.5rem",
-              left: "0.5rem",
-              background: "rgba(0,0,0,0.8)",
+              bottom: "var(--space-sm)",
+              left: "var(--space-sm)",
+              background: "rgba(0,0,0,0.75)",
               backdropFilter: "blur(4px)",
-              padding: "0.2rem 0.4rem",
-              borderRadius: "6px",
+              padding: "var(--space-xs) var(--space-xs)",
+              borderRadius: "var(--radius-sm)",
               display: "flex",
               alignItems: "center",
-              gap: "0.25rem",
-              border: "1px solid rgba(255, 193, 7, 0.3)",
-              zIndex: 3,
+              gap: "var(--space-xs)",
+              border: "1px solid rgba(245, 158, 11, 0.3)",
+              zIndex: 25,
             }}
           >
             <span style={{ color: "#FFC107", fontSize: "0.7rem" }}>★</span>
@@ -336,16 +336,16 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             className="flex-center"
             style={{
               position: "absolute",
-              bottom: "0.5rem",
-              right: "0.5rem",
+              bottom: "var(--space-sm)",
+              right: "var(--space-sm)",
               width: "32px",
               height: "32px",
               borderRadius: "50%",
               background: "var(--primary)",
               border: "none",
               color: "white",
-              zIndex: 3,
-              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.4)",
+              zIndex: 25,
+              boxShadow: "var(--shadow-glow)",
               cursor: "pointer",
             }}
           >
@@ -358,12 +358,12 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
           className="flex-center glass"
           style={{
             position: "absolute",
-            top: "0.4rem",
-            right: "0.4rem",
-            padding: "0.3rem",
+            top: "var(--space-sm)",
+            right: "var(--space-sm)",
+            padding: "var(--space-xs)",
             borderRadius: "50%",
             color: "white",
-            zIndex: 2,
+            zIndex: 20,
           }}
         >
           {getTypeIcon()}
@@ -396,7 +396,7 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
                 right: 0,
                 height: hasProgress ? "3px" : "2px",
                 background: hasProgress ? "rgba(0,0,0,0.5)" : barColor,
-                zIndex: 3,
+                zIndex: 25,
               }}
             >
               {hasProgress && (
@@ -454,13 +454,13 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
             item.currentEpisode && (
               <span
                 style={{
-                  fontSize: "0.5rem",
+                  fontSize: "var(--font-xs)",
                   color: "var(--primary)",
                   fontWeight: 800,
                   whiteSpace: "nowrap",
                   background: "var(--primary-15)",
                   padding: "0.1rem 0.25rem",
-                  borderRadius: "4px",
+                  borderRadius: "var(--radius-sm)",
                   textTransform: "uppercase",
                 }}
               >
@@ -500,8 +500,8 @@ export const GridCard: React.FC<GridCardProps & { enableMotion?: boolean }> = ({
                 whiteSpace: "nowrap",
               }}
             >
-              • {item.tags[0]}
-              {item.tags.length > 1 && `, ${item.tags[1]}`}
+              • {typeof item.tags[0] === 'object' ? (item.tags[0] as any).name : item.tags[0]}
+              {item.tags.length > 1 && `, ${typeof item.tags[1] === 'object' ? (item.tags[1] as any).name : item.tags[1]}`}
             </span>
           )}
         </div>

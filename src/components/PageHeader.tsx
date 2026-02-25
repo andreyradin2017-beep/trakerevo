@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SyncStatusBadge } from "./SyncStatusBadge";
 import { useAuth } from "../context/AuthContext";
@@ -30,24 +30,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div
-      className="flex-between"
-      style={{
-        marginBottom: "1.25rem",
-        gap: "1rem",
-        ...style,
-      }}
+      className="flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-xl px-4 py-3 -mx-4 mb-5 border-b border-white/5"
+      style={style}
     >
       <div
-        className="flex-center"
-        style={{
-          gap: "var(--space-md)",
-        }}
+        className="flex items-center gap-3"
       >
         {leftElement && leftElement}
         {showBack && (
           <button
             onClick={onBack || (() => navigate(-1))}
-            className="btn-icon"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
             aria-label="Назад"
           >
             <ArrowLeft size={18} />
@@ -68,9 +61,21 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {title}
         </h1>
       </div>
-      <div className="flex-center" style={{ gap: "0.75rem" }}>
+      <div className="flex items-center gap-3">
         {showSyncStatus && user && <SyncStatusBadge />}
         {rightElement}
+        {!rightElement && !showBack && (
+          <div
+            onClick={() => navigate("/settings")}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white/20 transition-colors border border-white/10"
+          >
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User size={16} className="text-white" />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

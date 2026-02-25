@@ -6,11 +6,10 @@ import {
   X,
   History,
   Trash2,
-  Ghost,
   Plus,
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { getTrending } from "@services/api";
+import { getTrending, searchByCategory } from "@services/api";
 import { searchKinopoisk } from "@services/kinopoisk";
 import { searchMovies } from "@services/tmdb";
 import { searchGames } from "@services/rawg";
@@ -19,11 +18,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import type { Item } from "@types";
 import { db } from "@db/db";
 import { GridCard } from "@components/GridCard";
+import { WideListItem } from "@components/WideListItem";
 import { SkeletonCard } from "@components/SkeletonCard";
 import { CategorySelector, type Category } from "@components/CategorySelector";
-import { PageHeader } from "@components/PageHeader";
-import { motion } from "framer-motion";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { logger } from "@utils/logger";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 import { useLibrarySearch } from "@hooks/useItems";
 import { triggerAutoSync } from "@services/dbSync";
@@ -32,7 +32,8 @@ import { PullToRefresh } from "@components/PullToRefresh";
 import { vibrate } from "@utils/haptics";
 import { bulkAddPlannedItems } from "@services/itemService";
 import { recognizeMediaFromUrl } from "@services/linkRecognition";
-import { logger } from "@utils/logger";
+import { motion } from "framer-motion";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 export const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -153,18 +154,8 @@ export const Search: React.FC = () => {
           data = (await searchBooks(trimmedQuery)) || [];
         }
       } else {
-        // Fallback to category search
-        if (currentCategory === "movie") {
-          const [tmdbResults, kinopoiskResults] = await Promise.all([
-            searchMovies(trimmedQuery),
-            searchKinopoisk(trimmedQuery),
-          ]);
-          data = [...(tmdbResults || []), ...(kinopoiskResults || [])];
-        } else if (currentCategory === "game") {
-          data = (await searchGames(trimmedQuery)) || [];
-        } else if (currentCategory === "book") {
-          data = (await searchBooks(trimmedQuery)) || [];
-        }
+        // Use the unified API orchestrator for category search
+        data = await searchByCategory(trimmedQuery, currentCategory as any);
       }
 
       logger.debug("[Search] Results count: " + data.length, "Search");
@@ -278,32 +269,7 @@ export const Search: React.FC = () => {
               data = (await searchBooks(trimmedQuery)) || [];
             }
           } else {
-            if (currentCategory === "movie") {
-              const [tmdbResults, kinopoiskResults] = await Promise.all([
-                searchMovies(trimmedQuery),
-                searchKinopoisk(trimmedQuery),
-              ]);
-              // Deduplicate by externalId
-              const seen = new Set<string>();
-              data = [
-                ...(tmdbResults || []).filter((item) => {
-                  const key = item.externalId || "";
-                  if (seen.has(key)) return false;
-                  seen.add(key);
-                  return true;
-                }),
-                ...(kinopoiskResults || []).filter((item) => {
-                  const key = item.externalId || "";
-                  if (seen.has(key)) return false;
-                  seen.add(key);
-                  return true;
-                }),
-              ];
-            } else if (currentCategory === "game") {
-              data = (await searchGames(trimmedQuery)) || [];
-            } else if (currentCategory === "book") {
-              data = (await searchBooks(trimmedQuery)) || [];
-            }
+            data = await searchByCategory(trimmedQuery, currentCategory as any);
           }
 
           // Check which results are already in DB
@@ -423,39 +389,32 @@ export const Search: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={async () => handleSearch(query)}>
-      <div>
-        <PageHeader title="Поиск" showBack />
-
-        <div
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
-            padding: "0.5rem 0",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: "0 -var(--space-md)", // Blur still stretches to edges
-              backdropFilter: "blur(20px) saturate(160%)",
-              background: "rgba(9, 9, 11, 0.8)",
-              zIndex: -1,
-              borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-              maskImage:
-                "linear-gradient(to bottom, black 95%, transparent 100%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, black 95%, transparent 100%)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              gap: "1rem",
-              alignItems: "center",
-              marginBottom: "0.75rem",
-            }}
+      <div className="px-0 pb-36">
+        <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/5 pt-4 pb-2">
+          {/* Mode Toggle - First */}
+          <Tabs
+            defaultValue={searchMode}
+            onValueChange={(value) => setSearchMode(value as "global" | "library")}
+            className="w-full mb-3"
           >
+            <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-white/5 rounded-xl p-1 h-auto">
+              <TabsTrigger
+                value="global"
+                className="py-2.5 rounded-lg data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500 text-xs font-bold transition-all"
+              >
+                <Globe size={14} className="mr-1.5" /> Глобальный
+              </TabsTrigger>
+              <TabsTrigger
+                value="library"
+                className="py-2.5 rounded-lg data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-500 text-xs font-bold transition-all"
+              >
+                <Library size={14} className="mr-1.5" /> Моя библиотека
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Category Selector - Second */}
+          <div className="flex items-center gap-3 mb-3">
             <CategorySelector
               activeCategory={currentCategory}
               onCategoryChange={(cat) => {
@@ -466,110 +425,26 @@ export const Search: React.FC = () => {
             />
           </div>
 
-          {/* Mode Toggle */}
-          <div
-            style={{
-              display: "flex",
-              background: "var(--bg-surface)",
-              padding: "4px",
-              borderRadius: "12px",
-              marginBottom: "0.75rem",
-              border: "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
-            <button
-              onClick={() => setSearchMode("global")}
-              style={{
-                flex: 1,
-                padding: "0.6rem",
-                borderRadius: "8px",
-                border: "none",
-                background:
-                  searchMode === "global"
-                    ? "rgba(139, 92, 246, 0.2)"
-                    : "transparent",
-                color:
-                  searchMode === "global"
-                    ? "var(--primary)"
-                    : "var(--text-tertiary)",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.4rem",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              <Globe size={14} /> Глобальный
-            </button>
-            <button
-              onClick={() => setSearchMode("library")}
-              style={{
-                flex: 1,
-                padding: "0.6rem",
-                borderRadius: "8px",
-                border: "none",
-                background:
-                  searchMode === "library"
-                    ? "rgba(52, 211, 153, 0.2)"
-                    : "transparent",
-                color:
-                  searchMode === "library"
-                    ? "var(--success)"
-                    : "var(--text-tertiary)",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.4rem",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              <Library size={14} /> Моя библиотека
-            </button>
-          </div>
-
           {/* Search Bar */}
           <form
             onSubmit={(e) => handleSearch(query, e)}
-            style={{ position: "relative", marginBottom: "0.5rem" }}
+            className="relative mb-2"
           >
-            <input
+            <Input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={
                 searchMode === "global"
-                  ? "Что ищем в интернете?"
+                  ? "Что ищем?"
                   : "Поиск в моей коллекции"
               }
-              style={{
-                width: "100%",
-                padding: "0.85rem 1rem 0.85rem 3rem",
-                borderRadius: "var(--radius-lg)",
-                fontSize: "1rem",
-                backgroundColor: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "var(--text-primary)",
-                outline: "none",
-                boxShadow: "var(--shadow-md)",
-                fontFamily: "var(--font-body)",
-              }}
+              className="w-full pl-10 pr-10 py-6 bg-white/5 border-white/10 rounded-2xl text-base shadow-md focus-visible:ring-1 focus-visible:ring-primary/50 placeholder:text-zinc-500"
             />
             <SearchIcon
               size={20}
-              style={{
-                position: "absolute",
-                left: "1rem",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "var(--text-tertiary)",
-              }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
             />
             {query && (
               <button
@@ -578,16 +453,8 @@ export const Search: React.FC = () => {
                   setQuery("");
                   setGlobalResults([]);
                 }}
-                style={{
-                  position: "absolute",
-                  right: "1rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-tertiary)",
-                  cursor: "pointer",
-                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                aria-label="Очистить поиск"
               >
                 <X size={18} />
               </button>
@@ -595,7 +462,8 @@ export const Search: React.FC = () => {
           </form>
         </div>
 
-        {/* Content Area (Stable Container) */}
+        {/* Content Area */}
+        <div>
         {!query && !loading && searchMode === "global" ? (
           <div style={{ paddingBottom: "2rem" }}>
             {/* Recent History */}
@@ -750,16 +618,7 @@ export const Search: React.FC = () => {
           (query || loading || searchMode === "library") && (
             <div style={{ width: "100%" }}>
               {/* Search Results */}
-              <div
-                className="grid-layout"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
-                  gap: "0.75rem",
-                  padding: "0.25rem",
-                  maxWidth: "100%",
-                }}
-              >
+              <div className="flex flex-col w-full">
                 {/* Recognized Link Result */}
                 {recognizedItem && (
                   <div style={{ gridColumn: "1 / -1", marginBottom: "1rem" }}>
@@ -769,10 +628,9 @@ export const Search: React.FC = () => {
                     >
                       Найдено по ссылке
                     </label>
-                    <GridCard
+                    <WideListItem
                       key={`recognized-${recognizedItem.source || 'local'}-${recognizedItem.externalId || recognizedItem.id || 'unknown'}`}
                       item={recognizedItem}
-                      index={0}
                       onClick={() => {
                         const targetId =
                           recognizedItem.id || recognizedItem.externalId;
@@ -783,7 +641,8 @@ export const Search: React.FC = () => {
                           : `/item/${targetId}?source=${recognizedItem.source}`;
                         navigate(url);
                       }}
-                      onQuickAdd={() => handleAdd(recognizedItem, true)}
+                      onAction={() => handleAdd(recognizedItem, true)}
+                      isActive={(recognizedItem as any).isOwned}
                     />
                     <div
                       style={{
@@ -799,29 +658,40 @@ export const Search: React.FC = () => {
                 )}
 
                 {results.length === 0 && loading
-                  ? [1, 2, 3, 4, 5, 6].map((_, idx) => (
-                      <SkeletonCard key={`skeleton-${idx}`} />
-                    ))
-                  : results.map((item, idx) => {
-                      // Create unique key using source + externalId + index for guaranteed uniqueness
-                      const uniqueKey = `${item.source || 'local'}-${item.externalId || item.id || `item`}-${idx}`;
-                      return (
-                      <GridCard
-                        key={uniqueKey}
-                        item={item as Item}
-                        index={idx}
-                        enableMotion={results.length === 0}
-                        onClick={() => {
-                          const targetId = item.id || item.externalId;
-                          const url = (item as any).isOwned
-                            ? `/item/${targetId}`
-                            : `/item/${targetId}?source=${item.source}&fromSearch=${encodeURIComponent(query)}`;
-                          navigate(url);
-                        }}
-                        onQuickAdd={() => handleAdd(item, true)}
-                      />
-                    );
-                    })}
+                  ? (
+                      <div className="grid grid-cols-2 gap-3 w-full">
+                        {[1, 2, 3, 4].map((_, idx) => (
+                          <SkeletonCard key={`skeleton-${idx}`} />
+                        ))}
+                      </div>
+                    )
+                  : (
+                      <div className="grid grid-cols-2 gap-3 w-full">
+                        {results.map((item, idx) => {
+                          const uniqueKey = `${item.source || 'local'}-${item.externalId || item.id || `item`}-${idx}`;
+                          return (
+                            <GridCard
+                              key={uniqueKey}
+                              item={item as Item & { isOwned?: boolean }}
+                              index={idx}
+                              onClick={() => {
+                                const targetId = item.id || item.externalId;
+                                const url = (item as any).isOwned
+                                  ? `/item/${targetId}`
+                                  : `/item/${targetId}?source=${item.source}&fromSearch=${encodeURIComponent(query)}`;
+                                navigate(url);
+                              }}
+                              onQuickAdd={
+                                !(item as any).isOwned
+                                  ? () => handleAdd(item, true)
+                                  : undefined
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    )
+                }
               </div>
 
               {searchMode === "global" && results.length > 0 && !loading && (
@@ -896,7 +766,7 @@ export const Search: React.FC = () => {
                         marginBottom: "1rem",
                       }}
                     >
-                      <Ghost size={48} strokeWidth={1.5} />
+                      <img src="/camera.png" alt="Empty" className="w-48 h-48 object-contain mb-2 drop-shadow-[0_0_30px_rgba(239,68,68,0.2)]" />
                     </div>
                     <p
                       style={{
@@ -925,6 +795,7 @@ export const Search: React.FC = () => {
             </div>
           )
         )}
+        </div> {/* /Content Area */}
       </div>
     </PullToRefresh>
   );

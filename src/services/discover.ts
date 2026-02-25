@@ -10,6 +10,8 @@ interface DiscoverData {
   upcoming: Item[];
   newGames: Item[];
   upcomingGames: Item[];
+  newBooks: Item[];
+  trendingBooks: Item[];
 }
 
 const RAWG_GENRE_MAP: Record<string, string> = {
@@ -28,7 +30,7 @@ const RAWG_GENRE_MAP: Record<string, string> = {
 };
 
 export const getDiscoverData = async (): Promise<DiscoverData> => {
-  const cacheKey = "discover_data_v12";
+  const cacheKey = "discover_data_v13";
   const cached = await db.cache.get(cacheKey);
 
   if (cached && Date.now() - cached.timestamp < 6 * 60 * 60 * 1000) {
@@ -67,6 +69,10 @@ export const getDiscoverData = async (): Promise<DiscoverData> => {
           page_size: 10,
         },
       }),
+      // Simple searches for trending/new books since LitRes has no specific "trending" endpoint
+      // Using searchLitres or similar could work but LitRes results are usually relevant
+      import("./litres").then(m => m.searchLitres("бестселлер")),
+      import("./litres").then(m => m.searchLitres("новинки")),
     ]);
 
     const trendingData =
@@ -75,8 +81,12 @@ export const getDiscoverData = async (): Promise<DiscoverData> => {
       results[1].status === "fulfilled" ? results[1].value.data?.results : [];
     const newGamesData =
       results[2].status === "fulfilled" ? results[2].value.data?.results : [];
-    const upcomingGamesData =
+    const trendingGamesData =
       results[3].status === "fulfilled" ? results[3].value.data?.results : [];
+    const trendingBooks =
+      results[4].status === "fulfilled" ? results[4].value : [];
+    const newBooks =
+      results[5].status === "fulfilled" ? results[5].value : [];
 
     const mapTmdbItems = (items: any[] = []): Item[] =>
       items.slice(0, 10).map((item) => ({
@@ -124,13 +134,15 @@ export const getDiscoverData = async (): Promise<DiscoverData> => {
       trending: mapTmdbItems(trendingData),
       upcoming: mapTmdbItems(upcomingData),
       newGames: mapRawgItems(newGamesData),
-      upcomingGames: mapRawgItems(upcomingGamesData),
+      upcomingGames: mapRawgItems(trendingGamesData),
+      trendingBooks: trendingBooks.slice(0, 10),
+      newBooks: newBooks.slice(0, 10),
     };
 
     await db.cache.put({ key: cacheKey, data, timestamp: Date.now() });
     return data;
   } catch (error) {
     logger.error("Discover data fetch failed", "discover", error);
-    return { trending: [], upcoming: [], newGames: [], upcomingGames: [] };
+    return { trending: [], upcoming: [], newGames: [], upcomingGames: [], trendingBooks: [], newBooks: [] };
   }
 };
