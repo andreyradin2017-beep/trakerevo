@@ -101,20 +101,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw signInError;
     }
 
-    // 5. Redirect back to the app with the session tokens in the hash
-    // Supabase JS client will automatically pick these up
-    const { access_token, refresh_token, expires_in } = sessionData.session;
-    
-    // Determine the host for redirect
+    // 4. Generate a magic link for the user to sign in automatically
+    // This is the most reliable way as Supabase handles the session persistence natively
     const host = req.headers.host;
     const protocol = host?.includes("localhost") ? "http" : "https";
     const origin = `${protocol}://${host}`;
-    
-    // We use the hash fragment so Supabase client catches it
-    // Adding all parameters that Supabase expects for OAuth/Recovery flow
-    return res.redirect(`${origin}/#access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}&token_type=bearer&type=signup`);
+
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+      options: {
+        redirectTo: origin,
+      }
+    });
+
+    if (linkError) {
+      console.error("Supabase generateLink error:", linkError.message);
+      throw linkError;
+    }
+
+    // 5. Redirect the user to the generated link
+    // Supabase will handle the login and then redirect them back to our origin
+    return res.redirect(linkData.properties.action_link);
   } catch (err: any) {
     console.error("Yandex Auth Error:", err.message);
-    return res.redirect(`/?error=auth_failed`);
+    return res.redirect(`/?error=auth_failed&message=${encodeURIComponent(err.message)}`);
   }
 }
