@@ -13,8 +13,16 @@
       "destination": "https://api.themoviedb.org/3/$1"
     },
     {
+      "source": "/api/litres/(.*)",
+      "destination": "https://api.litres.ru/foundation/api/$1"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
+    },
+    {
+      "source": "/api/tmdb-image/(.*)",
+      "destination": "https://image.tmdb.org/t/p/$1"
     },
     {
       "source": "/tmdb-image/(.*)",
