@@ -64,9 +64,6 @@ const Archive = lazyWithRetry(() =>
 const Discover = lazyWithRetry(() =>
   import("@pages/Discover").then((module) => ({ default: module.Discover })),
 );
-const AuthCallback = lazyWithRetry(() =>
-  import("@pages/AuthCallback").then((module) => ({ default: module.AuthCallback })),
-);
 
 // Wrapper for Suspense to avoid repetition
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -76,11 +73,6 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
 import App from "@/App";
 
 export const router = createBrowserRouter([
-  // Auth callback is a top-level route, completely independent from App/SplashScreen
-  {
-    path: "/auth/callback",
-    element: <SuspenseWrapper><AuthCallback /></SuspenseWrapper>,
-  },
   {
     path: "/",
     element: <App />,

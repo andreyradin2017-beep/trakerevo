@@ -9,7 +9,6 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
-  signInWithYandex: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,7 +17,6 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   signInWithEmail: async () => {},
-  signInWithYandex: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -77,13 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) throw error;
   };
 
-  const signInWithYandex = () => {
-    const clientId = import.meta.env.VITE_YANDEX_CLIENT_ID || "a435e9a8c56b467498ea2964a9c00d5a";
-    const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/yandex`);
-    const url = `https://oauth.yandex.ru/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}`;
-    window.location.href = url;
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -92,7 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         signOut,
         signInWithEmail,
-        signInWithYandex,
       }}
     >
       {children}
