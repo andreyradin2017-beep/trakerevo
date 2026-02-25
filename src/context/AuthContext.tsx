@@ -29,52 +29,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("AuthContext: Initializing session. Hash exists:", !!window.location.hash);
-    
-    // Manual session rescue from hash if Supabase misses it
-    const handleHashAuth = async () => {
+    const initialize = async () => {
+      // Step 1: Check if there are tokens in the URL hash (from Yandex OAuth redirect)
       if (window.location.hash) {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
+        const params = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = params.get("access_token");
         const refreshToken = params.get("refresh_token");
 
         if (accessToken && refreshToken) {
-          console.log("AuthContext: Found tokens in hash, attempting manual setSession");
+          console.log("AuthContext: OAuth tokens found in hash, setting session...");
           try {
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
-              refresh_token: refreshToken
+              refresh_token: refreshToken,
             });
             if (error) throw error;
-            console.log("AuthContext: Manual setSession successful:", data.session ? "Active" : "None");
-            // Clean up the hash to prevent re-attempts or token leakage
-            window.history.replaceState(null, "", window.location.pathname);
+            if (data.session) {
+              console.log("AuthContext: Session set from hash successfully.");
+              setSession(data.session);
+              setUser(data.session.user);
+              // Clean up the hash
+              window.history.replaceState(null, "", window.location.pathname);
+              setLoading(false);
+              return; // Done, no need to call getSession
+            }
           } catch (err) {
-            console.error("AuthContext: Manual setSession failed:", err);
+            console.error("AuthContext: setSession from hash failed:", err);
           }
         }
       }
+
+      // Step 2: No tokens in hash, check for existing session normally
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("AuthContext: getSession result:", session ? "Session found" : "No session");
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
     };
 
-    handleHashAuth();
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("AuthContext: getSession result:", session ? "Session found" : "No session");
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-      }
-      setLoading(false);
-    });
+    initialize();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("AuthContext: onAuthStateChange event:", event, session ? "Session found" : "No session");
+      console.log("AuthContext: onAuthStateChange event:", event);
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
