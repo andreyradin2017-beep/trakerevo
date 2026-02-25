@@ -91,16 +91,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error("Supabase createUser error:", createError.message);
     }
 
-    // 4. Sign in to get a session
-    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
-      throw signInError;
-    }
-
     // 4. Generate a magic link for the user to sign in automatically
     // This is the most reliable way as Supabase handles the session persistence natively
     const host = req.headers.host;
