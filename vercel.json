@@ -5,6 +5,14 @@
       "destination": "https://api.rawg.io/api/$1"
     },
     {
+      "source": "/api/kinopoisk/(.*)",
+      "destination": "https://kinopoiskapiunofficial.tech/api/$1"
+    },
+    {
+      "source": "/api/tmdb/(.*)",
+      "destination": "https://api.themoviedb.org/3/$1"
+    },
+    {
       "source": "/api/litres/(.*)",
       "destination": "https://api.litres.ru/foundation/api/$1"
     },
