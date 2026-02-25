@@ -1,46 +1,56 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@services/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 export function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("Выполняем вход...");
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [message, setMessage] = useState("Выполняем вход...");
 
   useEffect(() => {
     const handleCallback = async () => {
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
       const error = searchParams.get("error");
 
       if (error) {
-        setStatus(`Ошибка: ${searchParams.get("message") || error}`);
-        setTimeout(() => navigate("/settings"), 3000);
+        setStatus("error");
+        setMessage(`Ошибка: ${decodeURIComponent(error)}`);
+        setTimeout(() => navigate("/"), 4000);
         return;
       }
 
-      if (!accessToken || !refreshToken) {
-        setStatus("Неверный запрос авторизации.");
+      const token = searchParams.get("token");
+      const email = searchParams.get("email");
+      const type = (searchParams.get("type") || "magiclink") as "magiclink";
+
+      if (!token || !email) {
+        setStatus("error");
+        setMessage("Недействительная ссылка для входа.");
         setTimeout(() => navigate("/"), 2000);
         return;
       }
 
       try {
-        setStatus("Устанавливаем сессию...");
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
+        setMessage("Подтверждаем ваш аккаунт...");
+
+        const { data, error: otpError } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type,
         });
 
-        if (sessionError) throw sessionError;
+        if (otpError) throw otpError;
+        if (!data.session) throw new Error("No session returned after verification");
 
-        setStatus("Вход выполнен! Переходим...");
-        navigate("/settings", { replace: true });
+        setStatus("success");
+        setMessage("Вход выполнен!");
+        setTimeout(() => navigate("/settings", { replace: true }), 1000);
       } catch (err: any) {
         console.error("AuthCallback error:", err);
-        setStatus(`Не удалось войти: ${err.message}`);
-        setTimeout(() => navigate("/"), 3000);
+        setStatus("error");
+        setMessage(`Не удалось войти: ${err.message}`);
+        setTimeout(() => navigate("/"), 4000);
       }
     };
 
@@ -55,12 +65,23 @@ export function AuthCallback() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        gap: "1rem",
+        gap: "1.25rem",
         color: "var(--text-primary)",
+        background: "var(--bg-app)",
       }}
     >
-      <Loader2 size={40} className="animate-spin" style={{ color: "var(--primary)" }} />
-      <p style={{ fontSize: "1rem", color: "var(--text-secondary)" }}>{status}</p>
+      {status === "loading" && (
+        <Loader2 size={44} className="animate-spin" style={{ color: "var(--primary)" }} />
+      )}
+      {status === "success" && (
+        <CheckCircle size={44} style={{ color: "var(--success)" }} />
+      )}
+      {status === "error" && (
+        <AlertCircle size={44} style={{ color: "var(--error)" }} />
+      )}
+      <p style={{ fontSize: "1rem", color: "var(--text-secondary)", textAlign: "center", maxWidth: "300px" }}>
+        {message}
+      </p>
     </div>
   );
 }
