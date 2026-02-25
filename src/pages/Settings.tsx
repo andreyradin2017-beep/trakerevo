@@ -366,22 +366,6 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Favorite Genres Section */}
-        {userStats && userStats.topGenres.length > 0 && (
-          <Section
-            title="ЛЮБИМЫЕ ЖАНРЫ"
-            icon={<BarChart3 size={14} />}
-            collapsible={true}
-            defaultCollapsed={true}
-            style={{ marginBottom: "0.25rem" }}
-          >
-            <StatsBarChart
-              data={userStats.topGenres}
-              maxCount={userStats.topGenres[0]?.count || 1}
-            />
-          </Section>
-        )}
-
         {/* Account Sync Button (Only if logged in) */}
         {user && (
           <motion.button
@@ -421,6 +405,24 @@ export const Settings: React.FC = () => {
             <Database size={16} /> Синхронизировать сейчас
           </motion.button>
         )}
+
+        {/* Favorite Genres Section */}
+        {userStats && userStats.topGenres.length > 0 && (
+          <Section
+            title="ЛЮБИМЫЕ ЖАНРЫ"
+            icon={<BarChart3 size={14} />}
+            collapsible={true}
+            defaultCollapsed={true}
+            style={{ marginBottom: "0.25rem" }}
+          >
+            <StatsBarChart
+              data={userStats.topGenres}
+              maxCount={userStats.topGenres[0]?.count || 1}
+            />
+          </Section>
+        )}
+
+
 
         {/* Search Provider Settings */}
         <SearchProviderSettings
