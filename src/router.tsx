@@ -64,6 +64,9 @@ const Archive = lazyWithRetry(() =>
 const Discover = lazyWithRetry(() =>
   import("@pages/Discover").then((module) => ({ default: module.Discover })),
 );
+const AuthCallback = lazyWithRetry(() =>
+  import("@pages/AuthCallback").then((module) => ({ default: module.AuthCallback })),
+);
 
 // Wrapper for Suspense to avoid repetition
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -163,6 +166,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      { path: "auth/callback", element: <SuspenseWrapper><AuthCallback /></SuspenseWrapper> },
     ],
   },
 ]);

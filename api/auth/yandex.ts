@@ -91,28 +91,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error("Supabase createUser error:", createError.message);
     }
 
-    // 4. Generate a magic link for the user to sign in automatically
-    // This is the most reliable way as Supabase handles the session persistence natively
+    // 4. Sign in to get session tokens
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      throw signInError;
+    }
+
+    const { access_token, refresh_token } = signInData.session;
+
+    // 5. Redirect to our frontend callback page with tokens as query params
+    // Using query params (not hash) avoids service worker / router stripping issues
     const host = req.headers.host;
     const protocol = host?.includes("localhost") ? "http" : "https";
     const origin = `${protocol}://${host}`;
 
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: origin,
-      }
-    });
-
-    if (linkError) {
-      console.error("Supabase generateLink error:", linkError.message);
-      throw linkError;
-    }
-
-    // 5. Redirect the user to the generated link
-    // Supabase will handle the login and then redirect them back to our origin
-    return res.redirect(linkData.properties.action_link);
+    return res.redirect(
+      `${origin}/auth/callback?access_token=${access_token}&refresh_token=${refresh_token}`
+    );
   } catch (err: any) {
     console.error("Yandex Auth Error:", err.message);
     return res.redirect(`/?error=auth_failed&message=${encodeURIComponent(err.message)}`);
