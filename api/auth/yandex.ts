@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 5. Redirect back to the app with the session tokens in the hash
     // Supabase JS client will automatically pick these up
-    const { access_token, refresh_token } = sessionData.session;
+    const { access_token, refresh_token, expires_in } = sessionData.session;
     
     // Determine the host for redirect
     const host = req.headers.host;
@@ -111,7 +111,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const origin = `${protocol}://${host}`;
     
     // We use the hash fragment so Supabase client catches it
-    return res.redirect(`${origin}/#access_token=${access_token}&refresh_token=${refresh_token}`);
+    // Adding all parameters that Supabase expects for OAuth/Recovery flow
+    return res.redirect(`${origin}/#access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}&token_type=bearer&type=signup`);
   } catch (err: any) {
     console.error("Yandex Auth Error:", err.message);
     return res.redirect(`/?error=auth_failed`);

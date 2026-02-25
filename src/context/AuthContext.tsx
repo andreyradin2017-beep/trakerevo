@@ -29,15 +29,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("AuthContext: Initializing session. Hash exists:", !!window.location.hash);
+    
+    // Manual session rescue from hash if Supabase misses it
+    const handleHashAuth = async () => {
+      if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          console.log("AuthContext: Found tokens in hash, attempting manual setSession");
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            if (error) throw error;
+            console.log("AuthContext: Manual setSession successful:", data.session ? "Active" : "None");
+            // Clean up the hash to prevent re-attempts or token leakage
+            window.history.replaceState(null, "", window.location.pathname);
+          } catch (err) {
+            console.error("AuthContext: Manual setSession failed:", err);
+          }
+        }
+      }
+    };
+
+    handleHashAuth();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      console.log("AuthContext: getSession result:", session ? "Session found" : "No session");
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("AuthContext: onAuthStateChange event:", event, session ? "Session found" : "No session");
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
