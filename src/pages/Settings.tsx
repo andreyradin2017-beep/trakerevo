@@ -348,7 +348,7 @@ export const Settings: React.FC = () => {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsLoginOpen(true)}
-                className="btn-primary"
+                className="btn btn-primary"
                 style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
               >
                 Войти в аккаунт
@@ -357,7 +357,7 @@ export const Settings: React.FC = () => {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={signOut}
-                className="btn-secondary"
+                className="btn btn-secondary"
                 style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
               >
                 <LogOut size={16} /> Выйти
@@ -448,20 +448,8 @@ export const Settings: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={handleExport}
               disabled={exporting}
-              style={{
-                padding: "0.85rem",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "var(--radius-lg)",
-                color: "var(--text-primary)",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-              }}
+              className="btn btn-secondary"
+              style={{ flex: 1, height: "48px" }}
             >
               {exporting ? (
                 <Loader size={16} className="animate-spin" />
@@ -475,20 +463,8 @@ export const Settings: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
-              style={{
-                padding: "0.85rem",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "var(--radius-lg)",
-                color: "var(--text-primary)",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-              }}
+              className="btn btn-secondary"
+              style={{ flex: 1, height: "48px" }}
             >
               {importing ? (
                 <Loader size={16} className="animate-spin" />

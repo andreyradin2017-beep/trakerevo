@@ -87,7 +87,7 @@ const UserLists: React.FC<{ onAdd: () => void }> = ({ onAdd }) => {
           key={list.id}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate(`/list/${list.id}`)}
-          className="btn-secondary"
+          className="btn btn-secondary"
           style={{
             padding: "0.35rem 0.8rem",
             borderRadius: "var(--radius-full)",

@@ -36,7 +36,7 @@ export const SortSelector: React.FC<SortSelectorProps> = ({
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={handleNext}
-      className="btn-secondary"
+      className="btn btn-secondary"
       style={{
         display: "flex",
         alignItems: "center",
