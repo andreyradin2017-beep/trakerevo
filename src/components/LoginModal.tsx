@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { vibrate, notificationOccurred } from "../utils/haptics";
-import { TelegramLogin } from "./TelegramLogin";
+
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
-  const { signInWithEmail, signInWithTelegram } = useAuth();
+  const { signInWithEmail, signInWithYandex } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -37,21 +37,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleTelegramAuth = async (user: any) => {
-    setLoading(true);
-    setError(null);
+  const handleYandexAuth = () => {
     vibrate("light");
-
-    try {
-      await signInWithTelegram(user);
-      notificationOccurred("success");
-      onClose();
-    } catch (err: any) {
-      setError(err.message || "Ошибка входа через Telegram");
-      notificationOccurred("error");
-    } finally {
-      setLoading(false);
-    }
+    signInWithYandex();
   };
 
   return (
@@ -287,14 +275,32 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                       marginBottom: "1.25rem",
                     }}
                   >
-                    <TelegramLogin
-                      botName={
-                        import.meta.env.VITE_TELEGRAM_BOT_NAME || "TrakerEvoBot"
-                      }
-                      onAuth={handleTelegramAuth}
-                      buttonSize="large"
-                      cornerRadius={12}
-                    />
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleYandexAuth}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        background: "#FFCC00",
+                        color: "#000000",
+                        border: "none",
+                        borderRadius: "12px",
+                        fontWeight: 700,
+                        fontSize: "0.95rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.75rem",
+                        boxShadow: "0 4px 12px rgba(255, 204, 0, 0.25)",
+                      }}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M25.7 15.1118V39.4342H19.7828L15 45H7.72758L15 36.4178C12.3394 33.725 11.2312 30.6416 11.2312 26.6853C11.2312 21.0425 15.6881 15.1118 22.1466 15.1118H25.7ZM31.6171 2.375V11.1447H25.7V2.375H31.6171Z" fill="#FF0000"/>
+                      </svg>
+                      Войти через Яндекс
+                    </motion.button>
                   </div>
 
                   <p

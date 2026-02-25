@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
-  signInWithTelegram: (user: any) => Promise<void>;
+  signInWithYandex: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   signInWithEmail: async () => {},
-  signInWithTelegram: async () => {},
+  signInWithYandex: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -74,29 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) throw error;
   };
 
-  const signInWithTelegram = async (telegramUser: any) => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(telegramUser),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to authenticate with Telegram");
-      }
-
-      const { session } = data;
-      const { error } = await supabase.auth.setSession(session);
-      if (error) throw error;
-    } finally {
-      setLoading(false);
-    }
+  const signInWithYandex = () => {
+    const clientId = import.meta.env.VITE_YANDEX_CLIENT_ID || "a435e9a8c56b467498ea2964a9c00d5a";
+    const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/yandex`);
+    const url = `https://oauth.yandex.ru/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}`;
+    window.location.href = url;
   };
 
   return (
@@ -107,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         signOut,
         signInWithEmail,
-        signInWithTelegram,
+        signInWithYandex,
       }}
     >
       {children}
