@@ -8,6 +8,7 @@ import type {
   KinopoiskTrailer,
   KinopoiskSimilarFilm,
   KinopoiskSeason,
+  KinopoiskFilm,
 } from "../types/api";
 import { getProxiedImageUrl } from "../utils/images";
 import { logger } from "../utils/logger";

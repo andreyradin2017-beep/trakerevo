@@ -1,86 +1,90 @@
-export interface TMDBMovie {
+interface ITmdbProductionCompany {
   id: number;
-  title?: string;
-  name?: string;
-  poster_path: string | null;
+  logo_path: string | null;
+  name: string;
+  origin_country: string;
+}
+
+export interface TmdbSearchResult {
+  page: number;
+  results: TmdbMovieResult[] | TmdbTvResult[];
+  total_pages: number;
+  total_results: number;
+}
+
+export interface TmdbMovieResult {
+  adult: boolean;
+  backdrop_path: string | null;
+  genre_ids: number[];
+  id: number;
+  original_language: string;
+  original_title: string;
   overview: string;
-  release_date?: string;
-  first_air_date?: string;
-  media_type: "movie" | "tv";
-  genres?: { id: number; name: string }[];
-  genre_ids?: number[];
-  vote_average?: number;
+  popularity: number;
+  poster_path: string | null;
+  release_date: string;
+  title: string;
+  video: boolean;
+  vote_average: number;
+  vote_count: number;
+  media_type?: "movie";
 }
 
-export interface TMDBSearchResponse {
-  results: TMDBMovie[];
-}
-
-export interface TMDBVideo {
-  key: string;
-  site: string;
-  type: string;
-}
-
-export interface TMDBWatchProviders {
-  results: {
-    [key: string]: {
-      link?: string;
-      flatrate?: { provider_name: string; logo_path: string }[];
-      rent?: { provider_name: string; logo_path: string }[];
-      buy?: { provider_name: string; logo_path: string }[];
-    };
-  };
-}
-
-export interface RAWGGame {
+export interface TmdbTvResult {
+  backdrop_path: string | null;
+  first_air_date: string;
+  genre_ids: number[];
   id: number;
   name: string;
-  background_image: string;
-  released: string;
-  rating: number;
-  genres: { name: string }[];
-  description_raw?: string;
-  description?: string;
-  platforms?: { platform: { name: string; id: number } }[];
-  metacritic?: number;
-  developers?: { name: string }[];
-  publishers?: { name: string }[];
-  stores?: { store: { name: string; id: number } }[];
-  esrb_rating?: { name: string; slug: string };
-  playtime?: number;
-  website?: string;
+  origin_country: string[];
+  original_language: string;
+  original_name: string;
+  overview: string;
+  popularity: number;
+  poster_path: string | null;
+  vote_average: number;
+  vote_count: number;
+  media_type?: "tv";
 }
 
-export interface RAWGSearchResponse {
-  results: RAWGGame[];
+export interface TmdbMovieDetails {
+  adult: boolean;
+  backdrop_path: string | null;
+  belongs_to_collection: null | object;
+  budget: number;
+  genres: { id: number; name: string }[];
+  homepage: string;
+  id: number;
+  imdb_id: string;
+  origin_country: string[];
+  original_language: string;
+  original_title: string;
+  overview: string;
+  popularity: number;
+  poster_path: string | null;
+  production_companies: ITmdbProductionCompany[];
+  production_countries: { iso_3166_1: string; name: string }[];
+  release_date: string;
+  revenue: number;
+  runtime: number; // in minutes
+  spoken_languages: { english_name: string; iso_639_1: string; name: string }[];
+  status: string;
+  tagline: string;
+  title: string;
+  video: boolean;
+  vote_average: number;
+  vote_count: number;
 }
 
-export interface GoogleBook {
-  id: string;
-  volumeInfo: {
-    title: string;
-    authors?: string[];
-    description?: string;
-    imageLinks?: { thumbnail: string };
-    publishedDate?: string;
-    categories?: string[];
-  };
-}
-
-export interface GoogleBooksResponse {
-  items?: GoogleBook[];
-}
-
-// Kinopoisk API Types
 export interface KinopoiskFilm {
-  filmId: number;
+  filmId?: number; // Legacy
+  kinopoiskId?: number;
   nameRu?: string;
   nameEn?: string;
   nameOriginal?: string;
   posterUrl?: string;
   posterUrlPreview?: string;
-  type: "FILM" | "TV_SERIES" | "TV_SHOW";
+  type: "FILM" | "TV_SERIES" | "TV_SHOW" | "MINI_SERIES" | "VIDEO";
   year?: string;
   description?: string;
   rating?: string;
@@ -138,54 +142,77 @@ export interface KinopoiskStaff {
   nameEn?: string;
   description?: string;
   profession?: string;
+  professionText?: string;
+  professionKey?: string;
   posterUrl?: string;
 }
 
-export interface KinopoiskFact {
-  factId: number;
-  type: "TEXT" | "IMAGE";
-  value: string;
-  spoiler: boolean;
-  likeCount: number;
-  dateCreated: string;
+export interface KinopoiskTopResponse {
+  pagesCount: number;
+  films: KinopoiskFilm[]; // v2.1
+  items?: KinopoiskFilm[]; // v2.2
 }
 
-export interface KinopoiskReview {
-  reviewId: number;
-  authorNameRu?: string;
-  authorNameEn?: string;
-  description: string;
-  date: string;
-  rating: number;
-  isPositive: boolean;
+export interface KinopoiskFiltersResponse {
+  genres: { id: number; genre: string }[];
+  countries: { id: number; country: string }[];
+  year: { min: number; max: number };
+  ratingKinopoisk: { min: number; max: number };
+  ratingImdb: { min: number; max: number };
+}
+
+export interface KinopoiskTrailer {
+  url: string;
+  name: string;
+  site: string;
+  type: string;
 }
 
 export interface KinopoiskSimilarFilm {
   filmId: number;
-  nameRu?: string;
-  nameEn?: string;
-  posterUrl?: string;
-  rating?: string;
+  nameRu: string;
+  nameEn: string;
+  nameOriginal: string;
+  posterUrl: string;
+  posterUrlPreview: string;
+  relationType: string;
 }
 
-export interface KinopoiskTrailer {
-  trailerId: number;
-  url: string;
-  name?: string;
-  site: "YOUTUBE" | "VK" | "OTHER";
-  type: "TRAILER" | "TEASER";
+export interface RawgGame {
+  id: number;
+  slug: string;
+  name: string;
+  released: string;
+  tba: boolean;
+  background_image: string;
+  rating: number;
+  rating_top: number;
+  ratings?: any[];
+  ratings_count: number;
+  reviews_text_count: number;
+  added: number;
+  added_by_status?: any;
+  metacritic: number;
+  playtime: number;
+  suggestions_count: number;
+  updated: string;
+  user_game?: any;
+  reviews_count: number;
+  saturated_color: string;
+  dominant_color: string;
+  platforms?: any[];
+  parent_platforms?: any[];
+  genres: { id: number; name: string; slug: string }[];
+  stores?: any[];
+  clip?: any;
+  tags?: any[];
+  esrb_rating?: any;
+  short_screenshots?: any[];
 }
 
-export interface KinopoiskTopResponse {
-  items: KinopoiskFilm[];
-  pagesCount: number;
-  page: number;
-}
-
-export interface KinopoiskFiltersResponse {
-  genres: { genre: string }[];
-  countries: { country: string }[];
-  ratingKinopoisk: { min: number; max: number };
-  ratingImdb: { min: number; max: number };
-  year: { min: number; max: number };
+export interface RawgSearchResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: RawgGame[];
 }

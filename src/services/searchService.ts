@@ -83,11 +83,11 @@ export const searchService = {
 };
 
 // Auto-indexing via Dexie hooks
-db.items.hook("creating", (pk, obj) => {
+db.items.hook("creating", (_pk, obj) => {
   searchService.upsertItem(obj);
 });
 
-db.items.hook("updating", (mods, pk, obj) => {
+db.items.hook("updating", (mods, _pk, obj) => {
   searchService.upsertItem({ ...obj, ...mods });
 });
 
