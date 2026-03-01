@@ -39,6 +39,43 @@ export const cleanupOldCache = async (): Promise<number> => {
   return oldKeys.length;
 };
 
+/**
+ * Runs all maintenance tasks: status migration, cache cleanup, and structural normalization.
+ */
+export const ensureDataConsistency = async (): Promise<void> => {
+  logger.info("Running data consistency checks...", CONTEXT);
+  
+  await db.transaction("rw", [db.items, db.cache], async () => {
+    // 1. Migrate statuses
+    await migrateDroppedStatus();
+    
+    // 2. Cleanup cache
+    await cleanupOldCache();
+    
+    // 3. Normalize all items
+    const items = await db.items.toArray();
+    for (const item of items) {
+      const normalized = normalizeItem(item);
+      
+      // Check if update is needed
+      const needsUpdate = 
+        !item.type || 
+        normalized.type !== item.type || 
+        normalized.status !== item.status || 
+        normalized.image !== item.image;
+        
+      if (needsUpdate) {
+        await db.items.update(item.id!, {
+          ...normalized,
+          updatedAt: new Date()
+        });
+      }
+    }
+  });
+  
+  logger.info("Data consistency check complete.", CONTEXT);
+};
+
 // Helper to map Local List -> Remote List
 const toRemoteList = (list: List, userId: string): RemoteList => {
   return {
@@ -68,13 +105,16 @@ const toLocalList = (remote: RemoteList): List => {
   };
 };
 
+import { normalizeItem } from "./normalizer";
+
 // Helper to map Local Item -> Remote Item
 const toRemoteItem = async (
   item: Item,
   userId: string,
 ): Promise<RemoteItem | null> => {
-  // Skip items with missing required fields
-  if (!item.type || !item.title) {
+  const normalized = normalizeItem(item);
+  
+  if (!normalized.title || !normalized.type) {
     logger.warn(`Skipping item with missing required fields: ${JSON.stringify(item)}`, CONTEXT);
     return null;
   }
@@ -87,36 +127,33 @@ const toRemoteItem = async (
     }
   }
 
-  // Convert 'dropped' status to 'planned' (dropped was removed from the app)
-  const status = (item.status as any) === "dropped" ? "planned" : item.status;
-
   return {
     id: item.supabaseId,
     user_id: userId,
-    title: item.title,
-    type: item.type,
-    status: status,
-    image: item.image,
-    description: item.description,
-    year: item.year,
-    rating: item.rating,
-    progress: item.progress,
-    total_progress: item.totalProgress,
-    current_season: item.currentSeason,
-    current_episode: item.currentEpisode,
-    episodes_per_season: item.episodesPerSeason,
-    is_archived: item.isArchived,
-    trailer_url: item.trailerUrl,
-    watch_providers: item.watchProviders,
-    related_external_ids: item.relatedExternalIds,
-    notes: item.notes,
-    tags: item.tags,
-    external_id: item.externalId,
-    source: item.source,
-    created_at: item.createdAt.toISOString(),
-    updated_at: item.updatedAt.toISOString(),
+    title: normalized.title,
+    type: normalized.type,
+    status: normalized.status,
+    image: normalized.image,
+    description: normalized.description,
+    year: normalized.year,
+    rating: normalized.rating,
+    progress: normalized.progress,
+    total_progress: normalized.totalProgress,
+    current_season: normalized.currentSeason,
+    current_episode: normalized.currentEpisode,
+    episodes_per_season: normalized.episodesPerSeason,
+    is_archived: normalized.isArchived,
+    trailer_url: normalized.trailerUrl,
+    watch_providers: normalized.watchProviders,
+    related_external_ids: normalized.relatedExternalIds,
+    notes: normalized.notes,
+    tags: normalized.tags,
+    external_id: normalized.externalId,
+    source: normalized.source,
+    created_at: normalized.createdAt.toISOString(),
+    updated_at: normalized.updatedAt.toISOString(),
     list_id: listUuid,
-    local_id: item.id,
+    local_id: normalized.id,
   };
 };
 
@@ -133,15 +170,12 @@ const toLocalItem = async (remote: RemoteItem): Promise<Item> => {
     }
   }
 
-  // Convert 'dropped' status to 'planned' (dropped was removed from the app)
-  const status = remote.status === "dropped" ? "planned" : remote.status;
-
-  return {
+  return normalizeItem({
     id: remote.local_id || undefined,
     supabaseId: remote.id,
     title: remote.title,
     type: remote.type as Item["type"],
-    status: status as Item["status"],
+    status: remote.status as Item["status"],
     image: remote.image,
     description: remote.description,
     year: remote.year,
@@ -162,7 +196,7 @@ const toLocalItem = async (remote: RemoteItem): Promise<Item> => {
     createdAt: new Date(remote.created_at),
     updatedAt: new Date(remote.updated_at),
     listId: localListId,
-  };
+  });
 };
 
 export const syncDeletions = async (userId: string): Promise<number> => {
@@ -423,43 +457,27 @@ export const migrateGuestData = async (
   userId: string,
   mode: "merge" | "replace",
 ) => {
-  // First, fix any items with missing types BEFORE syncing
-  const allLocalItems = await db.items.toArray();
-  const fixPromises: Promise<any>[] = [];
-
-  for (const item of allLocalItems) {
-    let needsFix = false;
-    const updates: Partial<Item> = {};
-
-    // Fix missing type
-    if (!item.type && item.source) {
-      if (item.source === "rawg") {
-        updates.type = "game";
-        needsFix = true;
-      } else if (item.source === "google_books") {
-        updates.type = "book";
-        needsFix = true;
-      } else if (item.source === "tmdb" || item.source === "kinopoisk") {
-        updates.type = "movie";
-        needsFix = true;
+  // First, normalize all items BEFORE syncing using a transaction
+  await db.transaction("rw", db.items, async () => {
+    const allLocalItems = await db.items.toArray();
+    for (const item of allLocalItems) {
+      const normalized = normalizeItem(item);
+      // Update if any change detected (structural check or just updatedAt)
+      if (
+        normalized.type !== item.type ||
+        normalized.status !== item.status ||
+        normalized.image !== item.image ||
+        !item.type
+      ) {
+        await db.items.update(item.id!, {
+          ...normalized,
+          updatedAt: new Date(),
+        });
       }
     }
-
-    // Fix dropped status (legacy status that was removed)
-    if ((item.status as any) === "dropped") {
-      updates.status = "planned";
-      needsFix = true;
-    }
-
-    if (needsFix) {
-      updates.updatedAt = new Date();
-      fixPromises.push(db.items.update(item.id!, updates));
-    }
-  }
-
-  // @ts-ignore - Dexie PromiseExtended compatibility
-  void Promise.all(fixPromises).then(() => {}).catch(() => {});
-  logger.info(`Fixed ${fixPromises.length} items with missing types or dropped status`, CONTEXT);
+  });
+  
+  logger.info("Local data normalized via transaction", CONTEXT);
 
   if (mode === "replace") {
     await Promise.all([
@@ -469,6 +487,9 @@ export const migrateGuestData = async (
     ]);
     return syncAll();
   }
+
+  // Reload items after normalization to ensure current state for merge loop
+  const allLocalItems = await db.items.toArray();
 
   // --- MERGE MODE: Smart deduplication ---
 

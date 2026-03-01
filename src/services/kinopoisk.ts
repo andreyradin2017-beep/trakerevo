@@ -13,35 +13,31 @@ import { getProxiedImageUrl } from "../utils/images";
 import { logger } from "../utils/logger";
 import { KINOPOISK_GENRE_MAP } from "../utils/genreMaps";
 
-const mapKinopoiskFilm = (film: any): Item => ({
-  title: film.nameRu || film.nameEn || film.nameOriginal || (film as any).nameKinopoisk || "",
-  type:
-    film.type === "TV_SERIES" || film.type === "TV_SHOW" || film.type === "MINI_SERIES" ? "show" : "movie",
-  status: "planned" as const,
-  image:
-    film.posterUrl && !film.posterUrl.includes("no-poster")
-      ? getProxiedImageUrl(film.posterUrl)
-      : film.posterUrlPreview
-        ? getProxiedImageUrl(film.posterUrlPreview)
-        : undefined,
-  description: film.description,
-  year: film.year && film.year !== "null" ? parseInt(film.year) : undefined,
-  source: "kinopoisk" as const,
-  externalId: film.filmId?.toString(),
-  tags:
-    film.genres
-      ?.slice(0, 3)
-      .map((g: any) => KINOPOISK_GENRE_MAP[g.genre?.toLowerCase()] || g.genre)
-      .filter(Boolean) || [],
-  rating:
-    film.rating && film.rating !== "null"
-      ? parseFloat(film.rating)
-      : film.ratingKinopoisk
-        ? parseFloat(film.ratingKinopoisk)
-        : undefined,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
+import { normalizeItem } from "./normalizer";
+
+const mapKinopoiskFilm = (film: KinopoiskFilm): Item =>
+  normalizeItem({
+    title: film.nameRu || film.nameEn || film.nameOriginal || "",
+    type:
+      film.type === "TV_SERIES" || film.type === "TV_SHOW" || film.type === "MINI_SERIES" ? "show" : "movie",
+    status: "planned",
+    image: film.posterUrl || film.posterUrlPreview,
+    description: film.description,
+    year: film.year && film.year !== "null" ? parseInt(film.year) : undefined,
+    source: "kinopoisk",
+    externalId: film.filmId?.toString(),
+    tags:
+      film.genres
+        ?.slice(0, 3)
+        .map((g: { genre: string }) => KINOPOISK_GENRE_MAP[g.genre?.toLowerCase()] || g.genre)
+        .filter(Boolean) || [],
+    rating:
+      film.rating && film.rating !== "null"
+        ? parseFloat(film.rating)
+        : film.ratingKinopoisk
+          ? parseFloat(film.ratingKinopoisk)
+          : undefined,
+  });
 
 export const searchKinopoisk = async (query: string): Promise<Item[] | null> => {
   // Prevent search with empty/undefined query

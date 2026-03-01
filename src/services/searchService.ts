@@ -1,5 +1,6 @@
 import { Document } from "flexsearch";
 import type { Item } from "../types";
+import { db } from "../db/db";
 
 // Index configuration
 // We use 'Document' for multi-field indexing (title, description, tags)
@@ -21,8 +22,6 @@ export const searchService = {
    * Bulk index items from the database
    */
   async indexAll(items: Item[]) {
-    // Clear index first if re-indexing
-    // FlexSearch doesn't have a simple 'clear', so we might need to recreate or just add
     items.forEach((item) => {
       if (item.id) {
         index.add({
@@ -65,14 +64,11 @@ export const searchService = {
   async search(query: string): Promise<number[]> {
     if (!query.trim()) return [];
 
-    // FlexSearch returns results in a complex format for Document index:
-    // [{ field: 'title', result: [id1, id2] }, { field: 'description', result: [id3] }]
     const rawResults = await index.search(query, {
       limit: 50,
-      suggest: true, // Enable suggestion/fuzzy
+      suggest: true,
     });
 
-    // Flatten and deduplicate IDs
     const allIds = new Set<number>();
     rawResults.forEach((fieldResult: any) => {
       fieldResult.result.forEach((id: number) => allIds.add(id));
@@ -85,3 +81,16 @@ export const searchService = {
     return isIndexed;
   },
 };
+
+// Auto-indexing via Dexie hooks
+db.items.hook("creating", (pk, obj) => {
+  searchService.upsertItem(obj);
+});
+
+db.items.hook("updating", (mods, pk, obj) => {
+  searchService.upsertItem({ ...obj, ...mods });
+});
+
+db.items.hook("deleting", (pk) => {
+  searchService.removeItem(pk as number);
+});
