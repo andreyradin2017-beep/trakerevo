@@ -62,6 +62,15 @@ vi.mock("../db/db", () => ({
       below: vi.fn().mockReturnThis(),
       delete: vi.fn().mockResolvedValue(undefined),
     },
+    search_providers: {
+      id: "rawg",
+      enabled: true,
+      priority: 1,
+    },
+    transaction: vi.fn(async (mode, tables, callback) => {
+      // @ts-ignore
+      await callback();
+    }),
   },
 }));
 

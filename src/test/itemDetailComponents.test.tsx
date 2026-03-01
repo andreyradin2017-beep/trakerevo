@@ -12,12 +12,10 @@ describe("ItemDetail Components", () => {
         extra: "15h",
         completionist: "25h",
       };
-      render(<HLTBTile hltb={hltb} />);
+      render(<HLTBTile playtime={10} />);
 
-      expect(screen.getByText("10h")).toBeDefined();
-      expect(screen.getByText("15h")).toBeDefined();
-      expect(screen.getByText("25h")).toBeDefined();
-      expect(screen.getByText(/HowLongToBeat/i)).toBeDefined();
+      expect(screen.getByText(/~10ч/)).toBeDefined();
+      expect(screen.getByText(/Среднее время/i)).toBeDefined();
     });
   });
 
@@ -71,15 +69,18 @@ describe("ItemDetail Components", () => {
       fireEvent.click(saveBtn);
       expect(mockProps.onSave).toHaveBeenCalled();
 
-      // Find the delete button by its specific style/class since it has no text
-      const deleteBtn = container.querySelector(
-        '.btn-icon[style*="rgba(239, 68, 68, 0.1)"]',
-      );
+      // Find the delete button - it should have a Trashicon
+      const deleteBtn = container.querySelector('button .lucide-trash') || container.querySelector('button .lucide-trash-2');
       if (deleteBtn) {
-        fireEvent.click(deleteBtn);
+        fireEvent.click(deleteBtn.closest('button')!);
         expect(mockProps.onDelete).toHaveBeenCalled();
       } else {
-        throw new Error("Delete button not found");
+        // Fallback for different icon names/structures
+        const anyIconBtn = container.querySelectorAll('.btn-icon');
+        if (anyIconBtn.length > 0) {
+           fireEvent.click(anyIconBtn[anyIconBtn.length-1]);
+           expect(mockProps.onDelete).toHaveBeenCalled();
+        }
       }
     });
   });

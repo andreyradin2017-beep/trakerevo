@@ -17,12 +17,18 @@ export const getProxiedImageUrl = (
     "avatars.mds.yandex.net"
   ];
 
+  const skipProxyDomains = [
+    "lh3.googleusercontent.com"
+  ];
+
+  if (skipProxyDomains.some(domain => url.includes(domain))) {
+    return url;
+  }
+
   const shouldProxy = proxyDomains.some(domain => url.includes(domain));
 
   if (shouldProxy) {
-    // Strip protocol from the URL for WP Photon format
-    const cleanUrl = url.replace(/^https?:\/\//, "");
-    return `https://i0.wp.com/${cleanUrl}`;
+    return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
   }
 
   return url;
