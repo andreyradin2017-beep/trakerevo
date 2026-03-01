@@ -221,7 +221,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div style={{ paddingBottom: "6rem" }}>
+    <div className="settings-container px-4">
       <PageHeader title="Профиль" showBack={true} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
 
@@ -233,123 +233,34 @@ export const Settings: React.FC = () => {
         onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.25rem",
-          marginTop: "1rem",
-        }}
-      >
+      <div className="settings-stack">
         {/* Profile Card Section */}
-        <div
-          style={{
-            padding: "1.5rem",
-            background: "var(--bg-surface)",
-            borderRadius: "var(--radius-xl)",
-            border: "var(--border-glass)",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "var(--shadow-lg)",
-          }}
-        >
-          {/* Background Glow Overlay */}
-          <div
-            style={{
-              position: "absolute",
-              top: "-20%",
-              right: "-10%",
-              width: "150px",
-              height: "150px",
-              background: "var(--primary-glow)",
-              filter: "blur(60px)",
-              opacity: 0.4,
-              zIndex: 0,
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1.25rem",
-              position: "relative",
-              zIndex: 1,
-              marginBottom: "1.5rem",
-            }}
-          >
-            {/* Avatar / Initial */}
-            <div
-              style={{
-                width: "64px",
-                height: "64px",
-                borderRadius: "20px",
-                background: "var(--primary-gradient)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontSize: "1.5rem",
-                fontWeight: 800,
-                boxShadow: "0 8px 16px rgba(139, 92, 246, 0.4)",
-                transform: "rotate(-3deg)",
-              }}
-            >
+        <div className="profile-card">
+          <div className="profile-glow" />
+          
+          <div className="flex items-center gap-5 relative z-10 mb-6">
+            <div className="avatar-initial">
               {user ? user.email?.charAt(0).toUpperCase() : <User size={32} />}
             </div>
 
-            <div style={{ flex: 1 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.25rem",
-                  fontWeight: 800,
-                  fontFamily: "var(--font-main)",
-                }}
-              >
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-extrabold m-0 tracking-tight">
                 {user ? user.email?.split("@")[0] : "Гость"}
               </h2>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  marginTop: "0.25rem",
-                }}
-              >
-                {user && (
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--success)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.15rem",
-                    }}
-                  >
-                    <Check size={12} /> Синхронизация ВКЛ
-                  </div>
-                )}
-              </div>
+              {user && (
+                <div className="flex items-center gap-1.5 mt-1 text-[10px] font-bold text-[var(--success)] opacity-80 uppercase tracking-wider">
+                  <Check size={10} strokeWidth={3} /> Синхронизация ВКЛ
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div
-            style={{
-              display: "flex",
-              gap: "0.75rem",
-              marginTop: "1.5rem",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
+          <div className="flex gap-3 relative z-10 mt-6">
             {!user ? (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsLoginOpen(true)}
-                className="btn btn-primary"
-                style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
+                className="btn btn-primary flex-1 h-11 text-sm font-bold"
               >
                 Войти в аккаунт
               </motion.button>
@@ -357,8 +268,7 @@ export const Settings: React.FC = () => {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={signOut}
-                className="btn btn-secondary"
-                style={{ flex: 1, height: "44px", fontSize: "0.9rem" }}
+                className="btn btn-secondary flex-1 h-11 text-sm font-bold opacity-60 hover:opacity-100"
               >
                 <LogOut size={16} /> Выйти
               </motion.button>
@@ -437,15 +347,7 @@ export const Settings: React.FC = () => {
           collapsible={true}
           defaultCollapsed={true}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-              marginBottom: "1rem",
-              marginTop: "0.5rem",
-            }}
-          >
+          <div className="action-grid">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleExport}

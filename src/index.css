@@ -404,6 +404,103 @@ option {
   letter-spacing: 1px;
 }
 
+/* Settings & Profile specialized classes */
+.settings-container {
+  padding-bottom: 6rem;
+}
+
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.profile-card {
+  padding: 1.5rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  border: var(--border-glass);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.profile-glow {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 150px;
+  height: 150px;
+  background: var(--primary-glow);
+  filter: blur(60px);
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.avatar-initial {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 800;
+  box-shadow: 0 8px 16px rgba(139, 92, 246, 0.4);
+  transform: rotate(-3deg);
+}
+
+.sync-now-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: var(--radius-lg);
+  color: #38bdf8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+}
+
+.danger-zone-btn {
+  flex: 1;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-danger-soft {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  opacity: 0.8;
+}
+
+.btn-danger-heavy {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
+  font-weight: 700;
+}
+
 /* Telegram WebApp Theme Integration overrides */
 [data-tg-theme="dark"] {
   --bg-app: var(--tg-theme-bg-color, #09090b);

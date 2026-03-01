@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { syncAll, migrateGuestData, migrateDroppedStatus, cleanupOldCache } from "../services/dbSync";
+import { syncAll, migrateGuestData, ensureDataConsistency } from "../services/dbSync";
 import type { SyncStatus, SyncResult } from "../types/sync";
 import { logger } from "../utils/logger";
 import { db } from "../db/db";
@@ -102,100 +102,37 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     logger.info(`[MIGRATION CHECK] user=${!!user}, hasCheckedMigration=${hasCheckedMigration}`, CONTEXT);
     
     if (user && !hasCheckedMigration) {
-      logger.info('[MIGRATION CHECK] Starting migration check...', CONTEXT);
+      logger.info("[MIGRATION CHECK] Starting maintenance and migration check...", CONTEXT);
       
-      const runFullMigration = async () => {
+      const runMaintenance = async () => {
         try {
-          // 1. Migrate dropped status to planned
-          await migrateDroppedStatus();
+          // 1. Run global consistency checks (normalization, statuses, cleanup)
+          await ensureDataConsistency();
 
-          // 2. Cleanup old cache (older than 30 days)
-          await cleanupOldCache();
-
-          // 3. Migrate old image URLs and fix missing types
-          const items = await db.items.toArray();
-          const updates: Promise<any>[] = [];
-
-          for (const item of items) {
-            let needsUpdate = false;
-            const updatesObj: Partial<typeof item> = {};
-
-            // Fix missing type based on source
-            if (!item.type && item.source) {
-              if (item.source === "rawg") {
-                updatesObj.type = "game";
-                needsUpdate = true;
-              } else if (item.source === "google_books") {
-                updatesObj.type = "book";
-                needsUpdate = true;
-              } else if (item.source === "tmdb" || item.source === "kinopoisk") {
-                updatesObj.type = item.externalId?.includes("/tv") ? "show" : "movie";
-                needsUpdate = true;
-              }
-            }
-
-            // Migrate old image URLs
-            if (item.image && item.image.includes("/api/tmdb-image")) {
-              try {
-                const url = new URL(item.image, window.location.origin);
-                const path = url.searchParams.get("path");
-                if (path) {
-                  updatesObj.image = `https://wsrv.nl/?url=${encodeURIComponent("https://image.tmdb.org/t/p" + path)}`;
-                  needsUpdate = true;
-                }
-              } catch (e) {
-                logger.warn("Failed to parse old image URL", CONTEXT, e);
-              }
-            }
-
-            // Handle direct tmdb.org URLs without proxy
-            if (item.image && item.image.includes("image.tmdb.org") && !item.image.includes("wsrv.nl")) {
-              updatesObj.image = `https://wsrv.nl/?url=${encodeURIComponent(item.image)}`;
-              needsUpdate = true;
-            }
-
-            if (needsUpdate) {
-              updatesObj.updatedAt = new Date();
-              updates.push(db.items.update(item.id!, updatesObj));
-            }
-          }
-
-          // @ts-ignore - Dexie PromiseExtended compatibility
-          void Promise.all(updates).then(() => {}).catch(() => {});
-          logger.info(`Migrated ${updates.length} items with old image URLs or missing types`, CONTEXT);
-
-          // 4. Check if migration dialog is needed
+          // 2. Check if migration dialog is needed
           const guestItems = await db.items.filter((i) => !i.supabaseId).count();
           const guestLists = await db.lists.filter((l) => !l.supabaseId).count();
 
           logger.info(`[MIGRATION CHECK] Guest items: ${guestItems}, Guest lists: ${guestLists}`, CONTEXT);
 
           if (guestItems > 0 || guestLists > 0) {
-            // Show migration dialog - user needs to choose merge or replace
-            logger.info('[MIGRATION CHECK] Showing migration dialog', CONTEXT);
             setGuestCount(guestItems);
             setShowMigration(true);
-          } else {
-            // No guest data - migration already complete, no need to sync again
-            logger.info('[MIGRATION CHECK] Migration already complete - skipping sync', CONTEXT);
           }
         } catch (error) {
-          logger.error("Migration check failed", CONTEXT, error);
+          logger.error("Maintenance task failed", CONTEXT, error);
         } finally {
-          // Mark migration check as complete and persist to localStorage
-          // This prevents the check from running again on page reload
-          logger.info('[MIGRATION CHECK] Setting migration_checked = true', CONTEXT);
           setHasCheckedMigration(true);
           localStorage.setItem("migration_checked", "true");
         }
       };
 
-      runFullMigration();
+      runMaintenance();
     } else if (!user) {
       setHasCheckedMigration(false);
       localStorage.removeItem("migration_checked");
     }
-  }, [user, hasCheckedMigration]); // Убрал triggerSync из зависимостей
+  }, [user, hasCheckedMigration]);
 
   const handleMigration = async (mode: "merge" | "replace") => {
     setShowMigration(false);
